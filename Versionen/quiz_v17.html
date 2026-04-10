@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Das Quiz – neues Spielprinzip</title>
+  <style>
+    :root {
+      --bg: #051622;
+      --shell: #071725;
+      --shell-2: #03101b;
+      --card: #0b2536;
+      --primary: #1e88e5;
+      --primary-dark: #0d47a1;
+      --accent: #ff9800;
+      --accent-soft: #ffb74d;
+      --text-main: #f9fbff;
+      --text-muted: #b7c3d1;
+      --radius-l: 18px;
+      --radius-s: 10px;
+      --shadow-soft: 0 18px 40px rgba(0,0,0,0.35);
+      --green-a: #64ffda;
+      --green-b: #1de9b6;
+      --red-a: #ff8a80;
+      --red-b: #ff5252;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #0d2b45 0, #020c16 60%, #000 100%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 540px;
+      min-height: auto;
+      margin: 0 auto;
+    }
+
+    .screen {
+      min-height: auto;
+    }
+
+    .hidden { display: none !important; }
+
+    .fade-in {
+      animation: fadeIn 0.32s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .welcome-card {
+      width: min(540px, 100%);
+      margin: 0 auto;
+      background: linear-gradient(135deg, var(--shell), var(--shell-2));
+      border-radius: 28px;
+      box-shadow: var(--shadow-soft);
+      padding: 28px 24px 26px;
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .welcome-card::before {
+      content: "";
+      position: absolute;
+      inset: -100px;
+      background:
+        radial-gradient(circle at top left, rgba(30,136,229,0.32), transparent 58%),
+        radial-gradient(circle at bottom right, rgba(255,152,0,0.18), transparent 58%);
+      pointer-events: none;
+    }
+
+    .welcome-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    h1, p { margin: 0; }
+
+    .welcome-card h1 {
+      margin-bottom: 10px;
+      font-size: clamp(30px, 4vw, 44px);
+      color: var(--text-main);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .welcome-card p {
+      font-size: 16px;
+      line-height: 1.45;
+      margin-bottom: 20px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 15px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: var(--text-main);
+      font-size: 18px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+    }
+
+    input[type="text"]::placeholder {
+      color: #90a4ae;
+    }
+
+    .hint {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+      justify-content: center;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      transition: transform 0.14s ease, opacity 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: scale(0.985); }
+    button:disabled { opacity: 0.55; cursor: default; transform: none; }
+
+    .btn-primary,
+    .continue-btn,
+    .primary-btn {
+      padding: 12px 28px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent-soft), var(--accent));
+      color: #031019;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: 0 12px 26px rgba(0,0,0,0.55), 0 0 18px rgba(255,152,0,0.55);
+    }
+
+    .btn-primary:hover,
+    .continue-btn:hover,
+    .primary-btn:hover {
+      filter: brightness(1.05);
+      transform: translateY(-2px);
+    }
+
+    .continue-btn.is-disabled,
+    .continue-btn:disabled {
+      background: linear-gradient(135deg, #7f8790, #5d6670);
+      color: rgba(255,255,255,0.7);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+      filter: grayscale(0.25);
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .quiz-screen {
+      width: 100%;
+      background: linear-gradient(135deg, var(--shell), var(--shell-2));
+      border-radius: 28px;
+      padding: 22px 24px 24px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(255,255,255,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quiz-screen::before {
+      content: "";
+      position: absolute;
+      inset: -120px;
+      background:
+        radial-gradient(circle at top left, rgba(30,136,229,0.35), transparent 60%),
+        radial-gradient(circle at bottom right, rgba(255,152,0,0.20), transparent 60%);
+      opacity: 0.9;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .quiz-screen > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Topbar: new 3-column header ── */
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 0;
+    }
+
+    /* Left column: name + score stacked */
+    .topbar-left {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: flex-start;
+    }
+
+    #ui-username {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: 0.03em;
+      line-height: 1.1;
+    }
+
+    #ui-score {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: 0.01em;
+      line-height: 1.1;
+    }
+
+    /* Wert label below the center pill */
+    #ui-wert {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-soft);
+      letter-spacing: 0.01em;
+      line-height: 1.1;
+      text-align: center;
+    }
+
+    /* Center: "Frage N – SCHWIERIGKEIT" pill */
+    /* ── Split label: "Frage N | LEVEL" ── */
+    #ui-round-difficulty {
+      display: flex;
+      align-items: stretch;
+      border-radius: 12px;
+      border: 2.5px solid #1e5a9c;
+      overflow: hidden;
+      background: #0b1e30;
+      white-space: nowrap;
+    }
+
+    #ui-round-difficulty .label-frage {
+      padding: 9px 18px;
+      font-size: 15px;
+      font-weight: 800;
+      color: #f0f4ff;
+      background: #0d2236;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+    }
+
+    #ui-round-difficulty .label-divider {
+      width: 2px;
+      background: #1e5a9c;
+      flex-shrink: 0;
+    }
+
+    #ui-round-difficulty .label-level {
+      padding: 9px 18px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      background: #0d2236;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s ease, text-shadow 0.2s ease;
+    }
+
+    /* LEICHT & MITTEL: orange */
+    #ui-round-difficulty.level-1 .label-level,
+    #ui-round-difficulty.level-2 .label-level {
+      color: #f5a623;
+      text-shadow: none;
+    }
+
+    /* SCHWER: orange mit rotem Glow */
+    #ui-round-difficulty.level-3 .label-level {
+      color: #f5a623;
+      text-shadow:
+        0 0 8px rgba(220, 60, 20, 0.95),
+        0 0 18px rgba(220, 60, 20, 0.6);
+    }
+
+    /* Right column: circular timer */
+    .topbar-right {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    #ui-timer {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0d2236;
+      border: 3px solid #1a6fa0;
+      color: var(--text-main);
+      font-size: 20px;
+      font-weight: 800;
+      transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    /* Penalty zone: dark red background, light-blue text → matches TimerPenalty.jpg */
+    #ui-timer.is-penalty {
+      background: #6b0f1a;
+      border-color: #8b1a2a;
+      color: #c8dce8;
+      box-shadow: 0 0 18px rgba(139,26,42,0.6);
+    }
+
+    /* progress-track removed */
+
+    .question-box {
+      border-radius: var(--radius-l);
+      background: linear-gradient(135deg, rgba(5,31,52,0.98), rgba(9,35,56,0.98));
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 18px 20px 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 12px 26px rgba(0,0,0,0.32);
+      position: relative;
+      text-align: center;
+      min-height: auto;
+      display: block;
+    }
+
+    .question-text {
+      font-size: 20px;
+      line-height: 1.35;
+      color: var(--text-main);
+      font-weight: 600;
+      margin: 0;
+      font-style: normal;
+      letter-spacing: normal;
+    }
+
+    .game-over-mode .question-text {
+      font-size: clamp(36px, 5vw, 72px);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f6fbff;
+      text-shadow: 0 0 28px rgba(30,136,229,0.22);
+    }
+
+    .answers {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Answer button: base layout ── */
+    .answer-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      border-radius: var(--radius-s);
+      background: #1c2432;
+      border: 2px solid rgba(255,255,255,0.10);
+      overflow: hidden;
+      cursor: pointer;
+      transition:
+        border-color 0.15s ease-out,
+        box-shadow 0.15s ease-out;
+      position: relative;
+      padding: 0;
+      min-height: 62px;
+    }
+
+    .answer-row:hover:not(.locked):not(.correct-state):not(.wrong-state):not(.clicked-state) {
+      border-color: rgba(255,255,255,0.28);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+
+    /* Letter badge */
+    .answer-row .letter {
+      width: 54px;
+      min-width: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0f0f0;
+      color: #0d2236;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      border-radius: 0;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    /* Answer text */
+    .answer-row .answer-text {
+      font-size: 17px;
+      color: var(--text-main);
+      font-weight: 500;
+      flex: 1;
+      text-align: left;
+      padding: 16px 18px;
+      line-height: 1.3;
+      background: #212b38;
+    }
+
+    /* Remove the ::before circle indicator */
+    .answer-row::before { display: none; }
+
+    /* ── Clicked state (yellow) ── */
+    .answer-row.clicked-state {
+      border-color: #f5e642;
+      box-shadow: 0 0 0 1px #f5e642;
+    }
+    .answer-row.clicked-state .letter {
+      background: #0d2236;
+      color: #f5e642;
+    }
+    .answer-row.clicked-state .answer-text {
+      background: #0d2236;
+    }
+
+    /* ── Correct state (green) ── */
+    .answer-row.correct-state {
+      border-color: #0aff2e;
+      box-shadow: 0 0 0 1px #0aff2e, 0 0 18px rgba(10,255,46,0.25);
+    }
+    .answer-row.correct-state .letter {
+      background: #0d2236;
+      color: #0aff2e;
+    }
+    .answer-row.correct-state .answer-text {
+      background: #0d2236;
+    }
+
+    /* ── Wrong state (red) ── */
+    .answer-row.wrong-state {
+      border-color: #f04040;
+      box-shadow: 0 0 0 1px #f04040, 0 0 18px rgba(240,64,64,0.25);
+    }
+    .answer-row.wrong-state .letter {
+      background: #0d2236;
+      color: #f04040;
+    }
+    .answer-row.wrong-state .answer-text {
+      background: #0d2236;
+    }
+
+    .below-panel {
+      margin-top: 24px;
+      min-height: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      text-align: center;
+    }
+
+    .next-answer-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .next-answer-btn {
+      width: 100%;
+      padding: 18px 28px;
+      border-radius: var(--radius-s);
+      border: none;
+      background: linear-gradient(135deg, #4a6cf7, #3b5bdb);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: 0.03em;
+      text-transform: none;
+      box-shadow: 0 8px 24px rgba(59,91,219,0.45);
+      min-width: unset;
+      max-width: 100%;
+      font-style: normal;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .next-answer-btn::before {
+      content: ">";
+      font-size: 22px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .next-answer-btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 28px rgba(59,91,219,0.55);
+    }
+
+    .result-points {
+      font-size: clamp(28px, 2.8vw, 48px);
+      font-style: normal;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--accent-soft);
+      text-shadow: 0 0 20px rgba(255,152,0,0.25);
+    }
+
+    #result-total {
+      font-size: clamp(30px, 3.2vw, 56px) !important;
+      color: var(--accent-soft);
+      font-weight: 800;
+      text-shadow: 0 0 20px rgba(255,152,0,0.25);
+    }
+
+    .small-info {
+      font-size: 18px;
+      color: var(--text-muted);
+      font-style: normal;
+    }
+
+    .continue-btn {
+      min-width: 220px;
+      min-height: unset;
+      font-size: 15px;
+      font-style: normal;
+      border: none;
+    }
+
+    .game-over-mode .question-box {
+      text-align: center;
+      background: linear-gradient(135deg, rgba(14,30,48,0.98), rgba(6,19,33,0.98));
+      border-color: rgba(255,255,255,0.08);
+      box-shadow: 0 18px 36px rgba(0,0,0,0.36);
+    }
+
+    .game-over-mode .below-panel {
+      min-height: auto;
+      align-items: center;
+      justify-content: center;
+      padding-top: 24px;
+      gap: 22px;
+    }
+
+    .game-over-summary {
+      width: 100%;
+      text-align: center;
+      padding-left: 0;
+      font-size: clamp(30px, 4vw, 54px);
+      font-style: normal;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--accent-soft);
+      text-shadow: 0 0 22px rgba(255,152,0,0.3);
+      background: linear-gradient(90deg, transparent 0%, rgba(255,152,0,0.08) 18%, rgba(255,152,0,0.16) 50%, rgba(255,152,0,0.08) 82%, transparent 100%);
+      border-radius: 16px;
+      padding-top: 14px;
+      padding-bottom: 14px;
+    }
+
+    .game-over-actions {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding-right: 0;
+    }
+
+    .game-over-actions .continue-btn {
+      min-width: 240px;
+      min-height: unset;
+      font-size: 16px;
+      border: none;
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 14px;
+      }
+
+      .quiz-screen {
+        padding: 18px 20px 20px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr auto 1fr;
+        gap: 8px;
+      }
+
+      #ui-round-difficulty .label-frage,
+      #ui-round-difficulty .label-level {
+        font-size: 12px;
+        padding: 7px 11px;
+      }
+
+      #ui-timer {
+        width: 46px;
+        height: 46px;
+        font-size: 17px;
+      }
+
+      .question-text {
+        font-size: 18px;
+      }
+
+      .answer-row {
+        padding: 14px 16px;
+      }
+
+      .answer-row .answer-text {
+        font-size: 16px;
+      }
+
+      .next-answer-btn,
+      .continue-btn,
+      .game-over-actions .continue-btn {
+        min-width: 100%;
+      }
+
+      .welcome-card {
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="screen-welcome" class="screen">
+      <div class="welcome-card">
+        <h1>Das Quiz</h1>
+        <p>Wie heißt du?</p>
+
+        <div class="field">
+          <label for="username">Name</label>
+          <input id="username" type="text" maxlength="12" placeholder="Max. 12 Zeichen" autocomplete="off" />
+          <div class="hint">Mit Enter oder Klick auf „Spiel starten“ geht es los.</div>
+        </div>
+
+        <div class="field">
+          <label for="csv-file">Fragenpool laden (optional)</label>
+          <input id="csv-file" type="file" accept=".csv" />
+          <div class="hint">Ohne CSV startet eine kleine Demo-Version.</div>
+        </div>
+
+        <div class="button-row">
+          <button id="start-btn" class="btn-primary">Spiel starten</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-quiz" class="screen quiz-screen hidden">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div id="ui-username">Username</div>
+          <div id="ui-score">Score: 0</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div id="ui-round-difficulty" class="level-1">
+            <span class="label-frage">Frage 1</span>
+            <span class="label-divider"></span>
+            <span class="label-level">LEICHT</span>
+          </div>
+          <div id="ui-wert" class="hidden">Wert: –</div>
+        </div>
+        <div class="topbar-right">
+          <div id="ui-timer">0</div>
+        </div>
+      </div>
+
+<div class="question-box">
+        <div id="question-text" class="question-text">Quizfrage</div>
+      </div>
+
+      <div id="answers" class="answers"></div>
+
+      <div class="below-panel">
+        <div id="next-answer-wrap" class="next-answer-wrap hidden">
+          <button id="next-answer-btn" class="next-answer-btn">Zeig mir die nächste Antwortoption</button>
+        </div>
+
+        <div id="result-points" class="result-points hidden">0 Punkte</div>
+        <div id="result-total" class="result-points hidden" style="font-size: clamp(30px, 2.8vw, 64px);">Neuer Score: 0 Punkte</div>
+        <div id="result-info" class="small-info hidden"></div>
+
+        <button id="continue-btn" class="continue-btn hidden">Weiter</button>
+        <button id="restart-btn" class="continue-btn hidden" style="min-width: 420px;">Nochmal</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const DEMO_CSV = `
+42036;Du reist in die Hauptstadt von Argentinien, also nach...;Buenos Aires;Córdoba;Santa Cruz;1;1
+42037;Welches Album von Michael Jackson verkaufte sich bis ins Jahr 2002 fast 50 Millionen Mal?;Bad;Thriller;Blood on the Dancefloor;2;1
+42038;Welches ist der Geburtsname von Andy Warhol?;Andrew Warhola;Steven Miller;Jossif Wissarionowitsch Dschugaschwili;1;1
+42039;Der Bildhauer Alexander Calder gilt als der Erfinder des...;Mobile;Mobilfunk;Mobiltelefon;1;1
+42040;Wie heißt die Hauptstadt von Kanada?;Toronto;Ottawa;Vancouver;2;2
+42041;Welche Sprache wird in Brasilien überwiegend gesprochen?;Spanisch;Portugiesisch;Französisch;2;2
+42042;Wie viele Kontinente gibt es im gängigen Schulmodell?;5;6;7;3;2
+42043;Welcher Planet ist als Roter Planet bekannt?;Venus;Mars;Jupiter;2;3
+42044;Wie heißt das chemische Symbol für Gold?;Ag;Au;Go;2;3
+42045;Wer schrieb „Faust“?;Schiller;Goethe;Kafka;2;3
+`.trim();
+
+    const LETTERS = ["A", "B", "C"];
+    const DIFFICULTY_LABELS = { 1: "einfach", 2: "mittel", 3: "schwer" };
+
+    const state = {
+      username: "",
+      round: 1,
+      totalScore: 0,
+      timerValue: 0,
+      timerId: null,
+      flowToken: 0,
+      currentQuestion: null,
+      currentDifficulty: 1,
+      currentVisibleAnswers: 0,
+      selectedMultiplier: 3,
+      correctStreak: 0,
+      questions: [],
+      usedIds: new Set()
+    };
+
+    const screens = {
+      welcome: document.getElementById("screen-welcome"),
+      quiz: document.getElementById("screen-quiz")
+    };
+
+    const els = {
+      usernameInput: document.getElementById("username"),
+      csvFile: document.getElementById("csv-file"),
+      startBtn: document.getElementById("start-btn"),
+      uiUsername: document.getElementById("ui-username"),
+      uiScore: document.getElementById("ui-score"),
+      uiWert: document.getElementById("ui-wert"),
+      uiRoundDifficulty: document.getElementById("ui-round-difficulty"),
+      uiTimer: document.getElementById("ui-timer"),
+      progressFilled: null, // removed
+      questionText: document.getElementById("question-text"),
+      answers: document.getElementById("answers"),
+      nextAnswerWrap: document.getElementById("next-answer-wrap"),
+      nextAnswerBtn: document.getElementById("next-answer-btn"),
+      resultPoints: document.getElementById("result-points"),
+      resultTotal: document.getElementById("result-total"),
+      resultInfo: document.getElementById("result-info"),
+      continueBtn: document.getElementById("continue-btn"),
+      restartBtn: document.getElementById("restart-btn")
+    };
+
+    function parseCsv(text) {
+      return text
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => line.split(";"))
+        .filter(cols => cols.length >= 7 && /^\d+$/.test(cols[0]))
+        .map(cols => ({
+          id: cols[0].trim(),
+          question: cols[1].trim(),
+          answers: [cols[2].trim(), cols[3].trim(), cols[4].trim()],
+          correctPosition: Number(cols[5].trim()),
+          difficulty: clampDifficulty(Number(cols[6].trim()))
+        }))
+        .filter(q => q.question && q.answers.every(Boolean) && q.correctPosition >= 1 && q.correctPosition <= 3);
+    }
+
+    function clampDifficulty(value) {
+      return Math.max(1, Math.min(3, value || 1));
+    }
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function showScreen(name) {
+      Object.values(screens).forEach(screen => screen.classList.add("hidden"));
+      screens[name].classList.remove("hidden");
+    }
+
+    function resetRun() {
+      clearInterval(state.timerId);
+      state.flowToken += 1;
+      state.round = 1;
+      state.totalScore = 0;
+      state.timerValue = 0;
+      state.currentQuestion = null;
+      state.currentDifficulty = 1;
+      state.currentVisibleAnswers = 0;
+      state.selectedMultiplier = 3;
+      state.correctStreak = 0;
+      state.usedIds = new Set();
+      resetQuizUi();
+    }
+
+    function resetQuizUi() {
+      clearInterval(state.timerId);
+      clearGameOverMode();
+      restoreBelowPanelStructure();
+      els.uiTimer.textContent = "0";
+      els.uiTimer.classList.remove("is-penalty");
+      if (els.uiWert) { els.uiWert.classList.add("hidden"); els.uiWert.textContent = "Wert: –"; }
+      els.answers.innerHTML = "";
+      els.nextAnswerWrap.className = "next-answer-wrap hidden";
+      els.resultPoints.className = "result-points hidden";
+      els.resultInfo.className = "small-info hidden";
+      els.resultTotal.className = "result-points hidden";
+      els.continueBtn.className = "continue-btn hidden";
+      els.continueBtn.disabled = false;
+      els.restartBtn.className = "continue-btn hidden";
+      els.restartBtn.disabled = false;
+      els.resultPoints.textContent = "";
+      els.resultTotal.textContent = "";
+      els.resultInfo.textContent = "";
+      els.restartBtn.textContent = "Nochmal";
+    }
+
+    function updateTimerUrgency() {
+      if (!els.uiTimer) return;
+      els.uiTimer.classList.toggle("is-penalty", state.timerValue >= 11);
+      // Live-update Wert during penalty phase
+      if (state.currentVisibleAnswers > 0 && els.uiWert && !els.uiWert.classList.contains("hidden")) {
+        const base = getBasePoints();
+        const penalty = Math.max(0, state.timerValue - 10);
+        const current = Math.max(0, base - penalty);
+        els.uiWert.textContent = `Wert: ${current}`;
+      }
+    }
+
+    function startTimer() {
+      clearInterval(state.timerId);
+      state.timerValue = 0;
+      els.uiTimer.textContent = "0";
+      els.uiTimer.classList.remove("is-penalty");
+      updateTimerUrgency();
+      state.timerId = setInterval(() => {
+        state.timerValue += 1;
+        els.uiTimer.textContent = String(state.timerValue);
+        updateTimerUrgency();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(state.timerId);
+    }
+
+    function getNextDifficulty() {
+      if (state.correctStreak === 0) return 1;
+      if (state.correctStreak === 1) return 2;
+      if (state.correctStreak === 2) return 2;
+      if (state.correctStreak === 3) return 3;
+      return 1 + Math.floor(Math.random() * 3);
+    }
+
+    function pickQuestion() {
+      if (!state.questions.length) return null;
+
+      const targetDifficulty = getNextDifficulty();
+      let available = state.questions.filter(
+        q => q.difficulty === targetDifficulty && !state.usedIds.has(q.id)
+      );
+
+      if (!available.length) {
+        available = state.questions.filter(q => q.difficulty === targetDifficulty);
+      }
+
+      if (!available.length) {
+        available = state.questions.filter(q => !state.usedIds.has(q.id));
+        if (!available.length) {
+          state.usedIds.clear();
+          available = [...state.questions];
+        }
+      }
+
+      const picked = available[Math.floor(Math.random() * available.length)];
+      state.usedIds.add(picked.id);
+      return picked;
+    }
+
+    function createAnswerRow(index, text) {
+      const button = document.createElement("button");
+      button.className = "answer-row fade-in";
+      button.type = "button";
+      button.dataset.position = String(index + 1);
+
+      const letter = document.createElement("div");
+      letter.className = "letter";
+      letter.textContent = LETTERS[index];
+
+      const answerText = document.createElement("div");
+      answerText.className = "answer-text";
+      answerText.textContent = text;
+
+      button.appendChild(letter);
+      button.appendChild(answerText);
+      button.addEventListener("click", () => chooseAnswer(index + 1));
+
+      return button;
+    }
+
+    function renderVisibleAnswers(count) {
+      els.answers.innerHTML = "";
+      for (let i = 0; i < count; i += 1) {
+        els.answers.appendChild(createAnswerRow(i, state.currentQuestion.answers[i]));
+      }
+    }
+
+    function difficultyLabel(difficulty) {
+      return DIFFICULTY_LABELS[difficulty] || "einfach";
+    }
+
+    async function loadRound() {
+      resetQuizUi();
+      const token = ++state.flowToken;
+      const question = pickQuestion();
+
+      if (!question) {
+        alert("Keine Fragen verfügbar.");
+        showScreen("welcome");
+        return;
+      }
+
+      state.currentQuestion = question;
+      state.currentDifficulty = question.difficulty;
+      state.currentVisibleAnswers = 0;
+      state.selectedMultiplier = 3;
+
+      els.uiUsername.textContent = state.username;
+
+      // Update split label: "Frage N" | "LEICHT/MITTEL/SCHWER"
+      const levelLabels = { 1: "LEICHT", 2: "MITTEL", 3: "SCHWER" };
+      const lvl = question.difficulty;
+      els.uiRoundDifficulty.querySelector(".label-frage").textContent = `Frage ${state.round}`;
+      els.uiRoundDifficulty.querySelector(".label-level").textContent = levelLabels[lvl] || "LEICHT";
+      els.uiRoundDifficulty.className = `level-${lvl}`;
+
+      els.uiScore.textContent = `Score: ${state.totalScore}`;
+      els.questionText.textContent = question.question;
+      els.questionText.classList.remove("fade-in");
+      void els.questionText.offsetWidth;
+      els.questionText.classList.add("fade-in");
+
+      showScreen("quiz");
+
+      await wait(1000);
+      if (token !== state.flowToken) return;
+
+      state.currentVisibleAnswers = 1;
+      renderVisibleAnswers(1);
+      startTimer();
+      updateNextAnswerButton();
+
+      // Show Wert once first answer option is visible
+      if (els.uiWert) {
+        els.uiWert.textContent = `Wert: ${getBasePoints()}`;
+        els.uiWert.classList.remove("hidden");
+      }
+    }
+
+    function updateNextAnswerButton() {
+      const showButton = state.currentVisibleAnswers < 3;
+      els.nextAnswerWrap.classList.toggle("hidden", !showButton);
+    }
+
+    function revealNextAnswer() {
+      if (!state.currentQuestion) return;
+      if (state.currentVisibleAnswers >= 3) return;
+
+      state.currentVisibleAnswers += 1;
+      state.selectedMultiplier = Math.max(1, 4 - state.currentVisibleAnswers);
+      renderVisibleAnswers(state.currentVisibleAnswers);
+      updateNextAnswerButton();
+
+      // Update Wert to reflect new multiplier
+      if (els.uiWert) {
+        const base = getBasePoints();
+        const penalty = Math.max(0, state.timerValue - 10);
+        els.uiWert.textContent = `Wert: ${Math.max(0, base - penalty)}`;
+      }
+    }
+
+    function getBasePoints() {
+      return state.currentDifficulty * 10 * state.selectedMultiplier;
+    }
+
+    function chooseAnswer(position) {
+      if (!state.currentQuestion) return;
+
+      stopTimer();
+      els.nextAnswerWrap.classList.add("hidden");
+      lockAllAnswers();
+
+      // Show clicked state immediately
+      const clickedRow = [...els.answers.children].find(btn => Number(btn.dataset.position) === position);
+      if (clickedRow) clickedRow.classList.add("clicked-state");
+
+      // Wait 1 second before revealing result
+      window.setTimeout(() => {
+        if (clickedRow) clickedRow.classList.remove("clicked-state");
+        const isCorrect = position === state.currentQuestion.correctPosition;
+        if (isCorrect) {
+          handleCorrect();
+        } else {
+          handleWrong(position);
+        }
+      }, 1000);
+    }
+
+    function lockAllAnswers() {
+      [...els.answers.children].forEach(btn => {
+        btn.classList.add("locked");
+        btn.disabled = true;
+      });
+    }
+
+    function showContinueDisabledThenEnable(showTotalLater) {
+      els.continueBtn.classList.remove("hidden");
+      els.continueBtn.classList.add("is-disabled");
+      els.continueBtn.disabled = true;
+      els.continueBtn.classList.add("fade-in");
+
+      window.setTimeout(() => {
+        if (showTotalLater) {
+          els.resultTotal.classList.remove("hidden");
+          els.resultTotal.classList.add("fade-in");
+        }
+        els.continueBtn.disabled = false;
+        els.continueBtn.classList.remove("is-disabled");
+      }, 2000);
+    }
+
+    function clearGameOverMode() {
+      document.body.classList.remove("game-over-mode");
+    }
+
+    function renderGameOverSummary(totalText) {
+      els.resultPoints.className = "game-over-summary";
+      els.resultPoints.textContent = totalText;
+      els.resultPoints.classList.remove("hidden");
+      els.resultPoints.classList.add("fade-in");
+
+      els.restartBtn.className = "continue-btn hidden";
+      const actions = document.createElement("div");
+      actions.className = "game-over-actions fade-in";
+      actions.appendChild(els.restartBtn);
+      els.restartBtn.textContent = "Nochmal";
+      els.restartBtn.classList.remove("hidden");
+
+      els.continueBtn.classList.add("hidden");
+      els.resultInfo.classList.add("hidden");
+      els.resultTotal.classList.add("hidden");
+
+      const panel = document.querySelector(".below-panel");
+      panel.innerHTML = "";
+      panel.appendChild(els.resultPoints);
+      panel.appendChild(actions);
+    }
+
+    function restoreBelowPanelStructure() {
+      const panel = document.querySelector(".below-panel");
+      panel.innerHTML = "";
+      panel.appendChild(els.nextAnswerWrap);
+      panel.appendChild(els.resultPoints);
+      panel.appendChild(els.resultTotal);
+      panel.appendChild(els.resultInfo);
+      panel.appendChild(els.continueBtn);
+      panel.appendChild(els.restartBtn);
+    }
+
+    function handleWrong(position) {
+      const row = [...els.answers.children].find(btn => Number(btn.dataset.position) === position);
+      if (row) row.classList.add("wrong-state");
+
+      // After 1 second: show correct answer in green, then game over
+      window.setTimeout(() => {
+        // Find and highlight the correct answer among visible buttons
+        const correctPos = state.currentQuestion.correctPosition;
+        const correctRow = [...els.answers.children].find(btn => Number(btn.dataset.position) === correctPos);
+        if (correctRow) {
+          correctRow.classList.add("correct-state");
+        } else {
+          // Correct answer not visible – append it
+          const correctText = state.currentQuestion.answers[correctPos - 1];
+          const newRow = createAnswerRow(correctPos - 1, correctText);
+          newRow.disabled = true;
+          newRow.classList.add("locked", "correct-state");
+          newRow.dataset.position = String(correctPos);
+          els.answers.appendChild(newRow);
+        }
+
+        // Trigger game over after a short pause to let user see the correct answer
+        window.setTimeout(() => {
+          document.body.classList.add("game-over-mode");
+          stopTimer();
+
+          const totalText = state.totalScore > 0
+            ? `${state.totalScore} Punkte - Gratulation!`
+            : `0 Punkte`;
+
+          els.answers.innerHTML = "";
+          els.questionText.textContent = "Game Over!";
+          els.questionText.classList.remove("fade-in");
+          void els.questionText.offsetWidth;
+          els.questionText.classList.add("fade-in");
+
+          window.setTimeout(() => {
+            renderGameOverSummary(totalText);
+            els.restartBtn.classList.add("is-disabled");
+            els.restartBtn.disabled = true;
+            window.setTimeout(() => {
+              els.restartBtn.disabled = false;
+              els.restartBtn.classList.remove("is-disabled");
+            }, 1200);
+          }, 250);
+        }, 1200);
+      }, 1000);
+    }
+
+    function handleCorrect() {
+      const basePoints = getBasePoints();
+      const penaltyPoints = Math.max(0, state.timerValue - 10);
+      const finalPoints = basePoints - penaltyPoints;
+
+      if (finalPoints < 0) {
+        handleWrong(0);
+        return;
+      }
+
+      state.totalScore += finalPoints;
+      state.correctStreak += 1;
+
+      // Update score display in header
+      if (els.uiScore) els.uiScore.textContent = `Score: ${state.totalScore}`;
+
+      const correctText = state.currentQuestion.answers[state.currentQuestion.correctPosition - 1];
+
+      els.answers.innerHTML = "";
+      const correctRow = createAnswerRow(0, correctText);
+      correctRow.disabled = true;
+      correctRow.classList.add("locked", "correct-state");
+      correctRow.dataset.position = "1";
+      els.answers.appendChild(correctRow);
+
+      els.resultPoints.textContent = `${finalPoints} Punkte`;
+      els.resultPoints.classList.remove("hidden");
+      els.resultPoints.classList.add("fade-in");
+
+      const showTotalLater = state.round >= 2;
+      if (showTotalLater) {
+        els.resultTotal.textContent = `Score: ${state.totalScore} Punkte`;
+        els.resultTotal.classList.add("hidden");
+      } else {
+        els.resultTotal.textContent = "";
+        els.resultTotal.classList.add("hidden");
+      }
+
+      if (penaltyPoints > 0) {
+        els.resultInfo.textContent = `Basis ${basePoints} – ${penaltyPoints} Punkte Zeitabzug`;
+        els.resultInfo.classList.remove("hidden");
+        els.resultInfo.classList.add("fade-in");
+      } else {
+        els.resultInfo.textContent = "";
+        els.resultInfo.classList.add("hidden");
+      }
+
+      showContinueDisabledThenEnable(showTotalLater);
+    }
+
+    function nextRound() {
+      state.round += 1;
+      loadRound();
+    }
+
+    function startGame() {
+      const rawName = els.usernameInput.value.trim();
+      if (!rawName) {
+        alert("Bitte gib zuerst einen Namen ein.");
+        els.usernameInput.focus();
+        return;
+      }
+
+      state.username = rawName.slice(0, 12);
+      resetRun();
+      loadRound();
+    }
+
+    function loadDefaultQuestions() {
+      state.questions = parseCsv(DEMO_CSV);
+    }
+
+    els.startBtn.addEventListener("click", startGame);
+    els.usernameInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") startGame();
+    });
+
+    els.nextAnswerBtn.addEventListener("click", revealNextAnswer);
+    els.continueBtn.addEventListener("click", nextRound);
+    els.restartBtn.addEventListener("click", () => {
+      resetRun();
+      loadRound();
+    });
+
+    els.csvFile.addEventListener("change", async event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const parsed = parseCsv(text);
+      if (!parsed.length) {
+        alert("Die CSV konnte nicht gelesen werden. Bitte Format prüfen.");
+        return;
+      }
+      state.questions = parsed;
+    });
+
+    loadDefaultQuestions();
+  </script>
+</body>
+</html>
