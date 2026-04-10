@@ -1475,13 +1475,13 @@
       els.highscoreList.appendChild(table);
     }
 
-    els.startBtn.addEventListener("click", startGame);
-    els.usernameInput.addEventListener("keydown", event => {
+    if (els.startBtn) els.startBtn.addEventListener("click", startGame);
+    if (els.usernameInput) els.usernameInput.addEventListener("keydown", event => {
       if (event.key === "Enter") startGame();
     });
 
-    els.highscoreBtn.addEventListener("click", showHighscores);
-    els.backBtn.addEventListener("click", () => showScreen("welcome"));
+    if (els.highscoreBtn) els.highscoreBtn.addEventListener("click", showHighscores);
+    if (els.backBtn) els.backBtn.addEventListener("click", () => showScreen("welcome"));
 
     els.nextAnswerBtn.addEventListener("click", revealNextAnswer);
     els.continueBtn.addEventListener("click", nextRound);
