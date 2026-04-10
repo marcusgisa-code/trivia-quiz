@@ -304,83 +304,82 @@
     /* ── Topbar: new 3-column header ── */
     .topbar {
       display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      grid-template-columns: auto 1fr auto;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 18px;
-      padding: 0;
+      gap: 14px;
+      margin-bottom: 20px;
     }
 
-    /* Left column: name + score in bordered box */
+    /* Left: Name + Score */
     .topbar-left {
       display: flex;
       flex-direction: column;
-      gap: 0;
-      align-items: stretch;
-      border: 2px solid rgba(255,255,255,0.75);
-      border-radius: 8px;
-      padding: 8px 14px;
+      gap: 2px;
+      padding: 10px 16px;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      min-width: 120px;
     }
 
     #ui-username {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--text-main);
-      letter-spacing: 0.06em;
+      letter-spacing: 0.07em;
       text-transform: uppercase;
-      line-height: 1.25;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 130px;
     }
 
     #ui-score {
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-soft);
       letter-spacing: 0.04em;
-      text-transform: uppercase;
-      line-height: 1.25;
+      line-height: 1.2;
     }
 
-    /* Wert is now part of the label grid → see .label-wert-value */
-
-    /* ── Split label: 2×2 grid ── */
+    /* Center: 2×2 split pill */
     #ui-round-difficulty {
       display: grid;
-      grid-template-columns: 1fr 2px 1fr;
+      grid-template-columns: 1fr 1px 1fr;
       grid-template-rows: auto 1px auto;
-      border-radius: 12px;
-      border: 2.5px solid #1e5a9c;
+      border-radius: 14px;
+      border: 2px solid rgba(30,136,229,0.55);
       overflow: hidden;
-      background: #0d2236;
+      background: rgba(13,34,54,0.9);
       white-space: nowrap;
+      box-shadow: 0 0 20px rgba(30,136,229,0.12);
     }
 
     #ui-round-difficulty .label-frage {
-      grid-column: 1;
-      grid-row: 1;
-      padding: 8px 16px;
-      font-size: 14px;
+      grid-column: 1; grid-row: 1;
+      padding: 9px 18px;
+      font-size: 13px;
       font-weight: 700;
-      color: #f0f4ff;
-      letter-spacing: 0.02em;
+      color: var(--text-main);
+      letter-spacing: 0.04em;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     #ui-round-difficulty .label-divider {
-      grid-column: 2;
-      grid-row: 1 / 4;
-      background: #1e5a9c;
-      width: 2px;
+      grid-column: 2; grid-row: 1 / 4;
+      background: rgba(30,136,229,0.45);
     }
 
     #ui-round-difficulty .label-level {
-      grid-column: 3;
-      grid-row: 1;
-      padding: 8px 16px;
-      font-size: 14px;
+      grid-column: 3; grid-row: 1;
+      padding: 9px 18px;
+      font-size: 13px;
       font-weight: 800;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -388,32 +387,30 @@
     }
 
     #ui-round-difficulty .label-hline {
-      grid-column: 1 / 4;
-      grid-row: 2;
+      grid-column: 1 / 4; grid-row: 2;
       height: 1px;
-      background: #1e5a9c;
+      background: rgba(30,136,229,0.35);
     }
 
     #ui-round-difficulty .label-wert-title {
-      grid-column: 1;
-      grid-row: 3;
-      padding: 7px 16px;
-      font-size: 13px;
-      font-weight: 700;
-      color: #f0f4ff;
-      letter-spacing: 0.02em;
+      grid-column: 1; grid-row: 3;
+      padding: 7px 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     #ui-round-difficulty .label-wert-value {
-      grid-column: 3;
-      grid-row: 3;
-      padding: 7px 16px;
+      grid-column: 3; grid-row: 3;
+      padding: 7px 18px;
       font-size: 13px;
       font-weight: 800;
-      color: #f5a623;
+      color: var(--accent-soft);
       letter-spacing: 0.03em;
       display: flex;
       align-items: center;
@@ -421,22 +418,17 @@
       transition: color 0.15s ease;
     }
 
-    /* LEICHT & MITTEL: orange */
     #ui-round-difficulty.level-1 .label-level,
     #ui-round-difficulty.level-2 .label-level {
-      color: #f5a623;
-      text-shadow: none;
+      color: var(--accent-soft);
     }
 
-    /* SCHWER: orange mit rotem Glow */
     #ui-round-difficulty.level-3 .label-level {
-      color: #f5a623;
-      text-shadow:
-        0 0 8px rgba(220, 60, 20, 0.95),
-        0 0 18px rgba(220, 60, 20, 0.6);
+      color: #ff8a50;
+      text-shadow: 0 0 10px rgba(255,100,30,0.7), 0 0 22px rgba(255,100,30,0.35);
     }
 
-    /* Right column: circular timer */
+    /* Right: circular timer */
     .topbar-right {
       display: flex;
       justify-content: flex-end;
@@ -444,26 +436,26 @@
     }
 
     #ui-timer {
-      width: 56px;
-      height: 56px;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0d2236;
-      border: 3px solid #1a6fa0;
+      background: rgba(13,34,54,0.9);
+      border: 2.5px solid rgba(30,136,229,0.6);
       color: var(--text-main);
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 800;
+      box-shadow: 0 0 16px rgba(30,136,229,0.18);
       transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
     }
 
-    /* Penalty zone: dark red background, light-blue text → matches TimerPenalty.jpg */
     #ui-timer.is-penalty {
-      background: #6b0f1a;
-      border-color: #8b1a2a;
-      color: #c8dce8;
-      box-shadow: 0 0 18px rgba(139,26,42,0.6);
+      background: rgba(107,15,26,0.9);
+      border-color: rgba(200,40,60,0.8);
+      color: #ffd5d5;
+      box-shadow: 0 0 20px rgba(200,40,60,0.45);
     }
 
     /* progress-track removed */
@@ -737,20 +729,34 @@
       }
 
       .topbar {
-        grid-template-columns: 1fr auto 1fr;
+        grid-template-columns: auto 1fr auto;
         gap: 8px;
       }
+
+      .topbar-left {
+        padding: 8px 12px;
+        min-width: 90px;
+      }
+
+      #ui-username { font-size: 13px; max-width: 100px; }
+      #ui-score { font-size: 12px; }
 
       #ui-round-difficulty .label-frage,
       #ui-round-difficulty .label-level {
         font-size: 12px;
-        padding: 7px 11px;
+        padding: 7px 12px;
+      }
+
+      #ui-round-difficulty .label-wert-title,
+      #ui-round-difficulty .label-wert-value {
+        font-size: 11px;
+        padding: 6px 12px;
       }
 
       #ui-timer {
-        width: 46px;
-        height: 46px;
-        font-size: 17px;
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
       }
 
       .question-text {
