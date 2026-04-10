@@ -1390,7 +1390,7 @@
       loadRound();
     }
 
-    function startGame() {
+    async function startGame() {
       const rawName = els.usernameInput.value.trim();
       if (!rawName) {
         alert("Bitte gib zuerst einen Namen ein.");
@@ -1408,6 +1408,25 @@
 
       state.username = rawName.slice(0, 12);
       state.ort = rawOrt.slice(0, 40);
+
+      // Sicherstellen dass Fragen geladen sind
+      if (!state.questions.length) {
+        els.startBtn.disabled = true;
+        els.loadingHint.classList.remove("hidden");
+        try {
+          const res = await fetch(`${API_URL}?count=50`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length) state.questions = data;
+          }
+        } catch (e) { /* ignored */ }
+        if (!state.questions.length) {
+          state.questions = parseCsv(DEMO_CSV);
+        }
+        els.loadingHint.classList.add("hidden");
+        els.startBtn.disabled = false;
+      }
+
       resetRun();
       loadRound();
     }
@@ -1415,22 +1434,12 @@
     const API_URL = "https://trivia-quiz-api.marcus-gisa1.workers.dev";
 
     async function loadQuestionsFromAPI() {
-      els.loadingHint.classList.remove("hidden");
-      els.startBtn.disabled = true;
       try {
         const res = await fetch(`${API_URL}?count=50`);
-        if (!res.ok) throw new Error("API error");
+        if (!res.ok) return;
         const data = await res.json();
-        if (data && data.length) {
-          state.questions = data;
-        }
-      } catch (e) {
-        // Fallback auf Demo-Fragen
-        state.questions = parseCsv(DEMO_CSV);
-      } finally {
-        els.loadingHint.classList.add("hidden");
-        els.startBtn.disabled = false;
-      }
+        if (data && data.length) state.questions = data;
+      } catch (e) { /* silent fallback — startGame handles missing questions */ }
     }
 
     async function showHighscores() {
