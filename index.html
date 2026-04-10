@@ -116,6 +116,19 @@
       margin-bottom: 16px;
     }
 
+    .field-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .field-row .field {
+      margin-bottom: 0;
+    }
+
+    .field-plz { flex: 0 0 110px; }
+    .field-ort { flex: 1; }
+
     label {
       font-size: 13px;
       font-weight: 800;
@@ -707,13 +720,28 @@
         <h1>Das Quiz</h1>
         <p>Wie heißt du?</p>
 
-        <div class="field">
-          <label for="username">Name</label>
-          <input id="username" type="text" maxlength="12" placeholder="Max. 12 Zeichen" autocomplete="off" />
-          <div class="hint">Mit Enter oder Klick auf „Spiel starten“ geht es los.</div>
+        <div class=”field”>
+          <label for=”username”>Name</label>
+          <input id=”username” type=”text” maxlength=”12” placeholder=”Max. 12 Zeichen” autocomplete=”off” />
         </div>
 
-        <div class="button-row">
+        <div class=”field-row”>
+          <div class=”field field-plz”>
+            <label for=”plz”>PLZ</label>
+            <input id=”plz” type=”text” maxlength=”10” placeholder=”12345” autocomplete=”postal-code” />
+          </div>
+          <div class=”field field-ort”>
+            <label for=”ort”>Ort</label>
+            <input id=”ort” type=”text” maxlength=”40” placeholder=”Berlin” autocomplete=”address-level2” />
+          </div>
+        </div>
+
+        <div class=”field”>
+          <label for=”land”>Land</label>
+          <input id=”land” type=”text” maxlength=”40” placeholder=”Deutschland” autocomplete=”country-name” />
+        </div>
+
+        <div class=”button-row”>
           <button id="start-btn" class="btn-primary">Spiel starten</button>
         </div>
         <div id="loading-hint" class="hint hidden">Fragen werden geladen…</div>
@@ -776,14 +804,14 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.saveScore = async function(username, score) {
+    window.saveScore = async function(username, score, plz, ort, land) {
       if (!username || score <= 0) return;
       try {
-        await addDoc(collection(db, "scores"), {
-          username,
-          score,
-          timestamp: serverTimestamp()
-        });
+        const entry = { username, score, timestamp: serverTimestamp() };
+        if (plz) entry.plz = plz;
+        if (ort) entry.ort = ort;
+        if (land) entry.land = land;
+        await addDoc(collection(db, "scores"), entry);
       } catch (e) {
         console.warn("Score konnte nicht gespeichert werden:", e);
       }
@@ -809,6 +837,9 @@
 
     const state = {
       username: "",
+      plz: "",
+      ort: "",
+      land: "",
       round: 1,
       totalScore: 0,
       timerValue: 0,
@@ -830,6 +861,9 @@
 
     const els = {
       usernameInput: document.getElementById("username"),
+      plzInput: document.getElementById("plz"),
+      ortInput: document.getElementById("ort"),
+      landInput: document.getElementById("land"),
       loadingHint: document.getElementById("loading-hint"),
       startBtn: document.getElementById("start-btn"),
       uiUsername: document.getElementById("ui-username"),
@@ -1206,7 +1240,7 @@
           window.setTimeout(() => {
             renderGameOverSummary(totalText);
             if (typeof window.saveScore === "function") {
-              window.saveScore(state.username, state.totalScore);
+              window.saveScore(state.username, state.totalScore, state.plz, state.ort, state.land);
             }
             els.restartBtn.classList.add("is-disabled");
             els.restartBtn.disabled = true;
@@ -1283,6 +1317,9 @@
       }
 
       state.username = rawName.slice(0, 12);
+      state.plz = els.plzInput.value.trim().slice(0, 10);
+      state.ort = els.ortInput.value.trim().slice(0, 40);
+      state.land = els.landInput.value.trim().slice(0, 40);
       resetRun();
       loadRound();
     }
