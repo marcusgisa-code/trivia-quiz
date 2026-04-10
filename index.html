@@ -728,17 +728,17 @@
         <div class=”field-row”>
           <div class=”field field-plz”>
             <label for=”plz”>PLZ</label>
-            <input id=”plz” type=”text” maxlength=”10” placeholder=”12345” autocomplete=”postal-code” />
+            <input id=”plz” type=”text” maxlength=”10” placeholder=”12345” autocomplete=”postal-code” required />
           </div>
           <div class=”field field-ort”>
             <label for=”ort”>Ort</label>
-            <input id=”ort” type=”text” maxlength=”40” placeholder=”Berlin” autocomplete=”address-level2” />
+            <input id=”ort” type=”text” maxlength=”40” placeholder=”Berlin” autocomplete=”address-level2” required />
           </div>
         </div>
 
         <div class=”field”>
           <label for=”land”>Land</label>
-          <input id=”land” type=”text” maxlength=”40” placeholder=”Deutschland” autocomplete=”country-name” />
+          <input id=”land” type=”text” maxlength=”40” placeholder=”Deutschland” autocomplete=”country-name” required />
         </div>
 
         <div class=”button-row”>
@@ -807,11 +807,9 @@
     window.saveScore = async function(username, score, plz, ort, land) {
       if (!username || score <= 0) return;
       try {
-        const entry = { username, score, timestamp: serverTimestamp() };
-        if (plz) entry.plz = plz;
-        if (ort) entry.ort = ort;
-        if (land) entry.land = land;
-        await addDoc(collection(db, "scores"), entry);
+        await addDoc(collection(db, "scores"), {
+          username, score, plz, ort, land, timestamp: serverTimestamp()
+        });
       } catch (e) {
         console.warn("Score konnte nicht gespeichert werden:", e);
       }
@@ -1316,10 +1314,30 @@
         return;
       }
 
+      const rawPlz = els.plzInput.value.trim();
+      const rawOrt = els.ortInput.value.trim();
+      const rawLand = els.landInput.value.trim();
+
+      if (!rawPlz) {
+        alert("Bitte gib deine Postleitzahl ein.");
+        els.plzInput.focus();
+        return;
+      }
+      if (!rawOrt) {
+        alert("Bitte gib deinen Ort ein.");
+        els.ortInput.focus();
+        return;
+      }
+      if (!rawLand) {
+        alert("Bitte gib dein Land ein.");
+        els.landInput.focus();
+        return;
+      }
+
       state.username = rawName.slice(0, 12);
-      state.plz = els.plzInput.value.trim().slice(0, 10);
-      state.ort = els.ortInput.value.trim().slice(0, 40);
-      state.land = els.landInput.value.trim().slice(0, 40);
+      state.plz = rawPlz.slice(0, 10);
+      state.ort = rawOrt.slice(0, 40);
+      state.land = rawLand.slice(0, 40);
       resetRun();
       loadRound();
     }
