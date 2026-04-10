@@ -1,7 +1,7 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Content-Type': 'application/json',
+  'Content-Type': 'application/json; charset=utf-8',
 };
 
 export default {
