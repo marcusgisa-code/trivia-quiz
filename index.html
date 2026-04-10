@@ -760,6 +760,36 @@
     </section>
   </div>
 
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBJ4iLxCmCDq_wLIADbVwupGoaHgktVZDU",
+      authDomain: "gisaquiz-cbae5.firebaseapp.com",
+      projectId: "gisaquiz-cbae5",
+      storageBucket: "gisaquiz-cbae5.firebasestorage.app",
+      messagingSenderId: "441662458718",
+      appId: "1:441662458718:web:b61ae975e480b9d2339dcf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.saveScore = async function(username, score) {
+      if (!username || score <= 0) return;
+      try {
+        await addDoc(collection(db, "scores"), {
+          username,
+          score,
+          timestamp: serverTimestamp()
+        });
+      } catch (e) {
+        console.warn("Score konnte nicht gespeichert werden:", e);
+      }
+    };
+  </script>
+
   <script>
     const DEMO_CSV = `
 42036;Du reist in die Hauptstadt von Argentinien, also nach...;Buenos Aires;Córdoba;Santa Cruz;1;1
@@ -1175,6 +1205,9 @@
 
           window.setTimeout(() => {
             renderGameOverSummary(totalText);
+            if (typeof window.saveScore === "function") {
+              window.saveScore(state.username, state.totalScore);
+            }
             els.restartBtn.classList.add("is-disabled");
             els.restartBtn.disabled = true;
             window.setTimeout(() => {
