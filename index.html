@@ -199,6 +199,70 @@
       transform: translateY(-2px);
     }
 
+    .btn-secondary {
+      padding: 12px 28px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #1e88e5, #0d47a1);
+      color: #f9fbff;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: 0 12px 26px rgba(0,0,0,0.55), 0 0 18px rgba(30,136,229,0.4);
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+
+    .hs-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .hs-table th {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 6px 6px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      text-align: left;
+    }
+
+    .hs-table th.hs-score { text-align: right; }
+
+    .hs-table td {
+      padding: 10px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      color: var(--text-main);
+      font-size: 15px;
+    }
+
+    .hs-rank {
+      width: 32px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .hs-score {
+      color: var(--accent-soft);
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .hs-loading {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 24px 0;
+      font-size: 15px;
+    }
+
     .continue-btn.is-disabled,
     .continue-btn:disabled {
       background: linear-gradient(135deg, #7f8790, #5d6670);
@@ -742,9 +806,20 @@
         </div>
 
         <div class=”button-row”>
-          <button id="start-btn" class="btn-primary">Spiel starten</button>
+          <button id=”start-btn” class=”btn-primary”>Spiel starten</button>
+          <button id=”highscore-btn” class=”btn-secondary”>Highscore</button>
         </div>
         <div id="loading-hint" class="hint hidden">Fragen werden geladen…</div>
+      </div>
+    </section>
+
+    <section id="screen-highscore" class="screen hidden">
+      <div class="welcome-card">
+        <h1>Highscore</h1>
+        <div id="highscore-list"><p class="hs-loading">Wird geladen…</p></div>
+        <div class="button-row" style="margin-top: 24px;">
+          <button id="back-btn" class="btn-secondary">← Zurück</button>
+        </div>
       </div>
     </section>
 
@@ -790,7 +865,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBJ4iLxCmCDq_wLIADbVwupGoaHgktVZDU",
@@ -812,6 +887,17 @@
         });
       } catch (e) {
         console.warn("Score konnte nicht gespeichert werden:", e);
+      }
+    };
+
+    window.loadHighscores = async function() {
+      try {
+        const q = query(collection(db, "scores"), orderBy("score", "desc"), limit(10));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => d.data());
+      } catch(e) {
+        console.warn("Highscores konnten nicht geladen werden:", e);
+        return [];
       }
     };
   </script>
@@ -854,7 +940,8 @@
 
     const screens = {
       welcome: document.getElementById("screen-welcome"),
-      quiz: document.getElementById("screen-quiz")
+      quiz: document.getElementById("screen-quiz"),
+      highscore: document.getElementById("screen-highscore")
     };
 
     const els = {
@@ -863,6 +950,9 @@
       ortInput: document.getElementById("ort"),
       landInput: document.getElementById("land"),
       loadingHint: document.getElementById("loading-hint"),
+      highscoreList: document.getElementById("highscore-list"),
+      backBtn: document.getElementById("back-btn"),
+      highscoreBtn: document.getElementById("highscore-btn"),
       startBtn: document.getElementById("start-btn"),
       uiUsername: document.getElementById("ui-username"),
       uiScore: document.getElementById("ui-score"),
@@ -1174,9 +1264,16 @@
       els.restartBtn.className = "continue-btn hidden";
       const actions = document.createElement("div");
       actions.className = "game-over-actions fade-in";
+      actions.style.gap = "12px";
       actions.appendChild(els.restartBtn);
       els.restartBtn.textContent = "Nochmal";
       els.restartBtn.classList.remove("hidden");
+
+      const hsBtn = document.createElement("button");
+      hsBtn.className = "btn-secondary";
+      hsBtn.textContent = "Highscore";
+      hsBtn.addEventListener("click", () => showHighscores());
+      actions.appendChild(hsBtn);
 
       els.continueBtn.classList.add("hidden");
       els.resultInfo.classList.add("hidden");
@@ -1363,10 +1460,46 @@
       }
     }
 
+    async function showHighscores() {
+      showScreen("highscore");
+      els.highscoreList.innerHTML = '<p class="hs-loading">Wird geladen…</p>';
+      const scores = typeof window.loadHighscores === "function"
+        ? await window.loadHighscores()
+        : [];
+      if (!scores.length) {
+        els.highscoreList.innerHTML = '<p class="hs-loading">Noch keine Einträge.</p>';
+        return;
+      }
+      const table = document.createElement("table");
+      table.className = "hs-table";
+      table.innerHTML = `<thead><tr>
+        <th class="hs-rank">#</th>
+        <th>Name</th>
+        <th>Ort</th>
+        <th class="hs-score">Score</th>
+      </tr></thead>`;
+      const tbody = document.createElement("tbody");
+      scores.forEach((s, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="hs-rank">${i + 1}</td>
+          <td>${s.username || "–"}</td>
+          <td>${[s.ort, s.land].filter(Boolean).join(", ") || "–"}</td>
+          <td class="hs-score">${s.score}</td>`;
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      els.highscoreList.innerHTML = "";
+      els.highscoreList.appendChild(table);
+    }
+
     els.startBtn.addEventListener("click", startGame);
     els.usernameInput.addEventListener("keydown", event => {
       if (event.key === "Enter") startGame();
     });
+
+    els.highscoreBtn.addEventListener("click", showHighscores);
+    els.backBtn.addEventListener("click", () => showScreen("welcome"));
 
     els.nextAnswerBtn.addEventListener("click", revealNextAnswer);
     els.continueBtn.addEventListener("click", nextRound);
