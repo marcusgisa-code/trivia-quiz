@@ -302,161 +302,120 @@
     }
 
     /* ── Topbar: new 3-column header ── */
+    /* ── Topbar ── */
     .topbar {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
+      display: flex;
       align-items: center;
-      gap: 14px;
+      justify-content: space-between;
+      gap: 12px;
       margin-bottom: 20px;
     }
 
-    /* Left: Name + Score */
-    .topbar-left {
+    /* Left: player pill */
+    .tb-player {
+      background: #162035;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: 8px 18px 8px 8px;
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: 10px 16px;
-      border: 1.5px solid rgba(255,255,255,0.18);
-      border-radius: 12px;
-      background: rgba(255,255,255,0.04);
-      min-width: 120px;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .tb-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(55,138,221,0.15);
+      border: 1.5px solid rgba(55,138,221,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #378ADD;
+      flex-shrink: 0;
+      text-transform: uppercase;
     }
 
     #ui-username {
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 14px;
+      font-weight: 700;
       color: var(--text-main);
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
       line-height: 1.2;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 130px;
     }
 
     #ui-score {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--accent-soft);
-      letter-spacing: 0.04em;
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
       line-height: 1.2;
     }
 
-    /* Center: 2×2 split pill */
-    #ui-round-difficulty {
-      display: grid;
-      grid-template-columns: 1fr 1px 1fr;
-      grid-template-rows: auto 1px auto;
-      border-radius: 14px;
-      border: 2px solid rgba(30,136,229,0.55);
-      overflow: hidden;
-      background: rgba(13,34,54,0.9);
-      white-space: nowrap;
-      box-shadow: 0 0 20px rgba(30,136,229,0.12);
+    /* Center: three chips */
+    .tb-chips {
+      display: flex;
+      gap: 8px;
     }
 
-    #ui-round-difficulty .label-frage {
-      grid-column: 1; grid-row: 1;
-      padding: 9px 18px;
-      font-size: 13px;
+    .tb-chip {
+      background: #162035;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 7px 18px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .c-label {
+      font-size: 9px;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .c-val {
+      font-size: 16px;
       font-weight: 700;
       color: var(--text-main);
-      letter-spacing: 0.04em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      line-height: 1.1;
     }
 
-    #ui-round-difficulty .label-divider {
-      grid-column: 2; grid-row: 1 / 4;
-      background: rgba(30,136,229,0.45);
-    }
+    .tb-gold { color: #f5a623; }
 
-    #ui-round-difficulty .label-level {
-      grid-column: 3; grid-row: 1;
-      padding: 9px 18px;
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: color 0.2s ease, text-shadow 0.2s ease;
-    }
-
-    #ui-round-difficulty .label-hline {
-      grid-column: 1 / 4; grid-row: 2;
-      height: 1px;
-      background: rgba(30,136,229,0.35);
-    }
-
-    #ui-round-difficulty .label-wert-title {
-      grid-column: 1; grid-row: 3;
-      padding: 7px 18px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #ui-round-difficulty .label-wert-value {
-      grid-column: 3; grid-row: 3;
-      padding: 7px 18px;
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--accent-soft);
-      letter-spacing: 0.03em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: color 0.15s ease;
-    }
-
-    #ui-round-difficulty.level-1 .label-level,
-    #ui-round-difficulty.level-2 .label-level {
-      color: var(--accent-soft);
-    }
-
-    #ui-round-difficulty.level-3 .label-level {
+    .tb-chips.level-3 .label-level {
       color: #ff8a50;
-      text-shadow: 0 0 10px rgba(255,100,30,0.7), 0 0 22px rgba(255,100,30,0.35);
+      text-shadow: 0 0 10px rgba(255,100,30,0.6);
     }
 
-    /* Right: circular timer */
-    .topbar-right {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-    }
-
+    /* Right: timer circle */
     #ui-timer {
-      width: 58px;
-      height: 58px;
+      width: 56px; height: 56px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(13,34,54,0.9);
-      border: 2.5px solid rgba(30,136,229,0.6);
+      background: rgba(55,138,221,0.12);
+      border: 1.5px solid rgba(55,138,221,0.35);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .tb-timer-num {
+      font-size: 22px; font-weight: 700;
       color: var(--text-main);
-      font-size: 22px;
-      font-weight: 800;
-      box-shadow: 0 0 16px rgba(30,136,229,0.18);
-      transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+      line-height: 1;
+    }
+
+    .tb-timer-sek {
+      font-size: 8px;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     #ui-timer.is-penalty {
-      background: rgba(107,15,26,0.9);
-      border-color: rgba(200,40,60,0.8);
-      color: #ffd5d5;
-      box-shadow: 0 0 20px rgba(200,40,60,0.45);
+      background: rgba(180,30,50,0.2);
+      border-color: rgba(200,40,60,0.7);
+      box-shadow: 0 0 18px rgba(200,40,60,0.35);
     }
+
+    #ui-timer.is-penalty .tb-timer-num { color: #ffb3b3; }
 
     /* progress-track removed */
 
@@ -728,36 +687,14 @@
         padding: 18px 20px 20px;
       }
 
-      .topbar {
-        grid-template-columns: auto 1fr auto;
-        gap: 8px;
-      }
-
-      .topbar-left {
-        padding: 8px 12px;
-        min-width: 90px;
-      }
-
-      #ui-username { font-size: 13px; max-width: 100px; }
-      #ui-score { font-size: 12px; }
-
-      #ui-round-difficulty .label-frage,
-      #ui-round-difficulty .label-level {
-        font-size: 12px;
-        padding: 7px 12px;
-      }
-
-      #ui-round-difficulty .label-wert-title,
-      #ui-round-difficulty .label-wert-value {
-        font-size: 11px;
-        padding: 6px 12px;
-      }
-
-      #ui-timer {
-        width: 48px;
-        height: 48px;
-        font-size: 18px;
-      }
+      .topbar { gap: 8px; }
+      .tb-player { padding: 6px 12px 6px 6px; gap: 7px; }
+      .tb-avatar { width: 30px; height: 30px; font-size: 12px; }
+      #ui-username { font-size: 12px; }
+      .tb-chip { padding: 6px 12px; }
+      .c-val { font-size: 14px; }
+      #ui-timer { width: 46px; height: 46px; }
+      .tb-timer-num { font-size: 18px; }
 
       .question-text {
         font-size: 18px;
@@ -820,20 +757,32 @@
 
     <section id="screen-quiz" class="screen quiz-screen hidden">
       <div class="topbar">
-        <div class="topbar-left">
-          <div id="ui-username">Username</div>
-          <div id="ui-score">Score: 0</div>
+        <div class="tb-player">
+          <div class="tb-avatar" id="ui-avatar">?</div>
+          <div>
+            <div id="ui-username">Username</div>
+            <div id="ui-score">0 Punkte</div>
+          </div>
         </div>
-        <div id="ui-round-difficulty" class="level-1">
-          <span class="label-frage">Frage 1</span>
-          <span class="label-divider"></span>
-          <span class="label-level">LEICHT</span>
-          <span class="label-hline"></span>
-          <span class="label-wert-title">Wert</span>
-          <span class="label-wert-value" id="ui-wert">–</span>
+
+        <div class="tb-chips" id="ui-round-difficulty">
+          <div class="tb-chip">
+            <span class="c-label">Frage</span>
+            <span class="c-val label-frage">1</span>
+          </div>
+          <div class="tb-chip">
+            <span class="c-label">Niveau</span>
+            <span class="c-val tb-gold label-level">Leicht</span>
+          </div>
+          <div class="tb-chip">
+            <span class="c-label">Wert</span>
+            <span class="c-val tb-gold" id="ui-wert">–</span>
+          </div>
         </div>
-        <div class="topbar-right">
-          <div id="ui-timer">0</div>
+
+        <div class="tb-timer" id="ui-timer">
+          <span class="tb-timer-num" id="ui-timer-num">0</span>
+          <span class="tb-timer-sek">Sek</span>
         </div>
       </div>
 
@@ -949,9 +898,11 @@
       startBtn: document.getElementById("start-btn"),
       uiUsername: document.getElementById("ui-username"),
       uiScore: document.getElementById("ui-score"),
+      uiAvatar: document.getElementById("ui-avatar"),
       uiWert: document.getElementById("ui-wert"),
       uiRoundDifficulty: document.getElementById("ui-round-difficulty"),
       uiTimer: document.getElementById("ui-timer"),
+      uiTimerNum: document.getElementById("ui-timer-num"),
       progressFilled: null, // removed
       questionText: document.getElementById("question-text"),
       answers: document.getElementById("answers"),
@@ -1013,7 +964,7 @@
       clearInterval(state.timerId);
       clearGameOverMode();
       restoreBelowPanelStructure();
-      els.uiTimer.textContent = "0";
+      els.uiTimerNum.textContent = "0";
       els.uiTimer.classList.remove("is-penalty");
       if (els.uiWert) { els.uiWert.textContent = "–"; }
       els.answers.innerHTML = "";
@@ -1039,19 +990,19 @@
         const base = getBasePoints();
         const penalty = Math.max(0, state.timerValue - 10);
         const current = Math.max(0, base - penalty);
-        els.uiWert.textContent = `${current} Punkte`;
+        els.uiWert.textContent = `${current} Pkt`;
       }
     }
 
     function startTimer() {
       clearInterval(state.timerId);
       state.timerValue = 0;
-      els.uiTimer.textContent = "0";
+      els.uiTimerNum.textContent = "0";
       els.uiTimer.classList.remove("is-penalty");
       updateTimerUrgency();
       state.timerId = setInterval(() => {
         state.timerValue += 1;
-        els.uiTimer.textContent = String(state.timerValue);
+        els.uiTimerNum.textContent = String(state.timerValue);
         updateTimerUrgency();
       }, 1000);
     }
@@ -1142,15 +1093,15 @@
       state.selectedMultiplier = 3;
 
       els.uiUsername.textContent = state.username;
+      if (els.uiAvatar) els.uiAvatar.textContent = (state.username[0] || "?").toUpperCase();
 
-      // Update split label: "Frage N" | "LEICHT/MITTEL/SCHWER"
-      const levelLabels = { 1: "LEICHT", 2: "MITTEL", 3: "SCHWER" };
+      const levelLabels = { 1: "Leicht", 2: "Mittel", 3: "Schwer" };
       const lvl = question.difficulty;
-      els.uiRoundDifficulty.querySelector(".label-frage").textContent = `Frage ${state.round}`;
-      els.uiRoundDifficulty.querySelector(".label-level").textContent = levelLabels[lvl] || "LEICHT";
-      els.uiRoundDifficulty.className = `level-${lvl}`;
+      els.uiRoundDifficulty.querySelector(".label-frage").textContent = String(state.round);
+      els.uiRoundDifficulty.querySelector(".label-level").textContent = levelLabels[lvl] || "Leicht";
+      els.uiRoundDifficulty.className = `tb-chips level-${lvl}`;
 
-      els.uiScore.textContent = `Score: ${state.totalScore}`;
+      els.uiScore.textContent = `${state.totalScore} Punkte`;
       els.questionText.textContent = question.question;
       els.questionText.classList.remove("fade-in");
       void els.questionText.offsetWidth;
@@ -1168,7 +1119,7 @@
 
       // Show Wert once first answer option is visible
       if (els.uiWert) {
-        els.uiWert.textContent = `${getBasePoints()} Punkte`;
+        els.uiWert.textContent = `${getBasePoints()} Pkt`;
       }
     }
 
@@ -1190,7 +1141,7 @@
       if (els.uiWert) {
         const base = getBasePoints();
         const penalty = Math.max(0, state.timerValue - 10);
-        els.uiWert.textContent = `${Math.max(0, base - penalty)} Punkte`;
+        els.uiWert.textContent = `${Math.max(0, base - penalty)} Pkt`;
       }
     }
 
@@ -1355,7 +1306,7 @@
       state.correctStreak += 1;
 
       // Update score display in header
-      if (els.uiScore) els.uiScore.textContent = `Score: ${state.totalScore}`;
+      if (els.uiScore) els.uiScore.textContent = `${state.totalScore} Punkte`;
 
       const correctText = state.currentQuestion.answers[state.currentQuestion.correctPosition - 1];
 
@@ -1372,7 +1323,7 @@
 
       const showTotalLater = state.round >= 2;
       if (showTotalLater) {
-        els.resultTotal.textContent = `Score: ${state.totalScore} Punkte`;
+        els.resultTotal.textContent = `${state.totalScore} Punkte Punkte`;
         els.resultTotal.classList.add("hidden");
       } else {
         els.resultTotal.textContent = "";
