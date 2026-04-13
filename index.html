@@ -263,6 +263,122 @@
       font-size: 15px;
     }
 
+    /* ── Edit Mode ───────────────────────────────── */
+    .edit-header-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .edit-badge {
+      display: inline-block;
+      background: #2a1550;
+      border: 1px solid #6b3db0;
+      color: #c084fc;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+    .edit-counter {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      margin-left: auto;
+    }
+    .edit-bad-count-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+    }
+    .edit-question {
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.5;
+      padding: 16px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.07);
+      margin-bottom: 14px;
+    }
+    .edit-answers {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .edit-answer {
+      padding: 11px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      font-size: 15px;
+      color: rgba(255,255,255,0.75);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .edit-answer.is-correct {
+      border-color: rgba(100,255,218,0.35);
+      background: rgba(100,255,218,0.07);
+      color: #fff;
+    }
+    .ea-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: rgba(255,255,255,0.25);
+      min-width: 16px;
+    }
+    .edit-answer.is-correct .ea-label { color: #64ffda; }
+    .edit-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .edit-btn {
+      flex: 1;
+      padding: 13px 0;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+    .edit-btn-ok {
+      background: rgba(55,138,221,0.15);
+      color: #378ADD;
+      border: 1.5px solid rgba(55,138,221,0.4);
+    }
+    .edit-btn-bad {
+      background: rgba(226,75,74,0.12);
+      color: #e24b4a;
+      border: 1.5px solid rgba(226,75,74,0.35);
+    }
+    .edit-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+    .edit-status {
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      padding: 8px 0;
+    }
+    .edit-exit {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.3);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 0;
+      display: block;
+      text-align: center;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .edit-exit:hover { color: rgba(255,255,255,0.6); }
+    /* ── /Edit Mode ───────────────────────────────── */
+
     .continue-btn.is-disabled,
     .continue-btn:disabled {
       background: linear-gradient(135deg, #7f8790, #5d6670);
@@ -780,6 +896,24 @@
       </div>
     </section>
 
+    <section id="screen-edit" class="screen hidden">
+      <div class="welcome-card">
+        <div class="edit-header-row">
+          <span class="edit-badge">Edit Mode</span>
+          <span class="edit-counter"><span id="edit-idx">1</span> / <span id="edit-total">–</span></span>
+          <span class="edit-bad-count-label">Aussortiert: <span id="edit-bad-count">0</span></span>
+        </div>
+        <div class="edit-question" id="edit-question-text">–</div>
+        <div class="edit-answers" id="edit-answers"></div>
+        <div class="edit-actions">
+          <button id="edit-bad-btn" class="edit-btn edit-btn-bad">Frage schlecht</button>
+          <button id="edit-ok-btn" class="edit-btn edit-btn-ok">Frage ok</button>
+        </div>
+        <div id="edit-status" class="edit-status hidden"></div>
+        <button id="edit-exit-btn" class="edit-exit">← Beenden</button>
+      </div>
+    </section>
+
     <section id="screen-highscore" class="screen hidden">
       <div class="welcome-card">
         <h1>Highscore</h1>
@@ -948,7 +1082,8 @@
     const screens = {
       welcome: document.getElementById("screen-welcome"),
       quiz: document.getElementById("screen-quiz"),
-      highscore: document.getElementById("screen-highscore")
+      highscore: document.getElementById("screen-highscore"),
+      edit: document.getElementById("screen-edit")
     };
 
     const els = {
@@ -976,6 +1111,15 @@
       resultInfo: document.getElementById("result-info"),
       continueBtn: document.getElementById("continue-btn"),
       restartBtn: document.getElementById("restart-btn"),
+      editQuestionText: document.getElementById("edit-question-text"),
+      editAnswers: document.getElementById("edit-answers"),
+      editIdx: document.getElementById("edit-idx"),
+      editTotal: document.getElementById("edit-total"),
+      editBadCount: document.getElementById("edit-bad-count"),
+      editOkBtn: document.getElementById("edit-ok-btn"),
+      editBadBtn: document.getElementById("edit-bad-btn"),
+      editStatus: document.getElementById("edit-status"),
+      editExitBtn: document.getElementById("edit-exit-btn"),
       goCard: document.getElementById("game-over-card"),
       goPlayerName: document.getElementById("go-player-name"),
       goQuestionsPlayed: document.getElementById("go-questions-played"),
@@ -1277,6 +1421,122 @@
       els.belowPanel.classList.remove("hidden");
     }
 
+    // ── Edit Mode ─────────────────────────────────────────────────────────
+
+    const editState = { questions: [], currentIndex: 0 };
+
+    function editGetBadIds() {
+      try { return new Set(JSON.parse(localStorage.getItem("editBadIds") || "[]")); }
+      catch { return new Set(); }
+    }
+    function editGetPool() {
+      try { return JSON.parse(localStorage.getItem("editPool") || "[]"); }
+      catch { return []; }
+    }
+    function editSaveBadIds(idSet) {
+      localStorage.setItem("editBadIds", JSON.stringify([...idSet]));
+    }
+    function editSavePool(pool) {
+      localStorage.setItem("editPool", JSON.stringify(pool));
+    }
+
+    function editUpdateBadCount() {
+      els.editBadCount.textContent = String(editGetBadIds().size);
+    }
+
+    async function showEditMode() {
+      const username = els.usernameInput.value.trim();
+      const ort = els.ortInput.value.trim();
+      if (!username || !ort) { els.usernameInput.focus(); return; }
+
+      showScreen("edit");
+      editState.currentIndex = 0;
+      editState.questions = [];
+      els.editOkBtn.disabled = true;
+      els.editBadBtn.disabled = true;
+      els.editStatus.textContent = "Fragen werden geladen…";
+      els.editStatus.classList.remove("hidden");
+      editUpdateBadCount();
+
+      const badIds = editGetBadIds();
+      let loaded = [];
+      try {
+        const res = await fetch("https://marcus-gisa1.workers.dev/?count=50");
+        const data = await res.json();
+        if (data && data.length) loaded = data;
+      } catch (e) {
+        loaded = parseCsv(DEMO_CSV);
+      }
+
+      editState.questions = loaded.filter(q => !badIds.has(q.id));
+      editState.currentIndex = 0;
+      els.editStatus.classList.add("hidden");
+      editShowQuestion();
+    }
+
+    function editShowQuestion() {
+      const total = editState.questions.length;
+      editUpdateBadCount();
+
+      if (total === 0) {
+        els.editQuestionText.textContent = "Keine Fragen mehr in diesem Batch.";
+        els.editAnswers.innerHTML = "";
+        els.editStatus.textContent = "Alle Fragen bewertet. Beende den Edit-Mode und öffne ihn erneut für neue Fragen.";
+        els.editStatus.classList.remove("hidden");
+        els.editOkBtn.disabled = true;
+        els.editBadBtn.disabled = true;
+        return;
+      }
+
+      const q = editState.questions[editState.currentIndex];
+      els.editIdx.textContent = String(editState.currentIndex + 1);
+      els.editTotal.textContent = String(total);
+      els.editQuestionText.textContent = q.question;
+
+      const labels = ["A", "B", "C"];
+      els.editAnswers.innerHTML = "";
+      q.answers.forEach((ans, i) => {
+        const div = document.createElement("div");
+        const correct = (i + 1) === q.correctPosition;
+        div.className = "edit-answer" + (correct ? " is-correct" : "");
+        div.innerHTML = `<span class="ea-label">${labels[i]}</span><span>${ans}</span>`;
+        els.editAnswers.appendChild(div);
+      });
+
+      els.editOkBtn.disabled = false;
+      els.editBadBtn.disabled = false;
+      els.editStatus.classList.add("hidden");
+    }
+
+    function editNext() {
+      editState.currentIndex += 1;
+      if (editState.currentIndex >= editState.questions.length) {
+        editState.currentIndex = editState.questions.length;
+      }
+      editShowQuestion();
+    }
+
+    function editMarkOk() { editNext(); }
+
+    function editMarkBad() {
+      const q = editState.questions[editState.currentIndex];
+
+      const pool = editGetPool();
+      if (!pool.find(p => p.id === q.id)) { pool.push(q); editSavePool(pool); }
+
+      const badIds = editGetBadIds();
+      badIds.add(q.id);
+      editSaveBadIds(badIds);
+
+      editState.questions.splice(editState.currentIndex, 1);
+      if (editState.currentIndex >= editState.questions.length) {
+        editState.currentIndex = Math.max(0, editState.questions.length - 1);
+      }
+      editShowQuestion();
+    }
+
+    // ── /Edit Mode ────────────────────────────────────────────────────────
+
     function renderGameOverSummary() {
       // Hide question area, show card
       els.questionBox.classList.add("hidden");
@@ -1449,7 +1709,10 @@
         const res = await fetch(`${API_URL}?count=50`);
         if (!res.ok) return;
         const data = await res.json();
-        if (data && data.length) state.questions = data;
+        if (data && data.length) {
+          const badIds = editGetBadIds();
+          state.questions = badIds.size > 0 ? data.filter(q => !badIds.has(q.id)) : data;
+        }
       } catch (e) { /* silent fallback — startGame handles missing questions */ }
     }
 
@@ -1505,6 +1768,17 @@
       loadRound();
     });
     els.goHsBtn.addEventListener("click", () => showHighscores());
+
+    els.editOkBtn.addEventListener("click", editMarkOk);
+    els.editBadBtn.addEventListener("click", editMarkBad);
+    els.editExitBtn.addEventListener("click", () => showScreen("welcome"));
+
+    document.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "m") {
+        const isWelcome = !screens.welcome.classList.contains("hidden");
+        if (isWelcome) { e.preventDefault(); showEditMode(); }
+      }
+    });
 
     loadQuestionsFromAPI();
   </script>
