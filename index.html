@@ -1774,7 +1774,7 @@
     els.editExitBtn.addEventListener("click", () => showScreen("welcome"));
 
     document.addEventListener("keydown", (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "m") {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "E") {
         const isWelcome = !screens.welcome.classList.contains("hidden");
         if (isWelcome) { e.preventDefault(); showEditMode(); }
       }
