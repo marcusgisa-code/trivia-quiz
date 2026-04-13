@@ -442,13 +442,92 @@
       letter-spacing: normal;
     }
 
-    .game-over-mode .question-text {
-      font-size: clamp(36px, 5vw, 72px);
-      font-weight: 900;
-      letter-spacing: 0.08em;
+    .go-card {
+      background: #162035;
+      border: 1px solid #2a3a55;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    .go-card-top {
+      padding: 28px 24px 24px;
+      text-align: center;
+      border-bottom: 1px solid #2a3a55;
+    }
+    .go-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #f6fbff;
-      text-shadow: 0 0 28px rgba(30,136,229,0.22);
+      color: #e24b4a;
+      background: #2a1515;
+      border: 1px solid #5a2020;
+      border-radius: 6px;
+      padding: 3px 10px;
+      margin-bottom: 14px;
+    }
+    .go-player {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 4px;
+    }
+    .go-sub {
+      font-size: 13px;
+      color: #8899aa;
+      margin: 0;
+    }
+    .go-stats {
+      display: flex;
+      border-bottom: 1px solid #2a3a55;
+    }
+    .go-stat {
+      flex: 1;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .go-stat + .go-stat { border-left: 1px solid #2a3a55; }
+    .go-stat-n {
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+    }
+    .go-stat-n.gold { color: #f5a623; }
+    .go-stat-l {
+      font-size: 10px;
+      color: #8899aa;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .go-btns {
+      padding: 16px;
+      display: flex;
+      gap: 10px;
+    }
+    .go-btn {
+      border-radius: 999px;
+      padding: 14px 0;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+    }
+    .go-btn-primary {
+      background: #c47a0a;
+      color: #ffffff;
+      flex: 2;
+    }
+    .go-btn-secondary {
+      background: #1e3048;
+      color: #ffffff;
+      flex: 1;
+      border: 1.5px solid #3a5070;
     }
 
     .answers {
@@ -633,50 +712,6 @@
       border: none;
     }
 
-    .game-over-mode .question-box {
-      text-align: center;
-      background: linear-gradient(135deg, rgba(14,30,48,0.98), rgba(6,19,33,0.98));
-      border-color: rgba(255,255,255,0.08);
-      box-shadow: 0 18px 36px rgba(0,0,0,0.36);
-    }
-
-    .game-over-mode .below-panel {
-      min-height: auto;
-      align-items: center;
-      justify-content: center;
-      padding-top: 24px;
-      gap: 22px;
-    }
-
-    .game-over-summary {
-      width: 100%;
-      text-align: center;
-      padding-left: 0;
-      font-size: clamp(30px, 4vw, 54px);
-      font-style: normal;
-      font-weight: 800;
-      line-height: 1.1;
-      color: var(--accent-soft);
-      text-shadow: 0 0 22px rgba(255,152,0,0.3);
-      background: linear-gradient(90deg, transparent 0%, rgba(255,152,0,0.08) 18%, rgba(255,152,0,0.16) 50%, rgba(255,152,0,0.08) 82%, transparent 100%);
-      border-radius: 16px;
-      padding-top: 14px;
-      padding-bottom: 14px;
-    }
-
-    .game-over-actions {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      padding-right: 0;
-    }
-
-    .game-over-actions .continue-btn {
-      min-width: 240px;
-      min-height: unset;
-      font-size: 16px;
-      border: none;
-    }
 
     @media (max-width: 520px) {
       body {
@@ -804,6 +839,32 @@
         <button id="continue-btn" class="continue-btn hidden">Weiter</button>
         <button id="restart-btn" class="continue-btn hidden" style="min-width: 420px;">Nochmal</button>
       </div>
+
+      <div id="game-over-card" class="go-card hidden">
+        <div class="go-card-top">
+          <div class="go-tag">Game Over</div>
+          <p class="go-player" id="go-player-name">–</p>
+          <p class="go-sub" id="go-questions-played">0 Fragen gespielt</p>
+        </div>
+        <div class="go-stats">
+          <div class="go-stat">
+            <span class="go-stat-n gold" id="go-score">0</span>
+            <span class="go-stat-l">Punkte</span>
+          </div>
+          <div class="go-stat">
+            <span class="go-stat-n" id="go-questions">0</span>
+            <span class="go-stat-l">Fragen</span>
+          </div>
+          <div class="go-stat">
+            <span class="go-stat-n" id="go-correct">0</span>
+            <span class="go-stat-l">Richtig</span>
+          </div>
+        </div>
+        <div class="go-btns">
+          <button id="go-hs-btn" class="go-btn go-btn-secondary">Highscore</button>
+          <button id="go-restart-btn" class="go-btn go-btn-primary">Nochmal spielen</button>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -878,6 +939,8 @@
       currentVisibleAnswers: 0,
       selectedMultiplier: 3,
       correctStreak: 0,
+      questionsPlayed: 0,
+      correctAnswers: 0,
       questions: [],
       usedIds: new Set()
     };
@@ -912,7 +975,17 @@
       resultTotal: document.getElementById("result-total"),
       resultInfo: document.getElementById("result-info"),
       continueBtn: document.getElementById("continue-btn"),
-      restartBtn: document.getElementById("restart-btn")
+      restartBtn: document.getElementById("restart-btn"),
+      goCard: document.getElementById("game-over-card"),
+      goPlayerName: document.getElementById("go-player-name"),
+      goQuestionsPlayed: document.getElementById("go-questions-played"),
+      goScore: document.getElementById("go-score"),
+      goQuestions: document.getElementById("go-questions"),
+      goCorrect: document.getElementById("go-correct"),
+      goHsBtn: document.getElementById("go-hs-btn"),
+      goRestartBtn: document.getElementById("go-restart-btn"),
+      questionBox: document.querySelector(".question-box"),
+      belowPanel: document.querySelector(".below-panel")
     };
 
     function parseCsv(text) {
@@ -956,6 +1029,8 @@
       state.currentVisibleAnswers = 0;
       state.selectedMultiplier = 3;
       state.correctStreak = 0;
+      state.questionsPlayed = 0;
+      state.correctAnswers = 0;
       state.usedIds = new Set();
       resetQuizUi();
     }
@@ -1196,37 +1271,26 @@
     }
 
     function clearGameOverMode() {
-      document.body.classList.remove("game-over-mode");
+      els.goCard.classList.add("hidden");
+      els.questionBox.classList.remove("hidden");
+      els.answers.classList.remove("hidden");
+      els.belowPanel.classList.remove("hidden");
     }
 
-    function renderGameOverSummary(totalText) {
-      els.resultPoints.className = "game-over-summary";
-      els.resultPoints.textContent = totalText;
-      els.resultPoints.classList.remove("hidden");
-      els.resultPoints.classList.add("fade-in");
+    function renderGameOverSummary() {
+      // Hide question area, show card
+      els.questionBox.classList.add("hidden");
+      els.answers.classList.add("hidden");
+      els.belowPanel.classList.add("hidden");
 
-      els.restartBtn.className = "continue-btn hidden";
-      const actions = document.createElement("div");
-      actions.className = "game-over-actions fade-in";
-      actions.style.gap = "12px";
-      actions.appendChild(els.restartBtn);
-      els.restartBtn.textContent = "Nochmal";
-      els.restartBtn.classList.remove("hidden");
+      els.goPlayerName.textContent = state.username || "–";
+      els.goQuestionsPlayed.textContent = `${state.questionsPlayed} Frage${state.questionsPlayed !== 1 ? "n" : ""} gespielt`;
+      els.goScore.textContent = String(state.totalScore);
+      els.goQuestions.textContent = String(state.questionsPlayed);
+      els.goCorrect.textContent = String(state.correctAnswers);
 
-      const hsBtn = document.createElement("button");
-      hsBtn.className = "btn-secondary";
-      hsBtn.textContent = "Highscore";
-      hsBtn.addEventListener("click", () => showHighscores());
-      actions.appendChild(hsBtn);
-
-      els.continueBtn.classList.add("hidden");
-      els.resultInfo.classList.add("hidden");
-      els.resultTotal.classList.add("hidden");
-
-      const panel = document.querySelector(".below-panel");
-      panel.innerHTML = "";
-      panel.appendChild(els.resultPoints);
-      panel.appendChild(actions);
+      els.goCard.classList.remove("hidden");
+      els.goCard.classList.add("fade-in");
     }
 
     function restoreBelowPanelStructure() {
@@ -1263,29 +1327,17 @@
 
         // Trigger game over after a short pause to let user see the correct answer
         window.setTimeout(() => {
-          document.body.classList.add("game-over-mode");
           stopTimer();
-
-          const totalText = state.totalScore > 0
-            ? `${state.totalScore} Punkte - Gratulation!`
-            : `0 Punkte`;
-
-          els.answers.innerHTML = "";
-          els.questionText.textContent = "Game Over!";
-          els.questionText.classList.remove("fade-in");
-          void els.questionText.offsetWidth;
-          els.questionText.classList.add("fade-in");
+          state.questionsPlayed += 1;
 
           window.setTimeout(() => {
-            renderGameOverSummary(totalText);
+            renderGameOverSummary();
             if (typeof window.saveScore === "function") {
               window.saveScore(state.username, state.totalScore, state.plz, state.ort, state.land);
             }
-            els.restartBtn.classList.add("is-disabled");
-            els.restartBtn.disabled = true;
+            els.goRestartBtn.disabled = true;
             window.setTimeout(() => {
-              els.restartBtn.disabled = false;
-              els.restartBtn.classList.remove("is-disabled");
+              els.goRestartBtn.disabled = false;
             }, 1200);
           }, 250);
         }, 1200);
@@ -1304,6 +1356,8 @@
 
       state.totalScore += finalPoints;
       state.correctStreak += 1;
+      state.questionsPlayed += 1;
+      state.correctAnswers += 1;
 
       // Update score display in header
       if (els.uiScore) els.uiScore.textContent = `${state.totalScore} Punkte`;
@@ -1446,6 +1500,11 @@
       resetRun();
       loadRound();
     });
+    els.goRestartBtn.addEventListener("click", () => {
+      resetRun();
+      loadRound();
+    });
+    els.goHsBtn.addEventListener("click", () => showHighscores());
 
     loadQuestionsFromAPI();
   </script>
