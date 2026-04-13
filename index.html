@@ -875,7 +875,7 @@
   <div class="app">
     <section id="screen-welcome" class="screen">
       <div class="welcome-card">
-        <h1>Das Quiz</h1>
+        <h1>Das <span id="quiz-title-q" style="cursor:default;">Q</span>uiz</h1>
         <p>Wie heißt du?</p>
 
         <div class="field">
@@ -1773,12 +1773,7 @@
     els.editBadBtn.addEventListener("click", editMarkBad);
     els.editExitBtn.addEventListener("click", () => showScreen("welcome"));
 
-    document.addEventListener("keydown", (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "E") {
-        const isWelcome = !screens.welcome.classList.contains("hidden");
-        if (isWelcome) { e.preventDefault(); showEditMode(); }
-      }
-    });
+    document.getElementById("quiz-title-q").addEventListener("click", showEditMode);
 
     loadQuestionsFromAPI();
   </script>
