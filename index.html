@@ -357,6 +357,13 @@
       color: #e24b4a;
       border: 1.5px solid rgba(226,75,74,0.35);
     }
+    .edit-btn-back {
+      flex: 0 0 auto;
+      padding: 13px 18px;
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.45);
+      border: 1.5px solid rgba(255,255,255,0.12);
+    }
     .edit-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
     .edit-status {
       text-align: center;
@@ -906,8 +913,9 @@
         <div class="edit-question" id="edit-question-text">–</div>
         <div class="edit-answers" id="edit-answers"></div>
         <div class="edit-actions">
-          <button id="edit-bad-btn" class="edit-btn edit-btn-bad">Frage schlecht</button>
-          <button id="edit-ok-btn" class="edit-btn edit-btn-ok">Frage ok</button>
+          <button id="edit-back-btn" class="edit-btn edit-btn-back">← Zurück</button>
+          <button id="edit-bad-btn" class="edit-btn edit-btn-bad">Schlecht</button>
+          <button id="edit-ok-btn" class="edit-btn edit-btn-ok">Ok</button>
         </div>
         <div id="edit-status" class="edit-status hidden"></div>
         <button id="edit-exit-btn" class="edit-exit">← Beenden</button>
@@ -1118,6 +1126,7 @@
       editBadCount: document.getElementById("edit-bad-count"),
       editOkBtn: document.getElementById("edit-ok-btn"),
       editBadBtn: document.getElementById("edit-bad-btn"),
+      editBackBtn: document.getElementById("edit-back-btn"),
       editStatus: document.getElementById("edit-status"),
       editExitBtn: document.getElementById("edit-exit-btn"),
       goCard: document.getElementById("game-over-card"),
@@ -1454,14 +1463,15 @@
       editState.questions = [];
       els.editOkBtn.disabled = true;
       els.editBadBtn.disabled = true;
-      els.editStatus.textContent = "Fragen werden geladen…";
+      els.editBackBtn.disabled = true;
+      els.editStatus.textContent = "Alle Fragen werden geladen…";
       els.editStatus.classList.remove("hidden");
       editUpdateBadCount();
 
       const badIds = editGetBadIds();
       let loaded = [];
       try {
-        const res = await fetch("https://marcus-gisa1.workers.dev/?count=50");
+        const res = await fetch(API_URL + "?all=1");
         const data = await res.json();
         if (data && data.length) loaded = data;
       } catch (e) {
@@ -1479,12 +1489,13 @@
       editUpdateBadCount();
 
       if (total === 0) {
-        els.editQuestionText.textContent = "Keine Fragen mehr in diesem Batch.";
+        els.editQuestionText.textContent = "Keine Fragen mehr im Pool.";
         els.editAnswers.innerHTML = "";
-        els.editStatus.textContent = "Alle Fragen bewertet. Beende den Edit-Mode und öffne ihn erneut für neue Fragen.";
+        els.editStatus.textContent = "Alle Fragen bewertet.";
         els.editStatus.classList.remove("hidden");
         els.editOkBtn.disabled = true;
         els.editBadBtn.disabled = true;
+        els.editBackBtn.disabled = true;
         return;
       }
 
@@ -1505,6 +1516,7 @@
 
       els.editOkBtn.disabled = false;
       els.editBadBtn.disabled = false;
+      els.editBackBtn.disabled = editState.currentIndex === 0;
       els.editStatus.classList.add("hidden");
     }
 
@@ -1514,6 +1526,13 @@
         editState.currentIndex = editState.questions.length;
       }
       editShowQuestion();
+    }
+
+    function editPrev() {
+      if (editState.currentIndex > 0) {
+        editState.currentIndex -= 1;
+        editShowQuestion();
+      }
     }
 
     function editMarkOk() { editNext(); }
@@ -1771,6 +1790,7 @@
 
     els.editOkBtn.addEventListener("click", editMarkOk);
     els.editBadBtn.addEventListener("click", editMarkBad);
+    els.editBackBtn.addEventListener("click", editPrev);
     els.editExitBtn.addEventListener("click", () => showScreen("welcome"));
 
     document.getElementById("quiz-title-q").addEventListener("click", showEditMode);

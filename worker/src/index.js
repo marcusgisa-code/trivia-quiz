@@ -11,7 +11,8 @@ export default {
     }
 
     const url = new URL(request.url);
-    const count = Math.min(parseInt(url.searchParams.get('count') || '20'), 50);
+    const all = url.searchParams.get('all') === '1';
+    const count = all ? Infinity : Math.min(parseInt(url.searchParams.get('count') || '20'), 50);
     const level = url.searchParams.get('level'); // optional filter
 
     const raw = await env.QUESTIONS_KV.get('questions', 'json');
@@ -27,13 +28,18 @@ export default {
       pool = pool.filter(q => String(q.level) === level);
     }
 
-    // Fisher-Yates shuffle, then take first `count`
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
+    if (all) {
+      // Deterministic sort by ID for full-pool browsing
+      pool.sort((a, b) => a.id - b.id);
+    } else {
+      // Fisher-Yates shuffle for random quiz batches
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
     }
 
-    const result = pool.slice(0, count);
+    const result = all ? pool : pool.slice(0, count);
 
     return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
   },
