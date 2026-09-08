@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Das Quiz – neues Spielprinzip</title>
+  <title>Das Quiz</title>
   <style>
     :root {
       --bg: #051622;
@@ -164,6 +164,91 @@
       flex-wrap: wrap;
       margin-top: 22px;
       justify-content: center;
+    }
+
+    .mode-select {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .mode-card {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding: 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+      color: var(--text-main);
+      font-family: inherit;
+    }
+
+    .mode-card-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .mode-card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .mode-card:hover {
+      border-color: rgba(255,255,255,0.25);
+    }
+
+    .mode-card.is-selected {
+      border-color: var(--accent-soft);
+      background: rgba(255,152,0,0.10);
+      box-shadow: 0 0 0 1px rgba(255,152,0,0.35), 0 8px 20px rgba(255,152,0,0.15);
+    }
+
+    .mode-card.is-selected .mode-card-title {
+      color: var(--accent-soft);
+    }
+
+    @media (max-width: 520px) {
+      .mode-select { flex-direction: column; }
+    }
+
+    .joker-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin: 0 0 18px;
+    }
+
+    .joker-btn {
+      padding: 12px 24px;
+      border-radius: var(--radius-s);
+      border: 1.5px solid rgba(192,132,252,0.45);
+      background: rgba(124,58,237,0.16);
+      color: #d8b4fe;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .joker-btn:hover {
+      background: rgba(124,58,237,0.26);
+      border-color: rgba(192,132,252,0.7);
+    }
+
+    .joker-count-badge {
+      background: rgba(192,132,252,0.28);
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: 12px;
+      font-weight: 800;
     }
 
     button {
@@ -895,6 +980,17 @@
           <input id="ort" type="text" maxlength="40" placeholder="Berlin" autocomplete="address-level2" required />
         </div>
 
+        <div class="mode-select" id="mode-select">
+          <button type="button" class="mode-card is-selected" id="mode-card-new" data-mode="new">
+            <span class="mode-card-title">Neues Spielprinzip</span>
+            <span class="mode-card-desc">Antworten selbst aufdecken, Tempo-Bonus, steigende Schwierigkeit</span>
+          </button>
+          <button type="button" class="mode-card" id="mode-card-classic" data-mode="classic">
+            <span class="mode-card-title">Klassisch</span>
+            <span class="mode-card-desc">Serie sammeln, 3 Joker, ein Fehler beendet das Spiel</span>
+          </button>
+        </div>
+
         <div class="button-row">
           <button id="start-btn" class="btn-primary">Spiel starten</button>
           <button id="highscore-btn" class="btn-secondary">Highscore</button>
@@ -952,7 +1048,7 @@
             <span class="c-val tb-gold label-level">Leicht</span>
           </div>
           <div class="tb-chip">
-            <span class="c-label">Wert</span>
+            <span class="c-label" id="ui-wert-label">Wert</span>
             <span class="c-val tb-gold" id="ui-wert">–</span>
           </div>
         </div>
@@ -968,6 +1064,13 @@
       </div>
 
       <div id="answers" class="answers"></div>
+
+      <div id="joker-wrap" class="joker-wrap hidden">
+        <button id="joker-btn" class="joker-btn" type="button">
+          🃏 Joker: Frage überspringen
+          <span id="joker-count-badge" class="joker-count-badge">3</span>
+        </button>
+      </div>
 
       <div class="below-panel">
         <div id="next-answer-wrap" class="next-answer-wrap hidden">
@@ -991,7 +1094,7 @@
         <div class="go-stats">
           <div class="go-stat">
             <span class="go-stat-n gold" id="go-score">0</span>
-            <span class="go-stat-l">Punkte</span>
+            <span class="go-stat-l" id="go-score-label">Punkte</span>
           </div>
           <div class="go-stat">
             <span class="go-stat-n" id="go-questions">0</span>
@@ -1066,6 +1169,8 @@
     const LETTERS = ["A", "B", "C"];
     const DIFFICULTY_LABELS = { 1: "einfach", 2: "mittel", 3: "schwer" };
 
+    const CLASSIC_TIME_LIMIT = 25;
+
     const state = {
       username: "",
       plz: "",
@@ -1084,7 +1189,9 @@
       questionsPlayed: 0,
       correctAnswers: 0,
       questions: [],
-      usedIds: new Set()
+      usedIds: new Set(),
+      gameMode: "new",
+      jokersLeft: 3
     };
 
     const screens = {
@@ -1119,6 +1226,12 @@
       resultInfo: document.getElementById("result-info"),
       continueBtn: document.getElementById("continue-btn"),
       restartBtn: document.getElementById("restart-btn"),
+      uiWertLabel: document.getElementById("ui-wert-label"),
+      jokerWrap: document.getElementById("joker-wrap"),
+      jokerBtn: document.getElementById("joker-btn"),
+      jokerCountBadge: document.getElementById("joker-count-badge"),
+      modeCards: document.querySelectorAll(".mode-card"),
+      goScoreLabel: document.getElementById("go-score-label"),
       editQuestionText: document.getElementById("edit-question-text"),
       editAnswers: document.getElementById("edit-answers"),
       editIdx: document.getElementById("edit-idx"),
@@ -1185,6 +1298,7 @@
       state.questionsPlayed = 0;
       state.correctAnswers = 0;
       state.usedIds = new Set();
+      state.jokersLeft = 3;
       resetQuizUi();
     }
 
@@ -1197,6 +1311,7 @@
       if (els.uiWert) { els.uiWert.textContent = "–"; }
       els.answers.innerHTML = "";
       els.nextAnswerWrap.className = "next-answer-wrap hidden";
+      if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
       els.resultPoints.className = "result-points hidden";
       els.resultInfo.className = "small-info hidden";
       els.resultTotal.className = "result-points hidden";
@@ -1288,7 +1403,13 @@
 
       button.appendChild(letter);
       button.appendChild(answerText);
-      button.addEventListener("click", () => chooseAnswer(index + 1));
+      button.addEventListener("click", () => {
+        if (state.gameMode === "classic") {
+          chooseAnswerClassic(index + 1);
+        } else {
+          chooseAnswer(index + 1);
+        }
+      });
 
       return button;
     }
@@ -1335,6 +1456,8 @@
       void els.questionText.offsetWidth;
       els.questionText.classList.add("fade-in");
 
+      updateJokerUi();
+
       showScreen("quiz");
 
       await wait(1000);
@@ -1376,6 +1499,167 @@
     function getBasePoints() {
       return state.currentDifficulty * 10 * state.selectedMultiplier;
     }
+
+    // ── Klassisch-Modus ──────────────────────────────────────────────────
+
+    function updateJokerUi() {
+      const isClassic = state.gameMode === "classic";
+      if (els.jokerCountBadge) els.jokerCountBadge.textContent = String(state.jokersLeft);
+      if (els.jokerWrap) {
+        els.jokerWrap.classList.toggle("hidden", !isClassic || state.jokersLeft <= 0);
+      }
+      if (els.uiWertLabel && els.uiWert) {
+        if (isClassic) {
+          els.uiWertLabel.textContent = "Joker";
+          els.uiWert.textContent = String(state.jokersLeft);
+        } else {
+          els.uiWertLabel.textContent = "Wert";
+        }
+      }
+    }
+
+    async function loadRoundClassic() {
+      resetQuizUi();
+      const token = ++state.flowToken;
+      const question = pickQuestion();
+
+      if (!question) {
+        alert("Keine Fragen verfügbar.");
+        showScreen("welcome");
+        return;
+      }
+
+      state.currentQuestion = question;
+      state.currentDifficulty = question.difficulty;
+      state.currentVisibleAnswers = 0;
+      state.selectedMultiplier = 1;
+
+      els.uiUsername.textContent = state.username;
+      if (els.uiAvatar) els.uiAvatar.textContent = (state.username[0] || "?").toUpperCase();
+
+      const levelLabels = { 1: "Leicht", 2: "Mittel", 3: "Schwer" };
+      const lvl = question.difficulty;
+      els.uiRoundDifficulty.querySelector(".label-frage").textContent = String(state.round);
+      els.uiRoundDifficulty.querySelector(".label-level").textContent = levelLabels[lvl] || "Leicht";
+      els.uiRoundDifficulty.className = `tb-chips level-${lvl}`;
+
+      els.uiScore.textContent = `${state.totalScore} in Folge`;
+      els.questionText.textContent = question.question;
+      els.questionText.classList.remove("fade-in");
+      void els.questionText.offsetWidth;
+      els.questionText.classList.add("fade-in");
+
+      updateJokerUi();
+
+      showScreen("quiz");
+
+      await wait(700);
+      if (token !== state.flowToken) return;
+      state.currentVisibleAnswers = 1;
+      renderVisibleAnswers(1);
+
+      await wait(1100);
+      if (token !== state.flowToken) return;
+      state.currentVisibleAnswers = 2;
+      renderVisibleAnswers(2);
+
+      await wait(1100);
+      if (token !== state.flowToken) return;
+      state.currentVisibleAnswers = 3;
+      renderVisibleAnswers(3);
+
+      startTimerClassic(token);
+    }
+
+    function startTimerClassic(token) {
+      clearInterval(state.timerId);
+      state.timerValue = CLASSIC_TIME_LIMIT;
+      els.uiTimerNum.textContent = String(state.timerValue);
+      els.uiTimer.classList.remove("is-penalty");
+      state.timerId = setInterval(() => {
+        state.timerValue -= 1;
+        els.uiTimerNum.textContent = String(Math.max(0, state.timerValue));
+        els.uiTimer.classList.toggle("is-penalty", state.timerValue <= 5);
+        if (state.timerValue <= 0) {
+          clearInterval(state.timerId);
+          if (token !== state.flowToken) return;
+          handleTimeUpClassic();
+        }
+      }, 1000);
+    }
+
+    function handleTimeUpClassic() {
+      if (!state.currentQuestion) return;
+      if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
+      lockAllAnswers();
+      handleWrong(0);
+    }
+
+    function chooseAnswerClassic(position) {
+      if (!state.currentQuestion) return;
+
+      stopTimer();
+      if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
+      lockAllAnswers();
+
+      const clickedRow = [...els.answers.children].find(btn => Number(btn.dataset.position) === position);
+      if (clickedRow) clickedRow.classList.add("clicked-state");
+
+      window.setTimeout(() => {
+        if (clickedRow) clickedRow.classList.remove("clicked-state");
+        const isCorrect = position === state.currentQuestion.correctPosition;
+        if (isCorrect) {
+          classicHandleCorrect();
+        } else {
+          handleWrong(position);
+        }
+      }, 1000);
+    }
+
+    function classicHandleCorrect() {
+      state.totalScore += 1;
+      state.correctStreak += 1;
+      state.questionsPlayed += 1;
+      state.correctAnswers += 1;
+
+      if (els.uiScore) els.uiScore.textContent = `${state.totalScore} in Folge`;
+
+      const correctText = state.currentQuestion.answers[state.currentQuestion.correctPosition - 1];
+
+      els.answers.innerHTML = "";
+      const correctRow = createAnswerRow(0, correctText);
+      correctRow.disabled = true;
+      correctRow.classList.add("locked", "correct-state");
+      correctRow.dataset.position = "1";
+      els.answers.appendChild(correctRow);
+
+      els.resultPoints.textContent = `Richtig! Serie: ${state.totalScore}`;
+      els.resultPoints.classList.remove("hidden");
+      els.resultPoints.classList.add("fade-in");
+
+      els.resultTotal.classList.add("hidden");
+      els.resultInfo.classList.add("hidden");
+
+      showContinueDisabledThenEnable(false);
+    }
+
+    function nextRoundClassic() {
+      state.round += 1;
+      loadRoundClassic();
+    }
+
+    function jokerSkip() {
+      if (state.gameMode !== "classic") return;
+      if (state.jokersLeft <= 0) return;
+      if (!state.currentQuestion) return;
+
+      state.jokersLeft -= 1;
+      stopTimer();
+      state.round += 1;
+      loadRoundClassic();
+    }
+
+    // ── /Klassisch-Modus ─────────────────────────────────────────────────
 
     function chooseAnswer(position) {
       if (!state.currentQuestion) return;
@@ -1567,6 +1851,9 @@
       els.goScore.textContent = String(state.totalScore);
       els.goQuestions.textContent = String(state.questionsPlayed);
       els.goCorrect.textContent = String(state.correctAnswers);
+      if (els.goScoreLabel) {
+        els.goScoreLabel.textContent = state.gameMode === "classic" ? "Serie" : "Punkte";
+      }
 
       els.goCard.classList.remove("hidden");
       els.goCard.classList.add("fade-in");
@@ -1718,7 +2005,11 @@
       }
 
       resetRun();
-      loadRound();
+      if (state.gameMode === "classic") {
+        loadRoundClassic();
+      } else {
+        loadRound();
+      }
     }
 
     const API_URL = "https://trivia-quiz-api.marcus-gisa1.workers.dev";
@@ -1777,16 +2068,42 @@
     if (els.backBtn) els.backBtn.addEventListener("click", () => showScreen("welcome"));
 
     els.nextAnswerBtn.addEventListener("click", revealNextAnswer);
-    els.continueBtn.addEventListener("click", nextRound);
+    els.continueBtn.addEventListener("click", () => {
+      if (state.gameMode === "classic") {
+        nextRoundClassic();
+      } else {
+        nextRound();
+      }
+    });
     els.restartBtn.addEventListener("click", () => {
       resetRun();
-      loadRound();
+      if (state.gameMode === "classic") {
+        loadRoundClassic();
+      } else {
+        loadRound();
+      }
     });
     els.goRestartBtn.addEventListener("click", () => {
       resetRun();
-      loadRound();
+      if (state.gameMode === "classic") {
+        loadRoundClassic();
+      } else {
+        loadRound();
+      }
     });
     els.goHsBtn.addEventListener("click", () => showHighscores());
+
+    if (els.jokerBtn) els.jokerBtn.addEventListener("click", jokerSkip);
+
+    if (els.modeCards) {
+      els.modeCards.forEach(card => {
+        card.addEventListener("click", () => {
+          els.modeCards.forEach(c => c.classList.remove("is-selected"));
+          card.classList.add("is-selected");
+          state.gameMode = card.dataset.mode;
+        });
+      });
+    }
 
     els.editOkBtn.addEventListener("click", editMarkOk);
     els.editBadBtn.addEventListener("click", editMarkBad);
