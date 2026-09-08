@@ -927,6 +927,15 @@
       text-shadow: 0 0 20px rgba(255,152,0,0.25);
     }
 
+    .result-points-sub {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 26px;
+      color: #ffffff;
+      -webkit-text-stroke: 2px var(--accent-soft);
+      text-shadow: none;
+    }
+
     #result-total {
       font-size: clamp(30px, 3.2vw, 56px) !important;
       color: var(--accent-soft);
@@ -1692,7 +1701,7 @@
       correctRow.dataset.position = "1";
       els.answers.appendChild(correctRow);
 
-      els.resultPoints.innerHTML = `Richtig!<br>Punkte: ${state.totalScore}`;
+      els.resultPoints.innerHTML = `Richtig!<br><span class="result-points-sub">Punkte: ${state.totalScore}</span>`;
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
 
