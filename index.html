@@ -303,6 +303,34 @@
       transform: translateY(-2px);
     }
 
+    .hs-tabs {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .hs-tab {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+    }
+
+    .hs-tab:hover {
+      border-color: rgba(255,255,255,0.25);
+    }
+
+    .hs-tab.is-active {
+      border-color: var(--accent-soft);
+      background: rgba(255,152,0,0.12);
+      color: var(--accent-soft);
+    }
+
     .hs-table {
       width: 100%;
       border-collapse: collapse;
@@ -1021,6 +1049,10 @@
     <section id="screen-highscore" class="screen hidden">
       <div class="welcome-card">
         <h1>Highscore</h1>
+        <div class="hs-tabs" id="hs-tabs">
+          <button type="button" class="hs-tab is-active" data-mode="new">Neues Spielprinzip</button>
+          <button type="button" class="hs-tab" data-mode="classic">Klassisch</button>
+        </div>
         <div id="highscore-list"><p class="hs-loading">Wird geladen…</p></div>
         <div class="button-row" style="margin-top: 24px;">
           <button id="back-btn" class="btn-secondary">← Zurück</button>
@@ -1129,10 +1161,14 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.saveScore = async function(username, score, plz, ort, land) {
+    function scoreCollectionName(mode) {
+      return mode === "classic" ? "scoresClassic" : "scores";
+    }
+
+    window.saveScore = async function(username, score, plz, ort, land, mode) {
       if (!username || score <= 0) return;
       try {
-        await addDoc(collection(db, "scores"), {
+        await addDoc(collection(db, scoreCollectionName(mode)), {
           username, score, plz, ort, land, timestamp: serverTimestamp()
         });
       } catch (e) {
@@ -1140,9 +1176,9 @@
       }
     };
 
-    window.loadHighscores = async function() {
+    window.loadHighscores = async function(mode) {
       try {
-        const q = query(collection(db, "scores"), orderBy("score", "desc"), limit(10));
+        const q = query(collection(db, scoreCollectionName(mode)), orderBy("score", "desc"), limit(10));
         const snap = await getDocs(q);
         return snap.docs.map(d => d.data());
       } catch(e) {
@@ -1206,6 +1242,7 @@
       ortInput: document.getElementById("ort"),
       loadingHint: document.getElementById("loading-hint"),
       highscoreList: document.getElementById("highscore-list"),
+      hsTabs: document.querySelectorAll(".hs-tab"),
       backBtn: document.getElementById("back-btn"),
       highscoreBtn: document.getElementById("highscore-btn"),
       startBtn: document.getElementById("start-btn"),
@@ -1899,7 +1936,7 @@
           window.setTimeout(() => {
             renderGameOverSummary();
             if (typeof window.saveScore === "function") {
-              window.saveScore(state.username, state.totalScore, state.plz, state.ort, state.land);
+              window.saveScore(state.username, state.totalScore, state.plz, state.ort, state.land, state.gameMode);
             }
             els.goRestartBtn.disabled = true;
             window.setTimeout(() => {
@@ -2026,23 +2063,35 @@
       } catch (e) { /* silent fallback — startGame handles missing questions */ }
     }
 
-    async function showHighscores() {
+    let highscoreMode = "new";
+
+    function updateHsTabsUi() {
+      if (!els.hsTabs) return;
+      els.hsTabs.forEach(tab => {
+        tab.classList.toggle("is-active", tab.dataset.mode === highscoreMode);
+      });
+    }
+
+    async function showHighscores(mode) {
+      highscoreMode = mode || state.gameMode || "new";
+      updateHsTabsUi();
       showScreen("highscore");
       els.highscoreList.innerHTML = '<p class="hs-loading">Wird geladen…</p>';
       const scores = typeof window.loadHighscores === "function"
-        ? await window.loadHighscores()
+        ? await window.loadHighscores(highscoreMode)
         : [];
       if (!scores.length) {
         els.highscoreList.innerHTML = '<p class="hs-loading">Noch keine Einträge.</p>';
         return;
       }
+      const scoreLabel = highscoreMode === "classic" ? "Serie" : "Score";
       const table = document.createElement("table");
       table.className = "hs-table";
       table.innerHTML = `<thead><tr>
         <th class="hs-rank">#</th>
         <th>Name</th>
         <th>Ort</th>
-        <th class="hs-score">Score</th>
+        <th class="hs-score">${scoreLabel}</th>
       </tr></thead>`;
       const tbody = document.createElement("tbody");
       scores.forEach((s, i) => {
@@ -2064,8 +2113,14 @@
       if (event.key === "Enter") startGame();
     });
 
-    if (els.highscoreBtn) els.highscoreBtn.addEventListener("click", showHighscores);
+    if (els.highscoreBtn) els.highscoreBtn.addEventListener("click", () => showHighscores());
     if (els.backBtn) els.backBtn.addEventListener("click", () => showScreen("welcome"));
+
+    if (els.hsTabs) {
+      els.hsTabs.forEach(tab => {
+        tab.addEventListener("click", () => showHighscores(tab.dataset.mode));
+      });
+    }
 
     els.nextAnswerBtn.addEventListener("click", revealNextAnswer);
     els.continueBtn.addEventListener("click", () => {
