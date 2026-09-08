@@ -1161,15 +1161,21 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    function scoreCollectionName(mode) {
-      return mode === "classic" ? "scoresClassic" : "scores";
+    // Beide Modi teilen sich die "scores"-Collection (deren Security Rules bereits
+    // freigeschaltet sind). Getrennt wird über zwei unterschiedliche Score-Felder:
+    // "score" fürs neue Spielprinzip, "scoreClassic" fürs Klassisch. Firestores
+    // orderBy() liefert nur Dokumente, die das sortierte Feld überhaupt besitzen –
+    // das trennt die beiden Ranglisten ganz ohne where()/Composite-Index/neue Rule.
+    function scoreFieldName(mode) {
+      return mode === "classic" ? "scoreClassic" : "score";
     }
 
     window.saveScore = async function(username, score, plz, ort, land, mode) {
       if (!username || score <= 0) return;
       try {
-        await addDoc(collection(db, scoreCollectionName(mode)), {
-          username, score, plz, ort, land, timestamp: serverTimestamp()
+        await addDoc(collection(db, "scores"), {
+          username, [scoreFieldName(mode)]: score, mode: mode === "classic" ? "classic" : "new",
+          plz, ort, land, timestamp: serverTimestamp()
         });
       } catch (e) {
         console.warn("Score konnte nicht gespeichert werden:", e);
@@ -1177,10 +1183,14 @@
     };
 
     window.loadHighscores = async function(mode) {
+      const field = scoreFieldName(mode);
       try {
-        const q = query(collection(db, scoreCollectionName(mode)), orderBy("score", "desc"), limit(10));
+        const q = query(collection(db, "scores"), orderBy(field, "desc"), limit(10));
         const snap = await getDocs(q);
-        return snap.docs.map(d => d.data());
+        return snap.docs.map(d => {
+          const data = d.data();
+          return { ...data, score: data[field] };
+        });
       } catch(e) {
         console.warn("Highscores konnten nicht geladen werden:", e);
         return [];
