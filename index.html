@@ -1692,7 +1692,7 @@
       correctRow.dataset.position = "1";
       els.answers.appendChild(correctRow);
 
-      els.resultPoints.textContent = `Richtig! Serie: ${state.totalScore}`;
+      els.resultPoints.innerHTML = `Richtig!<br>Punkte: ${state.totalScore}`;
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
 
