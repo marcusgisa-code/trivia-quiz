@@ -1552,9 +1552,6 @@
     function updateJokerUi() {
       const isClassic = state.gameMode === "classic";
       if (els.jokerCountBadge) els.jokerCountBadge.textContent = String(state.jokersLeft);
-      if (els.jokerWrap) {
-        els.jokerWrap.classList.toggle("hidden", !isClassic || state.jokersLeft <= 0);
-      }
       if (els.uiWertLabel && els.uiWert) {
         if (isClassic) {
           els.uiWertLabel.textContent = "Joker";
@@ -1563,6 +1560,17 @@
           els.uiWertLabel.textContent = "Wert";
         }
       }
+    }
+
+    // Blendet den Joker-Button separat vom Info-Chip ein – erst mit Verzögerung
+    // nach Antwort C, siehe loadRoundClassic().
+    function revealJokerButton() {
+      if (state.gameMode !== "classic") return;
+      if (state.jokersLeft <= 0) return;
+      if (!els.jokerWrap) return;
+      els.jokerWrap.classList.remove("hidden", "fade-in");
+      void els.jokerWrap.offsetWidth;
+      els.jokerWrap.classList.add("fade-in");
     }
 
     async function loadRoundClassic() {
@@ -1600,22 +1608,26 @@
 
       showScreen("quiz");
 
-      await wait(700);
+      await wait(800);
       if (token !== state.flowToken) return;
       state.currentVisibleAnswers = 1;
       renderVisibleAnswers(1);
 
-      await wait(1100);
+      await wait(1000);
       if (token !== state.flowToken) return;
       state.currentVisibleAnswers = 2;
       renderVisibleAnswers(2);
 
-      await wait(1100);
+      await wait(1000);
       if (token !== state.flowToken) return;
       state.currentVisibleAnswers = 3;
       renderVisibleAnswers(3);
 
       startTimerClassic(token);
+
+      await wait(1600);
+      if (token !== state.flowToken) return;
+      revealJokerButton();
     }
 
     function startTimerClassic(token) {
