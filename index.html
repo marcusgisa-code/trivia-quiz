@@ -1322,6 +1322,8 @@
       }
     };
 
+    const PLZ_PATTERN = /^\d{5}$/;
+
     window.loadHighscores = async function(mode) {
       const { score: scoreField, games: gamesField } = scoreFieldNames(mode);
       try {
@@ -1331,8 +1333,11 @@
           const data = d.data();
           const total = data[scoreField] || 0;
           const games = data[gamesField] || 0;
+          // Alte Datensätze aus der Zeit vor der PLZ-Umstellung haben kein gültiges
+          // plz-Feld – dann bleibt das Feld leer, statt die zufällige Dokument-ID
+          // (sieht aus wie wirre Buchstaben) anzuzeigen.
           return {
-            plz: data.plz || d.id,
+            plz: PLZ_PATTERN.test(data.plz) ? data.plz : "",
             score: total,
             games,
             average: games > 0 ? Math.round((total / games) * 10) / 10 : 0
@@ -2945,7 +2950,7 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="hs-rank">${i + 1}</td>
-          <td>${s.plz || "–"}</td>
+          <td>${s.plz}</td>
           <td class="hs-score">${s.score}</td>
           <td class="hs-score">${s.games}</td>
           <td class="hs-score">${s.average}</td>`;
