@@ -1180,6 +1180,7 @@
         </div>
         <div class="go-btns">
           <button id="go-hs-btn" class="go-btn go-btn-secondary">Highscore</button>
+          <button id="go-menu-btn" class="go-btn go-btn-secondary">Hauptmenü</button>
           <button id="go-restart-btn" class="go-btn go-btn-primary">Nochmal spielen</button>
         </div>
       </div>
@@ -1470,6 +1471,7 @@
       goQuestions: document.getElementById("go-questions"),
       goCorrect: document.getElementById("go-correct"),
       goHsBtn: document.getElementById("go-hs-btn"),
+      goMenuBtn: document.getElementById("go-menu-btn"),
       goRestartBtn: document.getElementById("go-restart-btn"),
       questionBox: document.querySelector(".question-box"),
       belowPanel: document.querySelector(".below-panel")
@@ -2383,6 +2385,10 @@
       }
     });
     els.goHsBtn.addEventListener("click", () => showHighscores());
+    els.goMenuBtn.addEventListener("click", () => {
+      resetRun();
+      showScreen("welcome");
+    });
 
     if (els.jokerBtn) els.jokerBtn.addEventListener("click", jokerSkip);
 
