@@ -244,6 +244,27 @@
       border-color: rgba(192,132,252,0.7);
     }
 
+    .fifty-btn {
+      border-color: rgba(34,211,238,0.45);
+      background: rgba(8,145,178,0.16);
+      color: #67e8f9;
+    }
+
+    .fifty-btn:hover {
+      background: rgba(8,145,178,0.26);
+      border-color: rgba(34,211,238,0.7);
+    }
+
+    .fifty-btn .joker-count-badge {
+      background: rgba(34,211,238,0.28);
+    }
+
+    .answer-row.eliminated {
+      opacity: 0.3;
+      pointer-events: none;
+      text-decoration: line-through;
+    }
+
     .joker-count-badge {
       background: rgba(192,132,252,0.28);
       border-radius: 999px;
@@ -1078,7 +1099,7 @@
           </button>
           <button type="button" class="mode-card" id="mode-card-classic-ki" data-mode="classic-ki">
             <span class="mode-card-title">Klassisch mit KI-Fragen</span>
-            <span class="mode-card-desc">Testrunde mit den neuen KI-generierten Fragen</span>
+            <span class="mode-card-desc">Testrunde mit den neuen KI-generierten Fragen, plus 50:50-Joker (3 + 1 alle 3 Level-3-Fragen)</span>
           </button>
         </div>
 
@@ -1168,6 +1189,13 @@
         <button id="joker-btn" class="joker-btn" type="button">
           🃏 Joker: Frage überspringen
           <span id="joker-count-badge" class="joker-count-badge">3</span>
+        </button>
+      </div>
+
+      <div id="fifty-wrap" class="joker-wrap hidden">
+        <button id="fifty-btn" class="joker-btn fifty-btn" type="button">
+          ✂️ Joker: Antwort streichen
+          <span id="fifty-count-badge" class="joker-count-badge">3</span>
         </button>
       </div>
 
@@ -1588,6 +1616,8 @@
       usedIds: new Set(),
       gameMode: "new",
       jokersLeft: 3,
+      fiftyFiftyLeft: 3,
+      hardCorrectCount: 0,
       soundMuted: localStorage.getItem("soundMuted") === "1"
     };
 
@@ -1629,6 +1659,9 @@
       jokerBtn: document.getElementById("joker-btn"),
       jokerCountBadge: document.getElementById("joker-count-badge"),
       jokerAward: document.getElementById("joker-award"),
+      fiftyWrap: document.getElementById("fifty-wrap"),
+      fiftyBtn: document.getElementById("fifty-btn"),
+      fiftyCountBadge: document.getElementById("fifty-count-badge"),
       muteBtn: document.getElementById("mute-btn"),
       muteIcon: document.getElementById("mute-icon"),
       modeCards: document.querySelectorAll(".mode-card"),
@@ -1735,6 +1768,8 @@
       state.correctAnswers = 0;
       state.usedIds = new Set();
       state.jokersLeft = 3;
+      state.fiftyFiftyLeft = 3;
+      state.hardCorrectCount = 0;
       resetQuizUi();
     }
 
@@ -1748,6 +1783,7 @@
       els.answers.innerHTML = "";
       els.nextAnswerWrap.className = "next-answer-wrap hidden";
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
+      if (els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
       if (els.jokerAward) els.jokerAward.className = "joker-award hidden";
       els.resultPoints.className = "result-points hidden";
       els.resultInfo.className = "small-info hidden";
@@ -1944,6 +1980,7 @@
     function updateJokerUi() {
       const isClassic = isClassicMode();
       if (els.jokerCountBadge) els.jokerCountBadge.textContent = String(state.jokersLeft);
+      if (els.fiftyCountBadge) els.fiftyCountBadge.textContent = String(state.fiftyFiftyLeft);
       if (els.uiWertLabel && els.uiWert) {
         if (isClassic) {
           els.uiWertLabel.textContent = "Joker";
@@ -1966,10 +2003,45 @@
       els.jokerWrap.classList.add("fade-in");
     }
 
+    // 50:50-Joker: nur im Modus "Klassisch mit KI-Fragen" verfügbar.
+    // Erscheint zusammen mit dem Skip-Joker.
+    function revealFiftyFiftyButton() {
+      if (state.gameMode !== "classic-ki") return;
+      if (state.fiftyFiftyLeft <= 0) return;
+      if (!els.fiftyWrap) return;
+      els.fiftyWrap.classList.remove("hidden", "fade-in");
+      void els.fiftyWrap.offsetWidth;
+      els.fiftyWrap.classList.add("fade-in");
+    }
+
+    function fiftyFiftySkip() {
+      if (state.gameMode !== "classic-ki") return;
+      if (state.fiftyFiftyLeft <= 0) return;
+      if (!state.currentQuestion) return;
+
+      const correctPos = state.currentQuestion.correctPosition;
+      const wrongButtons = [...els.answers.children].filter(btn =>
+        Number(btn.dataset.position) !== correctPos &&
+        !btn.classList.contains("eliminated") &&
+        !btn.disabled
+      );
+      if (!wrongButtons.length) return;
+
+      const pick = wrongButtons[Math.floor(Math.random() * wrongButtons.length)];
+      pick.classList.add("eliminated");
+      pick.disabled = true;
+
+      state.fiftyFiftyLeft -= 1;
+      if (els.fiftyCountBadge) els.fiftyCountBadge.textContent = String(state.fiftyFiftyLeft);
+      if (state.fiftyFiftyLeft <= 0 && els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
+    }
+
     // Kleine Pop-Animation im Ergebnis-Screen, wenn ein neuer Joker
-    // freigespielt wurde (neues Spielprinzip, alle 5 richtigen Antworten).
-    function showJokerAwardAnimation() {
+    // freigespielt wurde (alle 5 richtigen Antworten, bzw. im Modus
+    // "Klassisch mit KI-Fragen" alle 3 richtig beantworteten Level-3-Fragen).
+    function showJokerAwardAnimation(message) {
       if (!els.jokerAward) return;
+      if (message) els.jokerAward.textContent = message;
       els.jokerAward.classList.remove("hidden", "pop-in");
       void els.jokerAward.offsetWidth;
       els.jokerAward.classList.add("pop-in");
@@ -2030,6 +2102,7 @@
       await wait(1600);
       if (token !== state.flowToken) return;
       revealJokerButton();
+      revealFiftyFiftyButton();
     }
 
     function startTimerClassic(token) {
@@ -2052,6 +2125,7 @@
     function handleTimeUpClassic() {
       if (!state.currentQuestion) return;
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
+      if (els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
       lockAllAnswers();
       handleWrong(0);
     }
@@ -2061,6 +2135,7 @@
 
       stopTimer();
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
+      if (els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
       lockAllAnswers();
 
       const clickedRow = [...els.answers.children].find(btn => Number(btn.dataset.position) === position);
@@ -2087,7 +2162,17 @@
       // Alle 5 richtig beantworteten Fragen gibt's einen zusätzlichen Joker
       if (state.correctAnswers % 5 === 0) {
         state.jokersLeft += 1;
-        showJokerAwardAnimation();
+        showJokerAwardAnimation("5 Richtig → +1 Joker");
+      }
+
+      // Klassisch mit KI-Fragen: alle 3 richtig beantworteten Level-3-Fragen
+      // gibt's einen zusätzlichen 50:50-Joker
+      if (state.gameMode === "classic-ki" && state.currentQuestion.difficulty === 3) {
+        state.hardCorrectCount += 1;
+        if (state.hardCorrectCount % 3 === 0) {
+          state.fiftyFiftyLeft += 1;
+          showJokerAwardAnimation("3× Schwer richtig → +1 50:50-Joker");
+        }
       }
 
       if (els.uiScore) els.uiScore.textContent = `${state.totalScore} in Folge`;
@@ -2404,7 +2489,7 @@
       // Alle 5 richtig beantworteten Fragen gibt's einen zusätzlichen Joker
       if (state.correctAnswers % 5 === 0) {
         state.jokersLeft += 1;
-        showJokerAwardAnimation();
+        showJokerAwardAnimation("5 Richtig → +1 Joker");
       }
 
       // Update score display in header
@@ -2599,6 +2684,7 @@
     });
 
     if (els.jokerBtn) els.jokerBtn.addEventListener("click", jokerSkip);
+    if (els.fiftyBtn) els.fiftyBtn.addEventListener("click", fiftyFiftySkip);
 
     if (els.modeCards) {
       els.modeCards.forEach(card => {
