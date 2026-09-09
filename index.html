@@ -1074,7 +1074,7 @@
           </button>
           <button type="button" class="mode-card" id="mode-card-classic" data-mode="classic">
             <span class="mode-card-title">Klassisch</span>
-            <span class="mode-card-desc">Serie sammeln, Joker alle 5 richtigen Antworten, ein Fehler beendet das Spiel</span>
+            <span class="mode-card-desc">Serie sammeln, 3 Joker + 1 alle 5 richtigen Antworten, ein Fehler beendet das Spiel</span>
           </button>
           <button type="button" class="mode-card" id="mode-card-classic-ki" data-mode="classic-ki">
             <span class="mode-card-title">Klassisch mit KI-Fragen</span>
@@ -1734,7 +1734,7 @@
       state.questionsPlayed = 0;
       state.correctAnswers = 0;
       state.usedIds = new Set();
-      state.jokersLeft = 0;
+      state.jokersLeft = 3;
       resetQuizUi();
     }
 
