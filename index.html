@@ -260,9 +260,44 @@
     }
 
     .answer-row.eliminated {
-      opacity: 0.3;
+      visibility: hidden;
       pointer-events: none;
-      text-decoration: line-through;
+    }
+
+    .answer-row.crumbling {
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .answer-row.crumbling .letter,
+    .answer-row.crumbling .answer-text {
+      transition: opacity 0.3s ease, filter 0.3s ease;
+      opacity: 0;
+      filter: blur(1.5px);
+    }
+
+    .crumble-shards {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .crumble-shard {
+      position: absolute;
+      background: linear-gradient(135deg, #f8746b, #b91c1c);
+      border-radius: 2px;
+      animation: crumble-fall 0.6s ease-in forwards;
+    }
+
+    @keyframes crumble-fall {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0.9;
+      }
+      100% {
+        transform: translate(var(--dx, 0px), 52px) rotate(var(--rot, 90deg));
+        opacity: 0;
+      }
     }
 
     .joker-count-badge {
@@ -1617,6 +1652,7 @@
       gameMode: "new",
       jokersLeft: 3,
       fiftyFiftyLeft: 3,
+      fiftyAnimating: false,
       hardCorrectCount: 0,
       soundMuted: localStorage.getItem("soundMuted") === "1"
     };
@@ -1769,6 +1805,7 @@
       state.usedIds = new Set();
       state.jokersLeft = 3;
       state.fiftyFiftyLeft = 3;
+      state.fiftyAnimating = false;
       state.hardCorrectCount = 0;
       resetQuizUi();
     }
@@ -1777,6 +1814,7 @@
       clearInterval(state.timerId);
       clearGameOverMode();
       restoreBelowPanelStructure();
+      state.fiftyAnimating = false;
       els.uiTimerNum.textContent = "0";
       els.uiTimer.classList.remove("is-penalty");
       if (els.uiWert) { els.uiWert.textContent = "–"; }
@@ -2014,10 +2052,42 @@
       els.fiftyWrap.classList.add("fade-in");
     }
 
+    // Lässt eine Antwortoption in kleine Splitter zerbröckeln und danach
+    // unsichtbar werden (visibility:hidden statt display:none), damit die
+    // übrigen Antwortoptionen ihre Position nicht verändern.
+    function crumbleAnswerRow(row, onDone) {
+      const shardContainer = document.createElement("div");
+      shardContainer.className = "crumble-shards";
+      const shardCount = 14;
+      for (let i = 0; i < shardCount; i += 1) {
+        const shard = document.createElement("span");
+        shard.className = "crumble-shard";
+        const size = 5 + Math.random() * 9;
+        shard.style.left = `${Math.random() * 100}%`;
+        shard.style.top = `${Math.random() * 100}%`;
+        shard.style.width = `${size}px`;
+        shard.style.height = `${size}px`;
+        shard.style.setProperty("--dx", `${(Math.random() - 0.5) * 70}px`);
+        shard.style.setProperty("--rot", `${(Math.random() - 0.5) * 220}deg`);
+        shard.style.animationDelay = `${Math.random() * 120}ms`;
+        shardContainer.appendChild(shard);
+      }
+      row.appendChild(shardContainer);
+      row.classList.add("crumbling");
+
+      window.setTimeout(() => {
+        row.classList.remove("crumbling");
+        row.classList.add("eliminated");
+        shardContainer.remove();
+        if (onDone) onDone();
+      }, 650);
+    }
+
     function fiftyFiftySkip() {
       if (state.gameMode !== "classic-ki") return;
       if (state.fiftyFiftyLeft <= 0) return;
       if (!state.currentQuestion) return;
+      if (state.fiftyAnimating) return;
 
       const correctPos = state.currentQuestion.correctPosition;
       const wrongButtons = [...els.answers.children].filter(btn =>
@@ -2028,8 +2098,17 @@
       if (!wrongButtons.length) return;
 
       const pick = wrongButtons[Math.floor(Math.random() * wrongButtons.length)];
-      pick.classList.add("eliminated");
+      const token = state.flowToken;
+
+      state.fiftyAnimating = true;
+      stopTimer();
       pick.disabled = true;
+
+      crumbleAnswerRow(pick, () => {
+        state.fiftyAnimating = false;
+        if (token !== state.flowToken) return;
+        resumeTimerClassic(token);
+      });
 
       state.fiftyFiftyLeft -= 1;
       if (els.fiftyCountBadge) els.fiftyCountBadge.textContent = String(state.fiftyFiftyLeft);
@@ -2105,11 +2184,7 @@
       revealFiftyFiftyButton();
     }
 
-    function startTimerClassic(token) {
-      clearInterval(state.timerId);
-      state.timerValue = CLASSIC_TIME_LIMIT;
-      els.uiTimerNum.textContent = String(state.timerValue);
-      els.uiTimer.classList.remove("is-penalty");
+    function tickTimerClassic(token) {
       state.timerId = setInterval(() => {
         state.timerValue -= 1;
         els.uiTimerNum.textContent = String(Math.max(0, state.timerValue));
@@ -2120,6 +2195,21 @@
           handleTimeUpClassic();
         }
       }, 1000);
+    }
+
+    function startTimerClassic(token) {
+      clearInterval(state.timerId);
+      state.timerValue = CLASSIC_TIME_LIMIT;
+      els.uiTimerNum.textContent = String(state.timerValue);
+      els.uiTimer.classList.remove("is-penalty");
+      tickTimerClassic(token);
+    }
+
+    // Setzt den laufenden Countdown unverändert fort (z.B. nach der kurzen
+    // Pause während der 50:50-Joker-Animation) statt ihn zurückzusetzen.
+    function resumeTimerClassic(token) {
+      clearInterval(state.timerId);
+      tickTimerClassic(token);
     }
 
     function handleTimeUpClassic() {
