@@ -2261,13 +2261,13 @@
       correctRow.dataset.position = "1";
       els.answers.appendChild(correctRow);
 
-      els.resultPoints.textContent = `${finalPoints} Punkte`;
+      els.resultPoints.textContent = `Frage: ${finalPoints} Punkte`;
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
 
       const showTotalLater = state.round >= 2;
       if (showTotalLater) {
-        els.resultTotal.textContent = `${state.totalScore} Punkte Punkte`;
+        els.resultTotal.textContent = `Score: ${state.totalScore} Punkte`;
         els.resultTotal.classList.add("hidden");
       } else {
         els.resultTotal.textContent = "";
