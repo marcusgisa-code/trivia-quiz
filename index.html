@@ -2001,21 +2001,59 @@
       return 1 + Math.floor(Math.random() * 3);
     }
 
+    // Merkt sich pro Profil (Name + Ort), welche Fragen-IDs bereits gespielt wurden –
+    // dauerhaft über localStorage, damit neue Spielrunden unter demselben Profil nicht
+    // sofort wieder dieselben Fragen ausspielen. Der Zyklus beginnt erst von vorne,
+    // wenn wirklich alle Fragen des aktuellen Pools einmal dran waren.
+    function seenQuestionsKey() {
+      const name = (state.username || "").trim().toLowerCase();
+      const ort = (state.ort || "").trim().toLowerCase();
+      return `seenQuestions::${name}::${ort}`;
+    }
+
+    function loadSeenQuestionIds() {
+      try {
+        const raw = localStorage.getItem(seenQuestionsKey());
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    function saveSeenQuestionIds(seenSet) {
+      try {
+        localStorage.setItem(seenQuestionsKey(), JSON.stringify([...seenSet]));
+      } catch (e) { /* localStorage nicht verfügbar – einfach ignorieren */ }
+    }
+
     function pickQuestion() {
       const pool = state.gameMode === "classic-ki" ? KI_QUESTIONS : state.questions;
       if (!pool.length) return null;
 
+      const poolIds = pool.map(q => q.id);
+      const seen = loadSeenQuestionIds();
+
+      // Dieser Pool wurde für dieses Profil komplett durchgespielt -> Zyklus neu starten.
+      if (poolIds.length && poolIds.every(id => seen.has(id))) {
+        poolIds.forEach(id => seen.delete(id));
+      }
+
       const targetDifficulty = getNextDifficulty();
-      let available = pool.filter(
-        q => q.difficulty === targetDifficulty && !state.usedIds.has(q.id)
-      );
+      const notUsedThisRound = q => !state.usedIds.has(q.id);
+      const notSeenByProfile = q => !seen.has(q.id);
+
+      let available = pool.filter(q => q.difficulty === targetDifficulty && notUsedThisRound(q) && notSeenByProfile(q));
 
       if (!available.length) {
-        available = pool.filter(q => q.difficulty === targetDifficulty);
+        available = pool.filter(q => q.difficulty === targetDifficulty && notUsedThisRound(q));
       }
 
       if (!available.length) {
-        available = pool.filter(q => !state.usedIds.has(q.id));
+        available = pool.filter(q => notUsedThisRound(q) && notSeenByProfile(q));
+      }
+
+      if (!available.length) {
+        available = pool.filter(q => notUsedThisRound(q));
         if (!available.length) {
           state.usedIds.clear();
           available = [...pool];
@@ -2024,6 +2062,8 @@
 
       const picked = available[Math.floor(Math.random() * available.length)];
       state.usedIds.add(picked.id);
+      seen.add(picked.id);
+      saveSeenQuestionIds(seen);
       return picked;
     }
 
