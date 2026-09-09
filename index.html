@@ -1074,7 +1074,7 @@
           </button>
           <button type="button" class="mode-card" id="mode-card-classic" data-mode="classic">
             <span class="mode-card-title">Klassisch</span>
-            <span class="mode-card-desc">Serie sammeln, 3 Joker, ein Fehler beendet das Spiel</span>
+            <span class="mode-card-desc">Serie sammeln, Joker alle 5 richtigen Antworten, ein Fehler beendet das Spiel</span>
           </button>
           <button type="button" class="mode-card" id="mode-card-classic-ki" data-mode="classic-ki">
             <span class="mode-card-title">Klassisch mit KI-Fragen</span>
@@ -1734,7 +1734,7 @@
       state.questionsPlayed = 0;
       state.correctAnswers = 0;
       state.usedIds = new Set();
-      state.jokersLeft = isClassicMode() ? 3 : 0;
+      state.jokersLeft = 0;
       resetQuizUi();
     }
 
@@ -2084,6 +2084,12 @@
       state.questionsPlayed += 1;
       state.correctAnswers += 1;
 
+      // Alle 5 richtig beantworteten Fragen gibt's einen zusätzlichen Joker
+      if (state.correctAnswers % 5 === 0) {
+        state.jokersLeft += 1;
+        showJokerAwardAnimation();
+      }
+
       if (els.uiScore) els.uiScore.textContent = `${state.totalScore} in Folge`;
 
       const correctText = state.currentQuestion.answers[state.currentQuestion.correctPosition - 1];
@@ -2332,6 +2338,7 @@
       panel.appendChild(els.resultPoints);
       panel.appendChild(els.resultTotal);
       panel.appendChild(els.resultInfo);
+      if (els.jokerAward) panel.appendChild(els.jokerAward);
       panel.appendChild(els.continueBtn);
       panel.appendChild(els.restartBtn);
     }
@@ -2395,7 +2402,7 @@
       state.correctAnswers += 1;
 
       // Alle 5 richtig beantworteten Fragen gibt's einen zusätzlichen Joker
-      if (!isClassicMode() && state.correctAnswers % 5 === 0) {
+      if (state.correctAnswers % 5 === 0) {
         state.jokersLeft += 1;
         showJokerAwardAnimation();
       }
