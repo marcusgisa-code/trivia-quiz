@@ -1334,10 +1334,13 @@
           const total = data[scoreField] || 0;
           const games = data[gamesField] || 0;
           // Alte Datensätze aus der Zeit vor der PLZ-Umstellung haben kein gültiges
-          // plz-Feld – dann bleibt das Feld leer, statt die zufällige Dokument-ID
-          // (sieht aus wie wirre Buchstaben) anzuzeigen.
+          // plz-Feld (nur eine zufällige Dokument-ID, oder ein frei getipptes altes
+          // "ort"-Feld ganz ohne PLZ) – dann bleibt die ganze Zelle leer, statt
+          // Datenmüll aus der alten Struktur anzuzeigen.
+          const hasValidPlz = PLZ_PATTERN.test(data.plz);
           return {
-            plz: PLZ_PATTERN.test(data.plz) ? data.plz : "",
+            plz: hasValidPlz ? data.plz : "",
+            ort: hasValidPlz && typeof data.ort === "string" ? data.ort : "",
             score: total,
             games,
             average: games > 0 ? Math.round((total / games) * 10) / 10 : 0
@@ -1387,6 +1390,15 @@
         const removeSet = new Set(idsToRemove);
         const filtered = current.filter(id => !removeSet.has(id));
         await setDoc(ref, { plz, seenQuestionIds: filtered }, { merge: true });
+      } catch (e) { /* silent */ }
+    };
+
+    // Ortsname zu einer PLZ dauerhaft am Bezirks-Dokument speichern, damit die
+    // Highscore-Liste ihn direkt mitlesen kann statt bei jeder Anzeige neu nachzufragen.
+    window.saveDistrictOrt = async function(plz, ort) {
+      if (!plz || !ort) return;
+      try {
+        await setDoc(doc(db, "scores", plz), { plz, ort }, { merge: true });
       } catch (e) { /* silent */ }
     };
   </script>
@@ -2844,6 +2856,21 @@
       loadRound();
     }
 
+    // Löst eine PLZ per kostenloser, CORS-freier API zu einem Ortsnamen auf und
+    // speichert ihn dauerhaft am Bezirks-Dokument. Läuft im Hintergrund (nicht
+    // awaited), damit ein langsamer/ausgefallener Dienst "Spiel starten" nie blockiert.
+    async function lookupAndSaveOrtsname(plz) {
+      try {
+        const res = await fetch(`https://api.zippopotam.us/de/${plz}`, { signal: AbortSignal.timeout(3000) });
+        if (!res.ok) return;
+        const data = await res.json();
+        const ort = data.places && data.places[0] && data.places[0]["place name"];
+        if (ort && typeof window.saveDistrictOrt === "function") {
+          window.saveDistrictOrt(plz, ort);
+        }
+      } catch (e) { /* silent – Ortsname bleibt dann einfach leer */ }
+    }
+
     async function startGame() {
       const rawName = els.usernameInput.value.trim();
       if (!rawName) {
@@ -2862,6 +2889,7 @@
 
       state.username = rawName.slice(0, 12);
       state.plz = rawPlz;
+      lookupAndSaveOrtsname(state.plz); // im Hintergrund, blockiert den Spielstart nicht
 
       // Sicherstellen dass Fragen geladen sind (Klassisch mit KI-Fragen nutzt einen eigenen, lokalen Pool)
       if (state.gameMode !== "classic-ki" && !state.questions.length) {
@@ -2950,7 +2978,7 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="hs-rank">${i + 1}</td>
-          <td>${s.plz}</td>
+          <td>${[s.plz, s.ort].filter(Boolean).join(" ")}</td>
           <td class="hs-score">${s.score}</td>
           <td class="hs-score">${s.games}</td>
           <td class="hs-score">${s.average}</td>`;
