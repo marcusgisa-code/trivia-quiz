@@ -252,6 +252,32 @@
       font-weight: 800;
     }
 
+    .joker-award {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px auto 0;
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(192,132,252,0.5);
+      background: rgba(124,58,237,0.18);
+      color: #d8b4fe;
+      font-weight: 700;
+      font-size: 14px;
+      width: fit-content;
+    }
+
+    .joker-award.pop-in {
+      animation: jokerPop 0.6s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+
+    @keyframes jokerPop {
+      0% { opacity: 0; transform: scale(0.6) translateY(6px); }
+      60% { opacity: 1; transform: scale(1.08) translateY(0); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
     button {
       border: 0;
       cursor: pointer;
@@ -1153,6 +1179,7 @@
         <div id="result-points" class="result-points hidden">0 Punkte</div>
         <div id="result-total" class="result-points hidden" style="font-size: clamp(30px, 2.8vw, 64px);">Neuer Score: 0 Punkte</div>
         <div id="result-info" class="small-info hidden"></div>
+        <div id="joker-award" class="joker-award hidden">5 Richtig → +1 Joker</div>
 
         <button id="continue-btn" class="continue-btn hidden">Weiter</button>
         <button id="restart-btn" class="continue-btn hidden" style="min-width: 420px;">Nochmal</button>
@@ -1450,6 +1477,7 @@
       jokerWrap: document.getElementById("joker-wrap"),
       jokerBtn: document.getElementById("joker-btn"),
       jokerCountBadge: document.getElementById("joker-count-badge"),
+      jokerAward: document.getElementById("joker-award"),
       muteBtn: document.getElementById("mute-btn"),
       muteIcon: document.getElementById("mute-icon"),
       modeCards: document.querySelectorAll(".mode-card"),
@@ -1555,7 +1583,7 @@
       state.questionsPlayed = 0;
       state.correctAnswers = 0;
       state.usedIds = new Set();
-      state.jokersLeft = 3;
+      state.jokersLeft = isClassicMode() ? 3 : 0;
       resetQuizUi();
     }
 
@@ -1569,6 +1597,7 @@
       els.answers.innerHTML = "";
       els.nextAnswerWrap.className = "next-answer-wrap hidden";
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
+      if (els.jokerAward) els.jokerAward.className = "joker-award hidden";
       els.resultPoints.className = "result-points hidden";
       els.resultInfo.className = "small-info hidden";
       els.resultTotal.className = "result-points hidden";
@@ -1725,6 +1754,7 @@
       renderVisibleAnswers(1);
       startTimer();
       updateNextAnswerButton();
+      revealJokerButton();
 
       // Show Wert once first answer option is visible
       if (els.uiWert) {
@@ -1773,15 +1803,25 @@
       }
     }
 
-    // Blendet den Joker-Button separat vom Info-Chip ein – erst mit Verzögerung
-    // nach Antwort C, siehe loadRoundClassic().
+    // Blendet den Joker-Button ein, sofern noch Joker übrig sind. Im
+    // Klassisch-Modus erst mit Verzögerung nach Antwort C (siehe
+    // loadRoundClassic()), im neuen Spielprinzip direkt mit der ersten
+    // Antwortoption (siehe loadRound()).
     function revealJokerButton() {
-      if (!isClassicMode()) return;
       if (state.jokersLeft <= 0) return;
       if (!els.jokerWrap) return;
       els.jokerWrap.classList.remove("hidden", "fade-in");
       void els.jokerWrap.offsetWidth;
       els.jokerWrap.classList.add("fade-in");
+    }
+
+    // Kleine Pop-Animation im Ergebnis-Screen, wenn ein neuer Joker
+    // freigespielt wurde (neues Spielprinzip, alle 5 richtigen Antworten).
+    function showJokerAwardAnimation() {
+      if (!els.jokerAward) return;
+      els.jokerAward.classList.remove("hidden", "pop-in");
+      void els.jokerAward.offsetWidth;
+      els.jokerAward.classList.add("pop-in");
     }
 
     async function loadRoundClassic() {
@@ -1920,14 +1960,17 @@
     }
 
     function jokerSkip() {
-      if (!isClassicMode()) return;
       if (state.jokersLeft <= 0) return;
       if (!state.currentQuestion) return;
 
       state.jokersLeft -= 1;
       stopTimer();
       state.round += 1;
-      loadRoundClassic();
+      if (isClassicMode()) {
+        loadRoundClassic();
+      } else {
+        loadRound();
+      }
     }
 
     // ── /Klassisch-Modus ─────────────────────────────────────────────────
@@ -1937,6 +1980,7 @@
 
       stopTimer();
       els.nextAnswerWrap.classList.add("hidden");
+      if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
       lockAllAnswers();
 
       // Show clicked state immediately
@@ -2198,6 +2242,12 @@
       state.correctStreak += 1;
       state.questionsPlayed += 1;
       state.correctAnswers += 1;
+
+      // Alle 5 richtig beantworteten Fragen gibt's einen zusätzlichen Joker
+      if (!isClassicMode() && state.correctAnswers % 5 === 0) {
+        state.jokersLeft += 1;
+        showJokerAwardAnimation();
+      }
 
       // Update score display in header
       if (els.uiScore) els.uiScore.textContent = `${state.totalScore} Punkte`;
