@@ -1122,8 +1122,8 @@
         </div>
 
         <div class="field">
-          <label for="ort">Ort</label>
-          <input id="ort" type="text" maxlength="40" placeholder="Berlin" autocomplete="address-level2" required />
+          <label for="plz">Postleitzahl</label>
+          <input id="plz" type="text" maxlength="5" inputmode="numeric" pattern="[0-9]{5}" placeholder="10115" autocomplete="postal-code" required />
         </div>
 
         <div class="mode-select" id="mode-select">
@@ -1282,7 +1282,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, increment, arrayUnion, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBJ4iLxCmCDq_wLIADbVwupGoaHgktVZDU",
@@ -1296,40 +1296,93 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Beide Modi teilen sich die "scores"-Collection (deren Security Rules bereits
-    // freigeschaltet sind). Getrennt wird über zwei unterschiedliche Score-Felder:
-    // "score" fürs neue Spielprinzip, "scoreClassic" fürs Klassisch. Firestores
-    // orderBy() liefert nur Dokumente, die das sortierte Feld überhaupt besitzen –
-    // das trennt die beiden Ranglisten ganz ohne where()/Composite-Index/neue Rule.
-    function scoreFieldName(mode) {
-      return mode === "classic" ? "scoreClassic" : "score";
+    // Ranglisten sind jetzt pro Postleitzahl statt pro Spieler: ein Dokument pro PLZ
+    // in der bereits freigeschalteten "scores"-Collection (Dokument-ID = PLZ). Jeder
+    // Spieldurchlauf addiert seinen Score zum Bezirks-Gesamtscore. Getrennt nach Modus
+    // über zwei Feldpaare (score/gamesNew, scoreClassic/gamesClassic) – orderBy()
+    // liefert nur Dokumente, die das jeweilige Feld überhaupt besitzen, das trennt die
+    // Ranglisten ohne where()/Composite-Index/neue Security Rule.
+    function scoreFieldNames(mode) {
+      return mode === "classic"
+        ? { score: "scoreClassic", games: "gamesClassic" }
+        : { score: "score", games: "gamesNew" };
     }
 
-    window.saveScore = async function(username, score, plz, ort, land, mode) {
-      if (!username || score <= 0) return;
+    window.saveScore = async function(plz, score, mode) {
+      if (!plz || !score || score <= 0) return;
+      const { score: scoreField, games: gamesField } = scoreFieldNames(mode);
       try {
-        await addDoc(collection(db, "scores"), {
-          username, [scoreFieldName(mode)]: score, mode: mode === "classic" ? "classic" : "new",
-          plz, ort, land, timestamp: serverTimestamp()
-        });
+        await setDoc(doc(db, "scores", plz), {
+          plz,
+          [scoreField]: increment(score),
+          [gamesField]: increment(1)
+        }, { merge: true });
       } catch (e) {
         console.warn("Score konnte nicht gespeichert werden:", e);
       }
     };
 
     window.loadHighscores = async function(mode) {
-      const field = scoreFieldName(mode);
+      const { score: scoreField, games: gamesField } = scoreFieldNames(mode);
       try {
-        const q = query(collection(db, "scores"), orderBy(field, "desc"), limit(10));
+        const q = query(collection(db, "scores"), orderBy(scoreField, "desc"), limit(10));
         const snap = await getDocs(q);
         return snap.docs.map(d => {
           const data = d.data();
-          return { ...data, score: data[field] };
+          const total = data[scoreField] || 0;
+          const games = data[gamesField] || 0;
+          return {
+            plz: data.plz || d.id,
+            score: total,
+            games,
+            average: games > 0 ? Math.round((total / games) * 10) / 10 : 0
+          };
         });
       } catch(e) {
         console.warn("Highscores konnten nicht geladen werden:", e);
         return [];
       }
+    };
+
+    // "Gesehene Fragen"-Historie liegt ebenfalls pro PLZ auf demselben Dokument, statt
+    // pro Profil in localStorage – so teilt sich ein ganzer Bezirk den Fortschritt
+    // geräteübergreifend, und der Fragenzyklus wiederholt sich erst, wenn wirklich
+    // alle Fragen eines Pools für diese PLZ einmal dran waren.
+    window.loadDistrictSeenIds = async function(plz) {
+      if (!plz) return [];
+      try {
+        const snap = await getDoc(doc(db, "scores", plz));
+        if (snap.exists()) {
+          const data = snap.data();
+          return Array.isArray(data.seenQuestionIds) ? data.seenQuestionIds : [];
+        }
+        return [];
+      } catch (e) {
+        console.warn("Gesehene Fragen konnten nicht geladen werden:", e);
+        return [];
+      }
+    };
+
+    window.markQuestionSeen = async function(plz, questionId) {
+      if (!plz || !questionId) return;
+      try {
+        await setDoc(doc(db, "scores", plz), {
+          plz,
+          seenQuestionIds: arrayUnion(questionId)
+        }, { merge: true });
+      } catch (e) { /* silent – Frage bleibt trotzdem lokal als gesehen markiert */ }
+    };
+
+    window.resetDistrictSeenIds = async function(plz, idsToRemove) {
+      if (!plz) return;
+      try {
+        const ref = doc(db, "scores", plz);
+        const snap = await getDoc(ref);
+        const current = snap.exists() && Array.isArray(snap.data().seenQuestionIds) ? snap.data().seenQuestionIds : [];
+        const removeSet = new Set(idsToRemove);
+        const filtered = current.filter(id => !removeSet.has(id));
+        await setDoc(ref, { plz, seenQuestionIds: filtered }, { merge: true });
+      } catch (e) { /* silent */ }
     };
   </script>
 
@@ -1761,8 +1814,6 @@
     const state = {
       username: "",
       plz: "",
-      ort: "",
-      land: "",
       round: 1,
       totalScore: 0,
       timerValue: 0,
@@ -1782,7 +1833,8 @@
       fiftyFiftyLeft: 3,
       fiftyAnimating: false,
       hardCorrectCount: 0,
-      soundMuted: localStorage.getItem("soundMuted") === "1"
+      soundMuted: localStorage.getItem("soundMuted") === "1",
+      districtSeenIds: new Set()
     };
 
     const screens = {
@@ -1794,7 +1846,7 @@
 
     const els = {
       usernameInput: document.getElementById("username"),
-      ortInput: document.getElementById("ort"),
+      plzInput: document.getElementById("plz"),
       loadingHint: document.getElementById("loading-hint"),
       highscoreList: document.getElementById("highscore-list"),
       hsTabs: document.querySelectorAll(".hs-tab"),
@@ -2001,55 +2053,38 @@
       return 1 + Math.floor(Math.random() * 3);
     }
 
-    // Merkt sich pro Profil (Name + Ort), welche Fragen-IDs bereits gespielt wurden –
-    // dauerhaft über localStorage, damit neue Spielrunden unter demselben Profil nicht
-    // sofort wieder dieselben Fragen ausspielen. Der Zyklus beginnt erst von vorne,
-    // wenn wirklich alle Fragen des aktuellen Pools einmal dran waren.
-    function seenQuestionsKey() {
-      const name = (state.username || "").trim().toLowerCase();
-      const ort = (state.ort || "").trim().toLowerCase();
-      return `seenQuestions::${name}::${ort}`;
-    }
-
-    function loadSeenQuestionIds() {
-      try {
-        const raw = localStorage.getItem(seenQuestionsKey());
-        return raw ? new Set(JSON.parse(raw)) : new Set();
-      } catch (e) {
-        return new Set();
-      }
-    }
-
-    function saveSeenQuestionIds(seenSet) {
-      try {
-        localStorage.setItem(seenQuestionsKey(), JSON.stringify([...seenSet]));
-      } catch (e) { /* localStorage nicht verfügbar – einfach ignorieren */ }
-    }
-
+    // Merkt sich pro Postleitzahl (nicht pro Person), welche Fragen-IDs bereits
+    // gespielt wurden – dauerhaft in Firestore (state.districtSeenIds ist der beim
+    // Spielstart geladene In-Memory-Cache davon), damit neue Spielrunden aus demselben
+    // Bezirk nicht sofort wieder dieselben Fragen ausspielen. Der Zyklus beginnt erst
+    // von vorne, wenn wirklich alle Fragen des aktuellen Pools einmal dran waren.
     function pickQuestion() {
       const pool = state.gameMode === "classic-ki" ? KI_QUESTIONS : state.questions;
       if (!pool.length) return null;
 
       const poolIds = pool.map(q => q.id);
-      const seen = loadSeenQuestionIds();
+      const seen = state.districtSeenIds;
 
-      // Dieser Pool wurde für dieses Profil komplett durchgespielt -> Zyklus neu starten.
+      // Dieser Pool wurde für diese PLZ komplett durchgespielt -> Zyklus neu starten.
       if (poolIds.length && poolIds.every(id => seen.has(id))) {
         poolIds.forEach(id => seen.delete(id));
+        if (typeof window.resetDistrictSeenIds === "function") {
+          window.resetDistrictSeenIds(state.plz, poolIds);
+        }
       }
 
       const targetDifficulty = getNextDifficulty();
       const notUsedThisRound = q => !state.usedIds.has(q.id);
-      const notSeenByProfile = q => !seen.has(q.id);
+      const notSeenByDistrict = q => !seen.has(q.id);
 
-      let available = pool.filter(q => q.difficulty === targetDifficulty && notUsedThisRound(q) && notSeenByProfile(q));
+      let available = pool.filter(q => q.difficulty === targetDifficulty && notUsedThisRound(q) && notSeenByDistrict(q));
 
       if (!available.length) {
         available = pool.filter(q => q.difficulty === targetDifficulty && notUsedThisRound(q));
       }
 
       if (!available.length) {
-        available = pool.filter(q => notUsedThisRound(q) && notSeenByProfile(q));
+        available = pool.filter(q => notUsedThisRound(q) && notSeenByDistrict(q));
       }
 
       if (!available.length) {
@@ -2063,7 +2098,9 @@
       const picked = available[Math.floor(Math.random() * available.length)];
       state.usedIds.add(picked.id);
       seen.add(picked.id);
-      saveSeenQuestionIds(seen);
+      if (typeof window.markQuestionSeen === "function") {
+        window.markQuestionSeen(state.plz, picked.id);
+      }
       return picked;
     }
 
@@ -2555,8 +2592,8 @@
 
     async function showEditMode() {
       const username = els.usernameInput.value.trim();
-      const ort = els.ortInput.value.trim();
-      if (!username || !ort) { els.usernameInput.focus(); return; }
+      const plz = els.plzInput.value.trim();
+      if (!username || !plz) { els.usernameInput.focus(); return; }
 
       showScreen("edit");
       editState.currentIndex = 0;
@@ -2718,7 +2755,7 @@
             renderGameOverSummary();
             // Klassisch mit KI-Fragen ist eine Testrunde und soll die echten Highscore-Listen nicht verfälschen
             if (state.gameMode !== "classic-ki" && typeof window.saveScore === "function") {
-              window.saveScore(state.username, state.totalScore, state.plz, state.ort, state.land, state.gameMode);
+              window.saveScore(state.plz, state.totalScore, state.gameMode);
             }
             els.goRestartBtn.disabled = true;
             window.setTimeout(() => {
@@ -2801,16 +2838,16 @@
         return;
       }
 
-      const rawOrt = els.ortInput.value.trim();
+      const rawPlz = els.plzInput.value.trim();
 
-      if (!rawOrt) {
-        alert("Bitte gib deinen Ort ein.");
-        els.ortInput.focus();
+      if (!/^\d{5}$/.test(rawPlz)) {
+        alert("Bitte gib eine gültige 5-stellige Postleitzahl ein.");
+        els.plzInput.focus();
         return;
       }
 
       state.username = rawName.slice(0, 12);
-      state.ort = rawOrt.slice(0, 40);
+      state.plz = rawPlz;
 
       // Sicherstellen dass Fragen geladen sind (Klassisch mit KI-Fragen nutzt einen eigenen, lokalen Pool)
       if (state.gameMode !== "classic-ki" && !state.questions.length) {
@@ -2828,6 +2865,16 @@
         }
         els.loadingHint.classList.add("hidden");
         els.startBtn.disabled = false;
+      }
+
+      // Bereits gesehene Fragen dieser PLZ laden, bevor die erste Frage gezogen wird.
+      try {
+        const seenArr = typeof window.loadDistrictSeenIds === "function"
+          ? await window.loadDistrictSeenIds(state.plz)
+          : [];
+        state.districtSeenIds = new Set(seenArr);
+      } catch (e) {
+        state.districtSeenIds = new Set();
       }
 
       resetRun();
@@ -2874,23 +2921,25 @@
         els.highscoreList.innerHTML = '<p class="hs-loading">Noch keine Einträge.</p>';
         return;
       }
-      const scoreLabel = highscoreMode === "classic" ? "Serie" : "Score";
+      const scoreLabel = highscoreMode === "classic" ? "Serie gesamt" : "Punkte gesamt";
       const table = document.createElement("table");
       table.className = "hs-table";
       table.innerHTML = `<thead><tr>
         <th class="hs-rank">#</th>
-        <th>Name</th>
-        <th>Ort</th>
+        <th>PLZ</th>
         <th class="hs-score">${scoreLabel}</th>
+        <th class="hs-score">Spiele</th>
+        <th class="hs-score">Ø / Spiel</th>
       </tr></thead>`;
       const tbody = document.createElement("tbody");
       scores.forEach((s, i) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="hs-rank">${i + 1}</td>
-          <td>${s.username || "–"}</td>
-          <td>${[s.ort, s.land].filter(Boolean).join(", ") || "–"}</td>
-          <td class="hs-score">${s.score}</td>`;
+          <td>${s.plz || "–"}</td>
+          <td class="hs-score">${s.score}</td>
+          <td class="hs-score">${s.games}</td>
+          <td class="hs-score">${s.average}</td>`;
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
