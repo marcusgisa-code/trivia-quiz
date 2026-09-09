@@ -2299,6 +2299,7 @@
       if (!state.currentQuestion) return;
 
       state.jokersLeft -= 1;
+      state.questionsPlayed += 1;
       stopTimer();
       state.round += 1;
       if (isClassicMode()) {
