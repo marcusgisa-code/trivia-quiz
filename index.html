@@ -168,12 +168,13 @@
 
     .mode-select {
       display: flex;
+      flex-wrap: wrap;
       gap: 12px;
       margin-bottom: 20px;
     }
 
     .mode-card {
-      flex: 1;
+      flex: 1 1 140px;
       background: rgba(255,255,255,0.04);
       border: 1.5px solid rgba(255,255,255,0.10);
       border-radius: 16px;
@@ -1026,6 +1027,10 @@
             <span class="mode-card-title">Klassisch</span>
             <span class="mode-card-desc">Serie sammeln, 3 Joker, ein Fehler beendet das Spiel</span>
           </button>
+          <button type="button" class="mode-card" id="mode-card-classic-ki" data-mode="classic-ki">
+            <span class="mode-card-title">Klassisch mit KI-Fragen</span>
+            <span class="mode-card-desc">Testrunde mit den neuen KI-generierten Fragen</span>
+          </button>
         </div>
 
         <div class="button-row">
@@ -1221,10 +1226,140 @@
 42045;Wer schrieb „Faust"?;Schiller;Goethe;Kafka;2;3
 `.trim();
 
+    // KI-generierte Testfragen (Fragenpool/KI_Fragen.csv) — für den Modus "Klassisch mit KI-Fragen"
+    const KI_FRAGEN_CSV = `
+1737;Du bist die altägyptische Katzengöttin. Wie heißt du?;Bastet;Isis;Nephthys;1;1;;x;NEU
+1738;Du bist eine Spinne. Wie viele Beine hast du?;6;8;10;2;1;;x;NEU
+1739;Du packst deine Koffer für einen Trip nach Marrakesch. In welches Land reist du?;Tunesien;Algerien;Marokko;3;1;;x;NEU
+1740;Wenn du ein Faultier beobachtest, dann bewegt es sich vor allem...;sehr langsam;sehr schnell;gar nicht;1;1;;x;NEU
+1741;Du bekommst in engen Räumen Panik, du leidest also unter...;Agoraphobie;Klaustrophobie;Akrophobie;2;1;;x;NEU
+1742;Du bist Sherlock Holmes' bester Freund und Assistent. Wie heißt du?;Inspector Lestrade;Moriarty;Dr. Watson;3;1;;x;NEU
+1743;Du bist ein Seestern. Wie viele Zacken hast du meistens?;5;6;4;1;1;;x;NEU
+1744;Du lebst im alten Rom und trägst zu festlichen Anlässen stolz deine Toga. Welches Volk trug sie NICHT?;die Römer;die alten Griechen;die Senatoren;2;1;;x;NEU
+1745;Du bist der kleine Achilles und deine Mutter taucht dich zum Schutz in einen Fluss. In welchen?;Nil;Rhein;Styx;3;2;;x;NEU
+1746;Du triffst eine ganze Gruppe von Löwen auf einmal. Wie nennt man diese Gruppe?;Rudel;Meute;Schwarm;1;2;;x;NEU
+1747;Du bist der römische Gott des Krieges. Wie heißt du?;Ares;Mars;Vulcanus;2;2;;x;NEU
+1748;In deinem Körper wird gerade Insulin produziert. Aus welchem Organ kommt es?;Leber;Niere;Bauchspeicheldrüse;3;2;;x;NEU
+1749;Wenn du Vegetarier bist, aber gelegentlich Fisch isst, nennt man dich...;Pescetarier;Frutarier;Flexitarier;1;2;;x;NEU
+1750;Du machst Urlaub und fotografierst die Freiheitsstatue. In welcher Stadt stehst du gerade?;Washington D.C.;New York;Boston;2;2;;x;NEU
+1751;Du bist ein Oktopus. Wie viele Herzen schlagen in dir?;1;2;3;3;2;;x;NEU
+1752;Du bist Kapitän eines Piratenschiffs im 18. Jahrhundert und hisst zur Einschüchterung deiner Gegner...;die Jolly Roger;die Weiße Flagge;den Union Jack;1;2;;x;NEU
+1753;Du fliegst mit deinem Raumschiff von der Sonne aus los und zählst die Planeten mit. Bei welchem hältst du als siebtem an?;Saturn;Uranus;Neptun;2;2;;x;NEU
+1754;Du liest Goethes Ballade "Erlkönig". Wen versucht der Titelheld zu entführen?;eine Prinzessin;einen Reiter;ein Kind;3;2;;x;NEU
+1755;Du kippst dein Thermometer um und beobachtest, wie sich das flüssige Metall darin bewegt. Um welches Metall handelt es sich?;Quecksilber;Zink;Blei;1;2;;x;NEU
+1756;Du reibst in der Geschichte aus "1001 Nacht" an einer Wunderlampe. Wer erscheint?;ein Zauberer;ein Dschinn;ein Vampir;2;2;;x;NEU
+1757;Du paddelst mit deinem Kanu einen Fluss hinunter, der aber NICHT in der Nordsee mündet. Auf welchem Fluss bist du unterwegs?;Elbe;Rhein;Rhône;3;3;;x;NEU
+1758;Du bist ein Komponist, bleibst dein Leben lang unverheiratet und stirbst, bevor du deine 9. Sinfonie vollenden kannst. Wie heißt du?;Anton Bruckner;Johannes Brahms;Ludwig van Beethoven;1;3;;x;NEU
+1759;Du segelst über den Titicacasee. In welchem Land liegt der größere Teil des Sees, auf dem du gerade unterwegs bist?;Bolivien;Peru;Chile;2;3;;x;NEU
+1760;Du bist eine Schriftstellerin und veröffentlichst deine Romane unter dem männlichen Pseudonym "George Eliot". Wie lautet dein echter Name?;Charlotte Brontë;Virginia Woolf;Mary Ann Evans;3;3;;x;NEU
+1761;Du lässt dein Erbgut untersuchen. Wie viele Chromosomenpaare zählt der Laborbericht bei dir normalerweise?;23;21;26;1;3;;x;NEU
+1762;Du durchquerst zu Fuß die größte heiße Wüste der Erde. Wie heißt sie?;Sahara;Gobi;Kalahari;1;1;;x;NEU
+1763;Du stehst an der Quelle des Weißen Nils. An welchem See befindest du dich?;Tanganjikasee;Viktoriasee;Malawisee;2;2;;x;NEU
+1764;Du landest zum Regierungsbesuch in der Hauptstadt Australiens. In welcher Stadt bist du gelandet?;Sydney;Melbourne;Canberra;3;2;;x;NEU
+1765;Du überquerst zu Fuß das Gebirge, das traditionell als Grenze zwischen Europa und Asien gilt. Wie heißt es?;Ural;Kaukasus;Karpaten;1;3;;x;NEU
+1766;Du stehst staunend vor dem Uluru (Ayers Rock). In welchem Land befindest du dich?;Neuseeland;Australien;Südafrika;2;1;;x;NEU
+1767;Du segelst über den flächenmäßig größten Ozean der Erde. Auf welchem bist du unterwegs?;Atlantik;Indischer Ozean;Pazifik;3;1;;x;NEU
+1768;Du reist einmal quer durch Russland. Wie viele Zeitzonen durchquerst du dabei?;11;9;13;1;3;;x;NEU
+1769;Du wanderst über die Halbinsel Kamtschatka. In welchem Land bist du unterwegs?;Japan;Russland;Kanada;2;3;;x;NEU
+1770;Du fährst mit dem Boot den längsten Fluss hinunter, der komplett in Europa verläuft. Auf welchem Fluss bist du?;Donau;Rhein;Wolga;3;3;;x;NEU
+1771;Du stehst vor dem größeren Teil der Niagarafälle, den Horseshoe Falls. Auf welcher Seite der Grenze stehst du?;Kanada;USA;genau in der Mitte;1;2;;x;NEU
+1772;Du paddelst die Donau bis zum Schwarzen Meer hinunter. Durch wie viele Länder führt dich dein Weg?;8;10;12;2;3;;x;NEU
+1773;Du durchquerst die trockenste Wüste der Welt und hast schon lange Durst. Wie heißt sie?;Gobi;Sonora-Wüste;Atacama-Wüste;3;2;;x;NEU
+1774;Du feierst mit den Menschen auf der Straße das Kriegsende in Europa. Welches Jahr schreiben wir?;1945;1943;1947;1;1;;x;NEU
+1775;Du bist der allererste Kaiser des Römischen Reiches. Wie heißt du?;Julius Cäsar;Augustus;Nero;2;2;;x;NEU
+1776;Du bist Leonardo da Vinci und feierst gerade deine Geburt. In welchem Jahr kommst du zur Welt?;1389;1512;1452;3;3;;x;NEU
+1777;Du bist Matrose auf dem Flaggschiff, mit dem Christoph Kolumbus 1492 nach Amerika segelt. Wie heißt dein Schiff?;Santa Maria;Pinta;Niña;1;3;;x;NEU
+1778;Du kletterst mit Hammer und Meißel auf die Berliner Mauer. Welches Jahr schreiben wir?;1987;1989;1991;2;1;;x;NEU
+1779;Du bist Pharao Cheops und gibst den Bau deines Lieblingsprojekts in Auftrag. Um welches Bauwerk handelt es sich?;den Sphinx;den Tempel von Karnak;die Cheops-Pyramide;3;1;;x;NEU
+1780;Du kämpfst dein ganzes Leben im sogenannten Hundertjährigen Krieg mit. Wie viele Jahre dauert er tatsächlich?;116 Jahre;100 Jahre;80 Jahre;1;3;;x;NEU
+1781;Du besichtigst die Ruinenstadt Machu Picchu. Welches Volk hat sie einst erbaut?;Azteken;Inka;Maya;2;2;;x;NEU
+1782;Du bist englischer König und unterschreibst 1215 widerwillig die Magna Carta. Wie heißt du?;Richard Löwenherz;Heinrich VIII;Johann Ohneland;3;3;;x;NEU
+1783;Du gehst 1893 als eine der ersten Frauen der Welt zur Wahlurne. In welchem Land lebst du?;Neuseeland;USA;Frankreich;1;3;;x;NEU
+1784;Du bist ein Regenwurm. Wie viele Herzen schlagen ungefähr in dir?;1;5;10;2;3;;x;NEU
+1785;Du forderst das schnellste Landtier der Welt zu einem Wettrennen heraus - aussichtslos! Gegen wen trittst du an?;Löwe;Pferd;Gepard;3;1;;x;NEU
+1786;Du bist eine Kuh und kaust genüsslich wieder. Wie viele Mägen helfen dir dabei?;4;2;6;1;2;;x;NEU
+1787;Du schwimmst neben dem größten Säugetier der Welt her. Welchem Tier begegnest du?;Elefant;Blauwal;Giraffe;2;1;;x;NEU
+1788;Du bist ein junges Känguru und hüpfst im Beutel deiner Mutter mit. Wie nennt man dich?;Kitz;Welpe;Joey;3;2;;x;NEU
+1789;Du bist nachtaktiv und kannst deinen Kopf um bis zu 270 Grad drehen, um alles im Blick zu behalten. Welches Tier bist du?;die Eule;der Falke;der Adler;1;2;;x;NEU
+1790;Dein Herz schlägt gerade aufgeregt. Aus wie vielen Kammern besteht es?;2;4;3;2;2;;x;NEU
+1791;Du bist das einzige Säugetier, das wirklich aktiv fliegen statt nur zu gleiten kann. Welches Tier bist du?;das Flughörnchen;der Flugbeutler;die Fledermaus;3;2;;x;NEU
+1792;Du bist eine Elefantenkuh und schnaubst ungeduldig, denn dein Nachwuchs lässt sich Zeit. Wie lange dauert deine Tragzeit ungefähr?;22 Monate;9 Monate;15 Monate;1;3;;x;NEU
+1793;Du bist ein Tintenfisch und hast dich beim Rasieren geschnitten. Welche Farbe hat dein Blut?;rot;blau;grün;2;3;;x;NEU
+1794;Du bist ein Titan der griechischen Sage und verschlingst aus Angst vor einer Weissagung deine eigenen Kinder. Wie heißt du?;Zeus;Uranos;Kronos;3;2;;x;NEU
+1795;Du bist der nordische Gott, der für Donner und Blitz zuständig ist. Wie heißt du?;Thor;Odin;Loki;1;1;;x;NEU
+1796;Du triffst ein geflügeltes Pferd aus der griechischen Mythologie und grüßt es: Hallo...;Chiron;Pegasus;Kerberos;2;1;;x;NEU
+1797;Du bist eine Figur der griechischen Sage und musst als Strafe ewig einen Felsbrocken einen Berg hinaufrollen. Wie heißt du?;Prometheus;Tantalos;Sisyphos;3;2;;x;NEU
+1798;Du triffst am Eingang zur Unterwelt einen dreiköpfigen Hund und grüßt ihn vorsichtig: Hallo...;Kerberos;Fenrir;Anubis;1;2;;x;NEU
+1799;Du triffst eine ägyptische Gottheit mit einem Schakalkopf und grüßt sie: Hallo...;Horus;Anubis;Thot;2;2;;x;NEU
+1800;Du bist in der nordischen Mythologie der Gott der List und des Schabernacks. Wie heißt du?;Baldr;Heimdall;Loki;3;1;;x;NEU
+1801;Du öffnest aus Neugier ein Gefäß, aus dem laut griechischer Sage sofort alle Übel der Welt entweichen. Wie heißt das Gefäß?;die Büchse der Pandora;der Kelch des Dionysos;der Schild der Athene;1;1;;x;NEU
+1802;Du bist der russische Schriftsteller, der den Roman "Krieg und Frieden" verfasst hat. Wie heißt du?;Fjodor Dostojewski;Leo Tolstoi;Anton Tschechow;2;2;;x;NEU
+1803;Du stehst auf dem Balkon, auf dem sich angeblich Romeo und Julia ihre Liebe schworen. In welcher italienischen Stadt befindest du dich?;Venedig;Florenz;Verona;3;1;;x;NEU
+1804;Du hast übertriebene Angst vor der Zahl 13, du leidest unter...;Triskaidekaphobie;Arithmophobie;Numerophobie;1;3;;x;NEU
+1805;Ihr seid die berühmten Brüder, die die "Kinder- und Hausmärchen" gesammelt haben. Wie heißt ihr?;Hans Christian Andersen;die Gebrüder Grimm;Wilhelm Busch;2;1;;x;NEU
+1806;Du sprichst fließend genau zwei Sprachen. Wie nennt man dich?;polyglott;monoglott;bilingual;3;2;;x;NEU
+1807;Du bist der Autor des dystopischen Romans "1984". Wie heißt du?;George Orwell;Aldous Huxley;Ray Bradbury;1;2;;x;NEU
+1808;Du bist der Titelheld aus Cervantes' Roman und ziehst tapfer gegen Windmühlen in den Kampf. Wie heißt du?;Sancho Pansa;Don Quijote;Rodrigo;2;2;;x;NEU
+1809;Du dichtest "Fischers Fritz fischt frische Fische". Welches Fremdwort bezeichnet dieses Stilmittel?;Metapher;Anapher;Alliteration;3;3;;x;NEU
+1810;Du bist der Dichter, der das Drama "Faust" verfasst hat. Wie heißt du?;Johann Wolfgang von Goethe;Friedrich Schiller;Heinrich Heine;1;1;;x;NEU
+1811;Du sagst "schwarzer Schimmel" und merkst gar nicht, dass sich die beiden Wörter widersprechen. Welches Fremdwort bezeichnet diesen Stilbruch?;Pleonasmus;Oxymoron;Paradoxon;2;3;;x;NEU
+1812;Du bist der Schauspieler, der Kapitän Jack Sparrow in "Fluch der Karibik" verkörpert. Wie heißt du?;Orlando Bloom;Geoffrey Rush;Johnny Depp;3;1;;x;NEU
+1813;Du bist der beste Freund des grünen Ogers in "Shrek" und redest ihm ständig ein Loch in den Bauch. Welches Tier bist du?;ein Esel;ein Pferd;eine Katze;1;2;;x;NEU
+1814;Du schlenderst wie Carrie Bradshaw in High Heels durch die Straßen. In welcher Stadt spielt "Sex and the City" hauptsächlich?;Los Angeles;New York;Chicago;2;2;;x;NEU
+1815;Du bist der Zauberlehrling mit der blitzförmigen Narbe aus der Romanreihe von J.K. Rowling. Wie heißt du?;Percy Jackson;Frodo Beutlin;Harry Potter;3;1;;x;NEU
+1816;Du warst der allererste Schauspieler, der James Bond auf der Kinoleinwand verkörperte. Wie heißt du?;Sean Connery;Roger Moore;Pierce Brosnan;1;2;;x;NEU
+1817;Du bist eine Meerjungfrau und verliebst dich Hals über Kopf in einen menschlichen Prinzen. In welchem Disney-Film erlebst du das?;Mulan;Arielle;Pocahontas;2;1;;x;NEU
+1818;Du bist ein grüner Oger, lebst am liebsten allein in deinem Sumpf und heißt wie der gleichnamige Animationsfilm. Wie heißt du?;Donkey;Fiona;Shrek;3;1;;x;NEU
+1819;Du bist der Comic-Verlag, der ursprünglich Superman und Batman veröffentlicht hat. Wie heißt du?;DC Comics;Marvel;Dark Horse;1;2;;x;NEU
+1820;Du bist Komponist und zum Zeitpunkt deines Todes bereits vollständig taub. Wie heißt du?;Mozart;Ludwig van Beethoven;Bach;2;2;;x;NEU
+1821;Du greifst in die Saiten deiner klassischen Konzertgitarre. Wie viele sind es normalerweise?;4;8;6;3;2;;x;NEU
+1822;Ihr seid die britische Band, die das Album "Abbey Road" veröffentlicht hat. Wie heißt ihr?;The Beatles;The Rolling Stones;Pink Floyd;1;1;;x;NEU
+1823;Du spielst das höchste Blasinstrument im klassischen Orchester. Welches Instrument hältst du in der Hand?;Fagott;Piccoloflöte;Tuba;2;3;;x;NEU
+1824;Du bist ein österreichischer Komponist und giltst bereits als Kind als musikalisches Wunderkind. Wie heißt du?;Joseph Haydn;Franz Schubert;Wolfgang Amadeus Mozart;3;1;;x;NEU
+1825;Du setzt dich ans Klavier und lässt deine Finger über die Tasten gleiten. Wie viele sind es normalerweise?;88;76;96;1;2;;x;NEU
+1826;Du schaust aufs Periodensystem und suchst das Element mit dem Symbol "Fe". Um welches Element handelt es sich?;Fluor;Eisen;Silber;2;2;;x;NEU
+1827;Du zählst die Planeten unseres Sonnensystems laut der Definition von 2006 durch. Bei wie vielen kommst du an?;9;10;8;3;1;;x;NEU
+1828;Du gießt dir gerade einen Goldbarren. Welches chemische Symbol steht dafür im Periodensystem?;Au;Go;Gd;1;2;;x;NEU
+1829;Du beobachtest, wie Trockeneis direkt von fest zu gasförmig übergeht, ohne flüssig zu werden. Wie nennt man diesen Vorgang?;Kondensation;Sublimation;Verdunstung;2;2;;x;NEU
+1830;Du bist der Physiker, der die allgemeine Relativitätstheorie formuliert hat. Wie heißt du?;Isaac Newton;Niels Bohr;Albert Einstein;3;1;;x;NEU
+1831;Du lässt dein Skelett röntgen. Wie viele Knochen zählt der Arzt bei einem erwachsenen Menschen normalerweise?;206;186;226;1;3;;x;NEU
+1832;Du atmest tief ein. Welches Gas macht dabei den größten Anteil der Erdatmosphäre aus?;Sauerstoff;Stickstoff;Kohlendioxid;2;2;;x;NEU
+1833;Du bist ein Stern und leuchtest kurz vor deinem Ende explosionsartig extrem hell auf. Wie nennt man dieses Ereignis?;Pulsar;Quasar;Supernova;3;2;;x;NEU
+1834;Du füllst Wasser in eine Eiswürfelform und stellst sie ins Gefrierfach. Bei welcher Temperatur gefriert es unter Normaldruck?;0 Grad Celsius;4 Grad Celsius;-5 Grad Celsius;1;1;;x;NEU
+1835;Du fliegst mit deinem Raumschiff durch die auffälligen Ringe eines Planeten unseres Sonnensystems. Um welchen Planeten handelt es sich?;Jupiter;Saturn;Uranus;2;1;;x;NEU
+1836;Du bist Schiedsrichter bei einem Fußballspiel. Wie viele Spieler stehen pro Mannschaft gleichzeitig auf dem Feld?;9;13;11;3;1;;x;NEU
+1837;Du trägst stolz die olympische Fackel. Wie oft finden die Olympischen Sommerspiele planmäßig statt?;alle 4 Jahre;alle 2 Jahre;alle 6 Jahre;1;1;;x;NEU
+1838;Du schießt beim Eishockey aufs Tor - aber nicht mit einem Ball. Mit welchem Sportgerät spielst du?;Shuttle;Puck;Diskus;2;2;;x;NEU
+1839;Du malst gerade das olympische Symbol nach. Wie viele Ringe zeichnest du?;4;6;5;3;2;;x;NEU
+1840;Du läufst schweißgebadet einen Marathon. Über welche ungefähre Distanz quälst du dich?;etwa 42 km;etwa 32 km;etwa 52 km;1;2;;x;NEU
+1841;Du gewinnst als Profi in Wimbledon und komplettierst damit deinen "Grand Slam". In welcher Sportart spielst du?;Golf;Tennis;Cricket;2;2;;x;NEU
+1842;Du spielst eine klassische Golfrunde. Über wie viele Löcher schlägst du dich?;9;27;18;3;2;;x;NEU
+1843;Du trainierst eine japanische Kampfsportart, deren Name übersetzt "der sanfte Weg" bedeutet. Welche Sportart übst du aus?;Judo;Karate;Taekwondo;1;2;;x;NEU
+1844;Du bestellst dir eine original Pizza Margherita. Aus welchem Land stammt sie ursprünglich?;Frankreich;Italien;Spanien;2;1;;x;NEU
+1845;Du prostest mit einem Becher Sake. Welches Getreide steckt hauptsächlich darin?;Weizen;Gerste;Reis;3;2;;x;NEU
+1846;Du isst mit Stäbchen dünn geschnittenen rohen Fisch, ganz ohne Reis. Wie nennt man dieses japanische Gericht?;Sashimi;Sushi;Tempura;1;2;;x;NEU
+1847;Du würzt dein Risotto mit einem der teuersten Gewürze der Welt, das von der Narbe der Krokusblüte stammt. Welches Gewürz benutzt du?;Kurkuma;Safran;Kardamom;2;2;;x;NEU
+1848;Du beträufelst deinen Salat mit klassischem Balsamico-Essig. Woraus wird er hergestellt?;Apfelsaft;Malz;Traubenmost;3;3;;x;NEU
+1849;Du trinkst genüsslich deinen ersten Kaffee des Tages. Welches Land gilt als Ursprungsland dieser Bohne?;Äthiopien;Brasilien;Kolumbien;1;2;;x;NEU
+1850;Du schläfst am Wochenende aus und kombinierst Frühstück und Mittagessen zu einer Mahlzeit. Wie nennt man das?;Lunch;Brunch;Snack;2;2;;x;NEU
+1851;Du ernährst dich ausschließlich pflanzlich und verzichtest sogar auf Honig. Wie nennt man dich?;Vegetarier;Frutarier;Veganer;3;1;;x;NEU
+1852;Du liegst auf dem Rücken auf einem Gerüst und malst die Deckenfresken der Sixtinischen Kapelle. Wie heißt du?;Michelangelo;Raffael;Leonardo da Vinci;1;1;;x;NEU
+1853;Du stehst mit hunderten Touristen vor der Mona Lisa. In welchem Pariser Museum befindest du dich?;Musée d'Orsay;Louvre;Centre Pompidou;2;1;;x;NEU
+1854;Du bist ein niederländischer Maler und schneidest dir in einem Anfall von Verzweiflung ein Ohr ab. Wie heißt du?;Rembrandt;Johannes Vermeer;Vincent van Gogh;3;1;;x;NEU
+1855;Du malst wie Salvador Dalí schmelzende Uhren. Welcher Kunstrichtung fühlst du dich zugehörig?;Surrealismus;Kubismus;Impressionismus;1;2;;x;NEU
+1856;Du bist Robin Hood und raubst von den Reichen. Wem gibst du das Geld?;der Kirche;den Armen;dem König;2;1;;x;NEU
+1857;Deine Freunde nennen dich Choleriker, weil du...;immer traurig bist;nie Emotionen zeigst;schnell wütend wirst;3;2;;x;NEU
+1858;Du bist eine Figur der griechischen Mythologie und musst als Strafe ewig nach einer Traube greifen, die stets außer Reichweite bleibt. Wie heißt du?;Tantalos;Sisyphos;Prometheus;1;3;;x;NEU
+1859;Wenn du unter Nyktophobie leidest, dann hast du Angst vor...;Spinnen;der Dunkelheit;großen Höhen;2;2;;x;NEU
+1860;Du bist Weltraumtourist und landest als erstes auf dem sonnennächsten Planeten. Wo bist du?;Venus;Mars;Merkur;3;2;;x;NEU
+1861;Deine Freunde nennen dich Misanthrop, weil du...;Menschen verabscheust;Tiere liebst;nie lügst;1;2;;x;NEU
+`.trim();
+
     const LETTERS = ["A", "B", "C"];
     const DIFFICULTY_LABELS = { 1: "einfach", 2: "mittel", 3: "schwer" };
 
     const CLASSIC_TIME_LIMIT = 25;
+    const KI_QUESTIONS = parseCsv(KI_FRAGEN_CSV);
 
     const state = {
       username: "",
@@ -1335,6 +1470,10 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    function isClassicMode() {
+      return state.gameMode === "classic" || state.gameMode === "classic-ki";
+    }
+
     function showScreen(name) {
       Object.values(screens).forEach(screen => screen.classList.add("hidden"));
       screens[name].classList.remove("hidden");
@@ -1419,22 +1558,23 @@
     }
 
     function pickQuestion() {
-      if (!state.questions.length) return null;
+      const pool = state.gameMode === "classic-ki" ? KI_QUESTIONS : state.questions;
+      if (!pool.length) return null;
 
       const targetDifficulty = getNextDifficulty();
-      let available = state.questions.filter(
+      let available = pool.filter(
         q => q.difficulty === targetDifficulty && !state.usedIds.has(q.id)
       );
 
       if (!available.length) {
-        available = state.questions.filter(q => q.difficulty === targetDifficulty);
+        available = pool.filter(q => q.difficulty === targetDifficulty);
       }
 
       if (!available.length) {
-        available = state.questions.filter(q => !state.usedIds.has(q.id));
+        available = pool.filter(q => !state.usedIds.has(q.id));
         if (!available.length) {
           state.usedIds.clear();
-          available = [...state.questions];
+          available = [...pool];
         }
       }
 
@@ -1460,7 +1600,7 @@
       button.appendChild(letter);
       button.appendChild(answerText);
       button.addEventListener("click", () => {
-        if (state.gameMode === "classic") {
+        if (isClassicMode()) {
           chooseAnswerClassic(index + 1);
         } else {
           chooseAnswer(index + 1);
@@ -1559,7 +1699,7 @@
     // ── Klassisch-Modus ──────────────────────────────────────────────────
 
     function updateJokerUi() {
-      const isClassic = state.gameMode === "classic";
+      const isClassic = isClassicMode();
       if (els.jokerCountBadge) els.jokerCountBadge.textContent = String(state.jokersLeft);
       if (els.uiWertLabel && els.uiWert) {
         if (isClassic) {
@@ -1574,7 +1714,7 @@
     // Blendet den Joker-Button separat vom Info-Chip ein – erst mit Verzögerung
     // nach Antwort C, siehe loadRoundClassic().
     function revealJokerButton() {
-      if (state.gameMode !== "classic") return;
+      if (!isClassicMode()) return;
       if (state.jokersLeft <= 0) return;
       if (!els.jokerWrap) return;
       els.jokerWrap.classList.remove("hidden", "fade-in");
@@ -1717,7 +1857,7 @@
     }
 
     function jokerSkip() {
-      if (state.gameMode !== "classic") return;
+      if (!isClassicMode()) return;
       if (state.jokersLeft <= 0) return;
       if (!state.currentQuestion) return;
 
@@ -1920,7 +2060,7 @@
       els.goQuestions.textContent = String(state.questionsPlayed);
       els.goCorrect.textContent = String(state.correctAnswers);
       if (els.goScoreLabel) {
-        els.goScoreLabel.textContent = state.gameMode === "classic" ? "Serie" : "Punkte";
+        els.goScoreLabel.textContent = isClassicMode() ? "Serie" : "Punkte";
       }
 
       els.goCard.classList.remove("hidden");
@@ -1966,7 +2106,8 @@
 
           window.setTimeout(() => {
             renderGameOverSummary();
-            if (typeof window.saveScore === "function") {
+            // Klassisch mit KI-Fragen ist eine Testrunde und soll die echten Highscore-Listen nicht verfälschen
+            if (state.gameMode !== "classic-ki" && typeof window.saveScore === "function") {
               window.saveScore(state.username, state.totalScore, state.plz, state.ort, state.land, state.gameMode);
             }
             els.goRestartBtn.disabled = true;
@@ -2054,8 +2195,8 @@
       state.username = rawName.slice(0, 12);
       state.ort = rawOrt.slice(0, 40);
 
-      // Sicherstellen dass Fragen geladen sind
-      if (!state.questions.length) {
+      // Sicherstellen dass Fragen geladen sind (Klassisch mit KI-Fragen nutzt einen eigenen, lokalen Pool)
+      if (state.gameMode !== "classic-ki" && !state.questions.length) {
         els.startBtn.disabled = true;
         els.loadingHint.classList.remove("hidden");
         try {
@@ -2073,7 +2214,7 @@
       }
 
       resetRun();
-      if (state.gameMode === "classic") {
+      if (isClassicMode()) {
         loadRoundClassic();
       } else {
         loadRound();
@@ -2104,7 +2245,8 @@
     }
 
     async function showHighscores(mode) {
-      highscoreMode = mode || state.gameMode || "new";
+      const fallbackMode = state.gameMode === "classic-ki" ? "classic" : state.gameMode;
+      highscoreMode = mode || fallbackMode || "new";
       updateHsTabsUi();
       showScreen("highscore");
       els.highscoreList.innerHTML = '<p class="hs-loading">Wird geladen…</p>';
@@ -2155,7 +2297,7 @@
 
     els.nextAnswerBtn.addEventListener("click", revealNextAnswer);
     els.continueBtn.addEventListener("click", () => {
-      if (state.gameMode === "classic") {
+      if (isClassicMode()) {
         nextRoundClassic();
       } else {
         nextRound();
@@ -2163,7 +2305,7 @@
     });
     els.restartBtn.addEventListener("click", () => {
       resetRun();
-      if (state.gameMode === "classic") {
+      if (isClassicMode()) {
         loadRoundClassic();
       } else {
         loadRound();
@@ -2171,7 +2313,7 @@
     });
     els.goRestartBtn.addEventListener("click", () => {
       resetRun();
-      if (state.gameMode === "classic") {
+      if (isClassicMode()) {
         loadRoundClassic();
       } else {
         loadRound();
