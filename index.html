@@ -1834,7 +1834,8 @@
       fiftyAnimating: false,
       hardCorrectCount: 0,
       soundMuted: localStorage.getItem("soundMuted") === "1",
-      districtSeenIds: new Set()
+      districtSeenIds: new Set(),
+      roundAnswered: false
     };
 
     const screens = {
@@ -1995,6 +1996,7 @@
       clearGameOverMode();
       restoreBelowPanelStructure();
       state.fiftyAnimating = false;
+      state.roundAnswered = false;
       els.uiTimerNum.textContent = "0";
       els.uiTimer.classList.remove("is-penalty");
       if (els.uiWert) { els.uiWert.textContent = "–"; }
@@ -2239,6 +2241,7 @@
     // loadRoundClassic()), im neuen Spielprinzip direkt mit der ersten
     // Antwortoption (siehe loadRound()).
     function revealJokerButton() {
+      if (state.roundAnswered) return;
       if (state.jokersLeft <= 0) return;
       if (!els.jokerWrap) return;
       els.jokerWrap.classList.remove("hidden", "fade-in");
@@ -2249,6 +2252,7 @@
     // 50:50-Joker: nur im Modus "Klassisch mit KI-Fragen" verfügbar.
     // Erscheint zusammen mit dem Skip-Joker.
     function revealFiftyFiftyButton() {
+      if (state.roundAnswered) return;
       if (state.gameMode !== "classic-ki") return;
       if (state.fiftyFiftyLeft <= 0) return;
       if (!els.fiftyWrap) return;
@@ -2289,6 +2293,7 @@
     }
 
     function fiftyFiftySkip() {
+      if (state.roundAnswered) return;
       if (state.gameMode !== "classic-ki") return;
       if (state.fiftyFiftyLeft <= 0) return;
       if (!state.currentQuestion) return;
@@ -2419,6 +2424,7 @@
 
     function handleTimeUpClassic() {
       if (!state.currentQuestion) return;
+      state.roundAnswered = true;
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
       if (els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
       lockAllAnswers();
@@ -2428,6 +2434,7 @@
     function chooseAnswerClassic(position) {
       if (!state.currentQuestion) return;
 
+      state.roundAnswered = true;
       stopTimer();
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
       if (els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
@@ -2497,6 +2504,7 @@
     }
 
     function jokerSkip() {
+      if (state.roundAnswered) return;
       if (state.jokersLeft <= 0) return;
       if (!state.currentQuestion) return;
 
@@ -2516,6 +2524,7 @@
     function chooseAnswer(position) {
       if (!state.currentQuestion) return;
 
+      state.roundAnswered = true;
       stopTimer();
       els.nextAnswerWrap.classList.add("hidden");
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
