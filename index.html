@@ -35,15 +35,18 @@
       color: var(--text-main);
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       padding: 24px;
     }
 
+    /* Fester Anker statt body { align-items: center }: die Karte wächst/schrumpft
+       nach unten (neue Antwortoptionen, Joker-Buttons, ...), ohne dass sich ihr
+       oberer Rand mit jeder Höhenänderung neu zentriert und "wandert". */
     .app {
       width: 100%;
       max-width: 540px;
       min-height: auto;
-      margin: 0 auto;
+      margin: max(24px, 8vh) auto 0;
     }
 
     .screen {
