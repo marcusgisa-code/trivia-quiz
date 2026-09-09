@@ -616,6 +616,28 @@
 
     .tb-gold { color: #f5a623; }
 
+    /* Mute toggle (between player pill and chips) */
+    .tb-mute {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: #162035;
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tb-mute:hover { background: #1c2941; }
+
+    .tb-mute.is-muted {
+      border-color: rgba(200,40,60,0.5);
+      background: rgba(180,30,50,0.12);
+    }
+
     .tb-chips.level-3 .label-level {
       color: #ff8a50;
       text-shadow: 0 0 10px rgba(255,100,30,0.6);
@@ -976,6 +998,7 @@
       .c-val { font-size: 14px; }
       #ui-timer { width: 46px; height: 46px; }
       .tb-timer-num { font-size: 18px; }
+      .tb-mute { width: 32px; height: 32px; font-size: 14px; }
 
       .question-text {
         font-size: 18px;
@@ -1083,6 +1106,10 @@
             <div id="ui-score">0 Punkte</div>
           </div>
         </div>
+
+        <button id="mute-btn" class="tb-mute" type="button" aria-label="Sound aus">
+          <span id="mute-icon">🔊</span>
+        </button>
 
         <div class="tb-chips" id="ui-round-difficulty">
           <div class="tb-chip">
@@ -1381,7 +1408,8 @@
       questions: [],
       usedIds: new Set(),
       gameMode: "new",
-      jokersLeft: 3
+      jokersLeft: 3,
+      soundMuted: localStorage.getItem("soundMuted") === "1"
     };
 
     const screens = {
@@ -1421,6 +1449,8 @@
       jokerWrap: document.getElementById("joker-wrap"),
       jokerBtn: document.getElementById("joker-btn"),
       jokerCountBadge: document.getElementById("joker-count-badge"),
+      muteBtn: document.getElementById("mute-btn"),
+      muteIcon: document.getElementById("mute-icon"),
       modeCards: document.querySelectorAll(".mode-card"),
       goScoreLabel: document.getElementById("go-score-label"),
       editQuestionText: document.getElementById("edit-question-text"),
@@ -1444,6 +1474,36 @@
       questionBox: document.querySelector(".question-box"),
       belowPanel: document.querySelector(".below-panel")
     };
+
+    // ── Sound-Effekte ────────────────────────────────────────────────────
+    const sounds = {
+      correct: new Audio("Sound/correct.mp3"),
+      wrong: new Audio("Sound/Wrong.wav")
+    };
+
+    function playSound(name) {
+      if (state.soundMuted) return;
+      const sfx = sounds[name];
+      if (!sfx) return;
+      sfx.currentTime = 0;
+      sfx.play().catch(() => {});
+    }
+
+    function updateMuteButton() {
+      if (!els.muteBtn) return;
+      els.muteBtn.classList.toggle("is-muted", state.soundMuted);
+      els.muteIcon.textContent = state.soundMuted ? "🔇" : "🔊";
+      els.muteBtn.setAttribute("aria-label", state.soundMuted ? "Sound an" : "Sound aus");
+    }
+
+    if (els.muteBtn) {
+      updateMuteButton();
+      els.muteBtn.addEventListener("click", () => {
+        state.soundMuted = !state.soundMuted;
+        localStorage.setItem("soundMuted", state.soundMuted ? "1" : "0");
+        updateMuteButton();
+      });
+    }
 
     function parseCsv(text) {
       return text
@@ -1825,6 +1885,7 @@
     }
 
     function classicHandleCorrect() {
+      playSound("correct");
       state.totalScore += 1;
       state.correctStreak += 1;
       state.questionsPlayed += 1;
@@ -2079,6 +2140,7 @@
     }
 
     function handleWrong(position) {
+      playSound("wrong");
       const row = [...els.answers.children].find(btn => Number(btn.dataset.position) === position);
       if (row) row.classList.add("wrong-state");
 
@@ -2129,6 +2191,7 @@
         return;
       }
 
+      playSound("correct");
       state.totalScore += finalPoints;
       state.correctStreak += 1;
       state.questionsPlayed += 1;
