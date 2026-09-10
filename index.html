@@ -1357,7 +1357,7 @@
           <p class="go-sub" id="go-questions-played">0 Fragen gespielt</p>
         </div>
         <div class="go-stats">
-          <div class="go-stat">
+          <div class="go-stat" id="go-score-stat">
             <span class="go-stat-n gold" id="go-score">0</span>
             <span class="go-stat-l" id="go-score-label">Punkte</span>
           </div>
@@ -2270,6 +2270,7 @@
       goCard: document.getElementById("game-over-card"),
       goPlayerName: document.getElementById("go-player-name"),
       goQuestionsPlayed: document.getElementById("go-questions-played"),
+      goScoreStat: document.getElementById("go-score-stat"),
       goScore: document.getElementById("go-score"),
       goQuestions: document.getElementById("go-questions"),
       goCorrect: document.getElementById("go-correct"),
@@ -3291,6 +3292,14 @@
       els.goCorrect.textContent = String(state.correctAnswers);
       if (els.goScoreLabel) {
         els.goScoreLabel.textContent = isClassicMode() ? "Serie" : "Punkte";
+      }
+      // In den Klassisch-Modi zählt "Serie" (totalScore) immer 1:1 mit
+      // "Richtig" (correctAnswers) hoch (siehe classicHandleCorrect()) und
+      // ist damit ein reines Duplikat – dort ausgeblendet. Im Modus
+      // "Neues Spielprinzip" ist "Punkte" (variable Formel-Punkte) davon
+      // unabhängig und bleibt sichtbar.
+      if (els.goScoreStat) {
+        els.goScoreStat.classList.toggle("hidden", isClassicMode());
       }
 
       // Gesamtpunktzahl der Spielrunde nach dem neuen Score-System
