@@ -1149,6 +1149,11 @@
       font-size: 22px;
     }
 
+    /* Zahl bei "Score für Frage": Fontfarbe = Outline-Farbe (statt Weiß). */
+    .result-value-solo {
+      color: var(--accent-soft);
+    }
+
     /* Effekte für die Zahl hinter "Score für Frage", gestaffelt nach
        Punktzahl (nur Modus Klassisch ohne KI-Fragen). */
     @keyframes scoreFadeSlow {
@@ -1169,7 +1174,7 @@
       90% { transform: translateY(0); }
     }
     .score-effect-fade-slow {
-      animation: scoreFadeSlow 1.8s ease-in-out infinite;
+      animation: scoreFadeSlow 1s ease-in-out infinite;
     }
     .score-effect-fade-fast {
       animation: scoreFadeFast 0.7s ease-in-out infinite;
@@ -3108,7 +3113,7 @@
 
       const richtigText = randomRichtigText(state.currentQuestion.difficulty);
       const soloScoreLine = state.gameMode === "classic"
-        ? `<br><span class="result-points-sub"><span class="result-label">Score für Frage:</span> <span class="result-value ${soloScoreEffectClass(state.lastClassicSoloPoints)}">${state.lastClassicSoloPoints}</span></span>`
+        ? `<br><span class="result-points-sub"><span class="result-label">Score für Frage:</span> <span class="result-value result-value-solo ${soloScoreEffectClass(state.lastClassicSoloPoints)}">${state.lastClassicSoloPoints}</span></span>`
         : "";
       els.resultPoints.innerHTML = `<span class="result-feedback-text" id="result-richtig-headline"></span><br><span class="result-points-sub"><span class="result-label">Korrekte Antworten:</span> <span class="result-value result-value-correct">${state.totalScore}</span></span>${soloScoreLine}`;
       els.resultPoints.classList.remove("hidden");
