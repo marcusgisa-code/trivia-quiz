@@ -1126,6 +1126,13 @@
       text-shadow: none;
     }
 
+    /* Label-Teil ("Korrekte Antworten:" / "Score für Frage:") in gleicher
+       Fontgröße wie die Frage selbst; die Zahl behält die größere
+       .result-points-sub-Schrift unverändert. */
+    .result-label {
+      font-size: 20px;
+    }
+
     #result-total {
       font-size: clamp(30px, 3.2vw, 56px) !important;
       color: var(--accent-soft);
@@ -1172,6 +1179,10 @@
       }
 
       .result-feedback-text {
+        font-size: 18px;
+      }
+
+      .result-label {
         font-size: 18px;
       }
 
@@ -3042,9 +3053,9 @@
 
       const richtigText = randomRichtigText(state.currentQuestion.difficulty);
       const soloScoreLine = state.gameMode === "classic"
-        ? `<br><span class="result-points-sub">Score für Frage: ${state.lastClassicSoloPoints}</span>`
+        ? `<br><span class="result-points-sub"><span class="result-label">Score für Frage:</span> ${state.lastClassicSoloPoints}</span>`
         : "";
-      els.resultPoints.innerHTML = `<span class="result-feedback-text" id="result-richtig-headline"></span><br><span class="result-points-sub">Korrekte Antworten: ${state.totalScore}</span>${soloScoreLine}`;
+      els.resultPoints.innerHTML = `<span class="result-feedback-text" id="result-richtig-headline"></span><br><span class="result-points-sub"><span class="result-label">Korrekte Antworten:</span> ${state.totalScore}</span>${soloScoreLine}`;
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
       typewriterReveal(document.getElementById("result-richtig-headline"), richtigText);
