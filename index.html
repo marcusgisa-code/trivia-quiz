@@ -1127,10 +1127,13 @@
     }
 
     /* Label-Teil ("Korrekte Antworten:" / "Score für Frage:") in gleicher
-       Fontgröße wie die Frage selbst; die Zahl behält die größere
-       .result-points-sub-Schrift unverändert. */
+       Fontgröße wie die Frage selbst, weiß, fett, ohne Outline; die Zahl
+       behält Fontgröße und Outline von .result-points-sub unverändert. */
     .result-label {
       font-size: 20px;
+      color: #ffffff;
+      font-weight: 700;
+      -webkit-text-stroke: 0;
     }
 
     #result-total {
