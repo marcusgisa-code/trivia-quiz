@@ -3055,9 +3055,9 @@
     // Effekt-Klasse für die "Score für Frage"-Zahl, gestaffelt nach
     // erreichter Punktzahl (nur Modus Klassisch ohne KI-Fragen).
     function soloScoreEffectClass(points) {
-      if (points >= 60) return "score-effect-bounce";
-      if (points >= 40) return "score-effect-fade-fast";
-      if (points >= 20) return "score-effect-fade-slow";
+      if (points >= 30) return "score-effect-bounce";
+      if (points >= 20) return "score-effect-fade-fast";
+      if (points >= 10) return "score-effect-fade-slow";
       return "";
     }
 
