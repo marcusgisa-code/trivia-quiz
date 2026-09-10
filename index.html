@@ -1261,6 +1261,7 @@
           <button type="button" class="hs-tab is-active" data-mode="new">Neues Spielprinzip</button>
           <button type="button" class="hs-tab" data-mode="classic">Klassisch</button>
           <button type="button" class="hs-tab" data-mode="classic-ki">Klassisch mit KI-Fragen</button>
+          <button type="button" class="hs-tab" data-mode="classic-solo">Klassisch Einzelspieler Score</button>
         </div>
         <div id="highscore-list"><p class="hs-loading">Wird geladen…</p></div>
         <div class="button-row" style="margin-top: 24px;">
@@ -1369,7 +1370,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, increment, arrayUnion, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, addDoc, increment, arrayUnion, collection, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBJ4iLxCmCDq_wLIADbVwupGoaHgktVZDU",
@@ -1487,6 +1488,46 @@
       try {
         await setDoc(doc(db, "scores", plz), { plz, ort }, { merge: true });
       } catch (e) { /* silent */ }
+    };
+
+    // ── Klassisch Einzelspieler Score ───────────────────────────────────
+    // Eigene Rangliste nur für den Klassisch-Modus (ohne KI-Fragen), unabhängig
+    // von der bestehenden PLZ-Bezirks-Serie: hier zählt der beste EINZELNE
+    // Spieldurchlauf nach der Formel (Schwierigkeitsgrad × Restsekunden) / 2
+    // pro Frage. Jeder Durchlauf wird als eigenes Dokument in derselben, bereits
+    // freigeschalteten "scores"-Collection abgelegt (addDoc statt PLZ als ID),
+    // mit dem eigenen Feld "soloScore" – orderBy() liefert dadurch nur diese
+    // Dokumente und lässt die PLZ-Bezirksdokumente unberührt.
+    window.saveClassicSoloScore = async function(username, plz, score) {
+      if (!username || !plz || !score || score <= 0) return;
+      try {
+        await addDoc(collection(db, "scores"), {
+          username,
+          plz,
+          soloScore: score,
+          timestamp: serverTimestamp()
+        });
+      } catch (e) {
+        console.warn("Einzelspieler-Score konnte nicht gespeichert werden:", e);
+      }
+    };
+
+    window.loadClassicSoloHighscores = async function() {
+      try {
+        const q = query(collection(db, "scores"), orderBy("soloScore", "desc"), limit(10));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => {
+          const data = d.data();
+          return {
+            username: typeof data.username === "string" && data.username ? data.username : "–",
+            plz: typeof data.plz === "string" ? data.plz : "",
+            score: data.soloScore || 0
+          };
+        });
+      } catch (e) {
+        console.warn("Einzelspieler-Highscores konnten nicht geladen werden:", e);
+        return [];
+      }
     };
   </script>
 
@@ -2151,7 +2192,8 @@
       soundMuted: localStorage.getItem("soundMuted") === "1",
       districtSeenIds: new Set(),
       roundAnswered: false,
-      pendingGameOver: false
+      pendingGameOver: false,
+      classicSoloScore: 0
     };
 
     const screens = {
@@ -2308,6 +2350,7 @@
       state.fiftyFiftyLeft = 3;
       state.fiftyAnimating = false;
       state.hardCorrectCount = 0;
+      state.classicSoloScore = 0;
       resetQuizUi();
     }
 
@@ -2951,6 +2994,16 @@
       state.questionsPlayed += 1;
       state.correctAnswers += 1;
 
+      // Einzelspieler-Score (nur im Klassisch-Modus ohne KI-Fragen, unabhängig
+      // von der bestehenden Serie): Punkte pro Frage = (Schwierigkeitsgrad ×
+      // Restsekunden bei Beantwortung) / 2. state.timerValue hält zu diesem
+      // Zeitpunkt noch den Stand, bei dem stopTimer() in chooseAnswerClassic()
+      // den Countdown eingefroren hat.
+      if (state.gameMode === "classic") {
+        const points = Math.round((state.currentQuestion.difficulty * state.timerValue) / 2);
+        state.classicSoloScore += Math.max(0, points);
+      }
+
       // Alle 5 richtig beantworteten Fragen gibt's einen zusätzlichen Joker
       if (state.correctAnswers % 5 === 0) {
         state.jokersLeft += 1;
@@ -3447,34 +3500,60 @@
       updateHsTabsUi();
       showScreen("highscore");
       els.highscoreList.innerHTML = '<p class="hs-loading">Wird geladen…</p>';
-      const scores = typeof window.loadHighscores === "function"
-        ? await window.loadHighscores(highscoreMode)
-        : [];
+
+      const isSolo = highscoreMode === "classic-solo";
+      const scores = isSolo
+        ? (typeof window.loadClassicSoloHighscores === "function" ? await window.loadClassicSoloHighscores() : [])
+        : (typeof window.loadHighscores === "function" ? await window.loadHighscores(highscoreMode) : []);
+
       if (!scores.length) {
         els.highscoreList.innerHTML = '<p class="hs-loading">Noch keine Einträge.</p>';
         return;
       }
-      const scoreLabel = highscoreMode === "new" ? "Punkte gesamt" : "Serie gesamt";
+
       const table = document.createElement("table");
       table.className = "hs-table";
-      table.innerHTML = `<thead><tr>
-        <th class="hs-rank">#</th>
-        <th>PLZ</th>
-        <th class="hs-score">${scoreLabel}</th>
-        <th class="hs-score">Spiele</th>
-        <th class="hs-score">Ø / Spiel</th>
-      </tr></thead>`;
       const tbody = document.createElement("tbody");
-      scores.forEach((s, i) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="hs-rank">${i + 1}</td>
-          <td>${[s.plz, s.ort].filter(Boolean).join(" ")}</td>
-          <td class="hs-score">${s.score}</td>
-          <td class="hs-score">${s.games}</td>
-          <td class="hs-score">${s.average}</td>`;
-        tbody.appendChild(tr);
-      });
+
+      if (isSolo) {
+        // Einzelspieler-Liste: jede Zeile ist ein einzelner Spieldurchlauf
+        // (Name + PLZ + dessen Score), keine Bezirks-Summe über mehrere Spiele.
+        table.innerHTML = `<thead><tr>
+          <th class="hs-rank">#</th>
+          <th>Name</th>
+          <th>PLZ</th>
+          <th class="hs-score">Punkte</th>
+        </tr></thead>`;
+        scores.forEach((s, i) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="hs-rank">${i + 1}</td>
+            <td>${s.username || "–"}</td>
+            <td>${s.plz || "–"}</td>
+            <td class="hs-score">${s.score}</td>`;
+          tbody.appendChild(tr);
+        });
+      } else {
+        const scoreLabel = highscoreMode === "new" ? "Punkte gesamt" : "Serie gesamt";
+        table.innerHTML = `<thead><tr>
+          <th class="hs-rank">#</th>
+          <th>PLZ</th>
+          <th class="hs-score">${scoreLabel}</th>
+          <th class="hs-score">Spiele</th>
+          <th class="hs-score">Ø / Spiel</th>
+        </tr></thead>`;
+        scores.forEach((s, i) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="hs-rank">${i + 1}</td>
+            <td>${[s.plz, s.ort].filter(Boolean).join(" ")}</td>
+            <td class="hs-score">${s.score}</td>
+            <td class="hs-score">${s.games}</td>
+            <td class="hs-score">${s.average}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
       table.appendChild(tbody);
       els.highscoreList.innerHTML = "";
       els.highscoreList.appendChild(table);
@@ -3501,6 +3580,11 @@
         renderGameOverSummary();
         if (typeof window.saveScore === "function") {
           window.saveScore(state.plz, state.totalScore, state.gameMode);
+        }
+        // Zusätzlich zur unveränderten Bezirks-Serie: eigener Einzelspieler-Score,
+        // nur im Klassisch-Modus ohne KI-Fragen.
+        if (state.gameMode === "classic" && typeof window.saveClassicSoloScore === "function") {
+          window.saveClassicSoloScore(state.username, state.plz, state.classicSoloScore);
         }
         els.goRestartBtn.disabled = true;
         window.setTimeout(() => {
