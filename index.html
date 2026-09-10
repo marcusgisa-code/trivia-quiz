@@ -1942,11 +1942,32 @@
         "Herausragend gelöst!", "Exzellent!", "Chapeau, richtig!", "Echtes Wissen bewiesen!", "Bravourös gelöst!"
       ]
     };
+    // Abwechslungsreiche "Falsch"-Feedback-Texte, gleiche Quelle wie oben.
+    const FALSCH_TEXTE = {
+      "leicht": [
+        "Leider falsch.", "Das war nicht ganz richtig.", "Knapp daneben!", "Nicht ganz – versuch's nochmal!", "Leider nicht korrekt.",
+        "Das stimmt so nicht.", "Fast! Aber nicht ganz.", "Das war leider falsch.", "Nicht richtig, aber weiter geht's!", "Diesmal nicht getroffen."
+      ],
+      "mittel": [
+        "Leider daneben.", "Das war nicht richtig.", "Knapp vorbei!", "Nicht korrekt – bleib dran!", "Das stimmt leider nicht.",
+        "Fehlversuch – nächstes Mal klappt's!", "Nicht ganz getroffen.", "Leider falsch, aber gut mitgedacht!", "Das war's leider nicht.", "Nicht die richtige Antwort."
+      ],
+      "schwer": [
+        "Leider falsch – das war knifflig!", "Nicht korrekt, aber gut überlegt!", "Diesmal nicht getroffen – schwere Frage!", "Leider daneben.", "Das war knapp, aber nicht richtig.",
+        "Nicht ganz – bei dieser Schwierigkeit kein Wunder!", "Falsche Antwort – bleib dran!", "Leider nicht korrekt.", "Das war eine harte Nuss – leider falsch.", "Nicht getroffen, aber stark versucht!"
+      ]
+    };
     const DIFFICULTY_KEY_FOR_VARIANTEN = { 1: "leicht", 2: "mittel", 3: "schwer" };
 
     function randomRichtigText(difficulty) {
       const key = DIFFICULTY_KEY_FOR_VARIANTEN[difficulty] || "leicht";
       const list = RICHTIG_TEXTE[key];
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function randomFalschText(difficulty) {
+      const key = DIFFICULTY_KEY_FOR_VARIANTEN[difficulty] || "leicht";
+      const list = FALSCH_TEXTE[key];
       return list[Math.floor(Math.random() * list.length)];
     }
 
@@ -1977,7 +1998,8 @@
       hardCorrectCount: 0,
       soundMuted: localStorage.getItem("soundMuted") === "1",
       districtSeenIds: new Set(),
-      roundAnswered: false
+      roundAnswered: false,
+      pendingGameOver: false
     };
 
     const screens = {
@@ -2140,6 +2162,7 @@
       restoreBelowPanelStructure();
       state.fiftyAnimating = false;
       state.roundAnswered = false;
+      state.pendingGameOver = false;
       els.uiTimerNum.textContent = "0";
       els.uiTimer.classList.remove("is-penalty");
       if (els.uiWert) { els.uiWert.textContent = "–"; }
@@ -2924,22 +2947,21 @@
           els.answers.appendChild(newRow);
         }
 
-        // Trigger game over after a short pause to let user see the correct answer
+        // Kurze Pause, damit die korrekte Antwort noch wahrgenommen wird –
+        // danach einen zufälligen "Falsch"-Text zeigen und auf den nächsten
+        // Klick auf "Weiter" warten, statt automatisch zum Game Over
+        // überzugehen.
         window.setTimeout(() => {
           stopTimer();
           state.questionsPlayed += 1;
 
-          window.setTimeout(() => {
-            renderGameOverSummary();
-            // Klassisch mit KI-Fragen ist eine Testrunde und soll die echten Highscore-Listen nicht verfälschen
-            if (state.gameMode !== "classic-ki" && typeof window.saveScore === "function") {
-              window.saveScore(state.plz, state.totalScore, state.gameMode);
-            }
-            els.goRestartBtn.disabled = true;
-            window.setTimeout(() => {
-              els.goRestartBtn.disabled = false;
-            }, 1200);
-          }, 250);
+          const falschText = randomFalschText(state.currentQuestion.difficulty);
+          els.resultPoints.textContent = falschText;
+          els.resultPoints.classList.remove("hidden");
+          els.resultPoints.classList.add("fade-in");
+
+          state.pendingGameOver = true;
+          showContinueDisabledThenEnable(false);
         }, 1200);
       }, 1000);
     }
@@ -3167,6 +3189,19 @@
 
     els.nextAnswerBtn.addEventListener("click", revealNextAnswer);
     els.continueBtn.addEventListener("click", () => {
+      if (state.pendingGameOver) {
+        state.pendingGameOver = false;
+        renderGameOverSummary();
+        // Klassisch mit KI-Fragen ist eine Testrunde und soll die echten Highscore-Listen nicht verfälschen
+        if (state.gameMode !== "classic-ki" && typeof window.saveScore === "function") {
+          window.saveScore(state.plz, state.totalScore, state.gameMode);
+        }
+        els.goRestartBtn.disabled = true;
+        window.setTimeout(() => {
+          els.goRestartBtn.disabled = false;
+        }, 1200);
+        return;
+      }
       if (isClassicMode()) {
         nextRoundClassic();
       } else {
