@@ -2692,6 +2692,39 @@
       }, 650);
     }
 
+    // Effekt 2 (50:50-Joker): vibriert kurz, fliegt dann in eine zufällige
+    // Richtung weg – nutzt dieselben Bausteine wie der Skip-Joker-Effekt,
+    // hier auf eine einzelne Antwortoption angewendet.
+    function flyAwayAnswerRow(row, onDone) {
+      runVibrateFlyEffect([row], () => {
+        row.classList.remove("dissolve-fly");
+        row.classList.add("eliminated");
+        if (onDone) onDone();
+      });
+    }
+
+    // Effekt 3 (50:50-Joker): dreht sich, schrumpft und verschwindet nach oben.
+    function vortexAwayAnswerRow(row, onDone) {
+      runVortexEffect([row], () => {
+        row.classList.remove("dissolve-vortex");
+        row.classList.add("eliminated");
+        if (onDone) onDone();
+      });
+    }
+
+    // Wählt zufällig einen der drei Auflöse-Effekte für die vom 50:50-Joker
+    // gestrichene Antwortoption.
+    function eliminateAnswerRowWithEffect(row, onDone) {
+      const effectIndex = Math.floor(Math.random() * 3);
+      if (effectIndex === 0) {
+        crumbleAnswerRow(row, onDone);
+      } else if (effectIndex === 1) {
+        flyAwayAnswerRow(row, onDone);
+      } else {
+        vortexAwayAnswerRow(row, onDone);
+      }
+    }
+
     function fiftyFiftySkip() {
       if (state.roundAnswered) return;
       if (state.fiftyFiftyLeft <= 0) return;
@@ -2714,7 +2747,7 @@
       stopTimer();
       pick.disabled = true;
 
-      crumbleAnswerRow(pick, () => {
+      eliminateAnswerRowWithEffect(pick, () => {
         state.fiftyAnimating = false;
         if (token !== state.flowToken) return;
         if (wasClassic) {
