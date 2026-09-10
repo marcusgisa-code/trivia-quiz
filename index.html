@@ -1358,6 +1358,10 @@
             <span class="go-stat-n" id="go-correct">0</span>
             <span class="go-stat-l">Richtig</span>
           </div>
+          <div class="go-stat hidden" id="go-solo-score-stat">
+            <span class="go-stat-n gold" id="go-solo-score">0</span>
+            <span class="go-stat-l">Score</span>
+          </div>
         </div>
         <div class="go-btns">
           <button id="go-hs-btn" class="go-btn go-btn-secondary">Highscore</button>
@@ -2193,7 +2197,8 @@
       districtSeenIds: new Set(),
       roundAnswered: false,
       pendingGameOver: false,
-      classicSoloScore: 0
+      classicSoloScore: 0,
+      lastClassicSoloPoints: 0
     };
 
     const screens = {
@@ -2257,6 +2262,8 @@
       goScore: document.getElementById("go-score"),
       goQuestions: document.getElementById("go-questions"),
       goCorrect: document.getElementById("go-correct"),
+      goSoloScoreStat: document.getElementById("go-solo-score-stat"),
+      goSoloScore: document.getElementById("go-solo-score"),
       goHsBtn: document.getElementById("go-hs-btn"),
       goMenuBtn: document.getElementById("go-menu-btn"),
       goRestartBtn: document.getElementById("go-restart-btn"),
@@ -2351,6 +2358,7 @@
       state.fiftyAnimating = false;
       state.hardCorrectCount = 0;
       state.classicSoloScore = 0;
+      state.lastClassicSoloPoints = 0;
       resetQuizUi();
     }
 
@@ -3000,8 +3008,9 @@
       // Zeitpunkt noch den Stand, bei dem stopTimer() in chooseAnswerClassic()
       // den Countdown eingefroren hat.
       if (state.gameMode === "classic") {
-        const points = Math.round((state.currentQuestion.difficulty * state.timerValue) / 2);
-        state.classicSoloScore += Math.max(0, points);
+        const points = Math.max(0, Math.round((state.currentQuestion.difficulty * state.timerValue) / 2));
+        state.classicSoloScore += points;
+        state.lastClassicSoloPoints = points;
       }
 
       // Alle 5 richtig beantworteten Fragen gibt's einen zusätzlichen Joker
@@ -3032,7 +3041,10 @@
       els.answers.appendChild(correctRow);
 
       const richtigText = randomRichtigText(state.currentQuestion.difficulty);
-      els.resultPoints.innerHTML = `<span class="result-feedback-text" id="result-richtig-headline"></span><br><span class="result-points-sub">Punkte: ${state.totalScore}</span>`;
+      const soloScoreLine = state.gameMode === "classic"
+        ? `<br><span class="result-points-sub">Score für Frage: ${state.lastClassicSoloPoints}</span>`
+        : "";
+      els.resultPoints.innerHTML = `<span class="result-feedback-text" id="result-richtig-headline"></span><br><span class="result-points-sub">Korrekte Antworten: ${state.totalScore}</span>${soloScoreLine}`;
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
       typewriterReveal(document.getElementById("result-richtig-headline"), richtigText);
@@ -3268,6 +3280,18 @@
       els.goCorrect.textContent = String(state.correctAnswers);
       if (els.goScoreLabel) {
         els.goScoreLabel.textContent = isClassicMode() ? "Serie" : "Punkte";
+      }
+
+      // Gesamtpunktzahl der Spielrunde nach dem neuen Score-System
+      // (Schwierigkeitsgrad × Restsekunden / 2 pro Frage) – nur im
+      // Klassisch-Modus ohne KI-Fragen sichtbar.
+      if (els.goSoloScoreStat && els.goSoloScore) {
+        if (state.gameMode === "classic") {
+          els.goSoloScore.textContent = String(state.classicSoloScore);
+          els.goSoloScoreStat.classList.remove("hidden");
+        } else {
+          els.goSoloScoreStat.classList.add("hidden");
+        }
       }
 
       els.goCard.classList.remove("hidden");
