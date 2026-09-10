@@ -1925,6 +1925,31 @@
     const LETTERS = ["A", "B", "C"];
     const DIFFICULTY_LABELS = { 1: "einfach", 2: "mittel", 3: "schwer" };
 
+    // Abwechslungsreiche "Richtig!"-Feedback-Texte statt eines statischen
+    // Textes – aus Texts/richtig_falsch_varianten.json, hier eingebettet wie
+    // der Fragenpool, damit kein zusätzlicher Netzwerk-Request nötig ist.
+    const RICHTIG_TEXTE = {
+      "leicht": [
+        "Super gemacht!", "Klasse!", "Genau richtig!", "Toll gemacht!", "Stimmt!",
+        "Sehr gut!", "Richtig geraten!", "Prima!", "Das war richtig!", "Gut gemacht!"
+      ],
+      "mittel": [
+        "Korrekt, sehr gut!", "Stark gelöst!", "Genau getroffen!", "Volltreffer!", "Sauber gelöst!",
+        "Richtig – weiter so!", "Gut erkannt!", "Klar richtig!", "Treffer!", "Souverän gelöst!"
+      ],
+      "schwer": [
+        "Beeindruckend!", "Meisterhaft gelöst!", "Starke Leistung!", "Absolut korrekt!", "Das war nicht einfach – Respekt!",
+        "Herausragend gelöst!", "Exzellent!", "Chapeau, richtig!", "Echtes Wissen bewiesen!", "Bravourös gelöst!"
+      ]
+    };
+    const DIFFICULTY_KEY_FOR_VARIANTEN = { 1: "leicht", 2: "mittel", 3: "schwer" };
+
+    function randomRichtigText(difficulty) {
+      const key = DIFFICULTY_KEY_FOR_VARIANTEN[difficulty] || "leicht";
+      const list = RICHTIG_TEXTE[key];
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
     const CLASSIC_TIME_LIMIT = 25;
     const KI_QUESTIONS = parseCsv(KI_FRAGEN_CSV);
 
@@ -2630,7 +2655,8 @@
       correctRow.dataset.position = "1";
       els.answers.appendChild(correctRow);
 
-      els.resultPoints.innerHTML = `Richtig!<br><span class="result-points-sub">Punkte: ${state.totalScore}</span>`;
+      const richtigText = randomRichtigText(state.currentQuestion.difficulty);
+      els.resultPoints.innerHTML = `${richtigText}<br><span class="result-points-sub">Punkte: ${state.totalScore}</span>`;
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
 
