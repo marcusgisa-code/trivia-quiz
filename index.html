@@ -1035,6 +1035,12 @@
       text-shadow: 0 0 20px rgba(255,152,0,0.25);
     }
 
+    /* Richtig-/Falsch-Feedbacktext bei Frageauflösung: gleiche Fontgröße wie
+       die Frage selbst, statt der sonst größeren .result-points-Schrift. */
+    .result-feedback-text {
+      font-size: 20px;
+    }
+
     .result-points-sub {
       display: inline-block;
       margin-top: 8px;
@@ -1086,6 +1092,10 @@
       .tb-mute { width: 32px; height: 32px; font-size: 14px; }
 
       .question-text {
+        font-size: 18px;
+      }
+
+      .result-feedback-text {
         font-size: 18px;
       }
 
@@ -1971,6 +1981,21 @@
       return list[Math.floor(Math.random() * list.length)];
     }
 
+    // Blendet einen Text langsam Buchstabe für Buchstabe ein (für den
+    // Richtig-Text bei Frageauflösung).
+    function typewriterReveal(el, fullText, msPerChar = 40) {
+      el.textContent = "";
+      let i = 0;
+      function step() {
+        i += 1;
+        el.textContent = fullText.slice(0, i);
+        if (i < fullText.length) {
+          window.setTimeout(step, msPerChar);
+        }
+      }
+      step();
+    }
+
     const CLASSIC_TIME_LIMIT = 25;
     const KI_QUESTIONS = parseCsv(KI_FRAGEN_CSV);
 
@@ -2679,9 +2704,10 @@
       els.answers.appendChild(correctRow);
 
       const richtigText = randomRichtigText(state.currentQuestion.difficulty);
-      els.resultPoints.innerHTML = `${richtigText}<br><span class="result-points-sub">Punkte: ${state.totalScore}</span>`;
+      els.resultPoints.innerHTML = `<span class="result-feedback-text" id="result-richtig-headline"></span><br><span class="result-points-sub">Punkte: ${state.totalScore}</span>`;
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
+      typewriterReveal(document.getElementById("result-richtig-headline"), richtigText);
 
       els.resultTotal.classList.add("hidden");
       els.resultInfo.classList.add("hidden");
@@ -2956,7 +2982,7 @@
           state.questionsPlayed += 1;
 
           const falschText = randomFalschText(state.currentQuestion.difficulty);
-          els.resultPoints.textContent = falschText;
+          els.resultPoints.innerHTML = `<span class="result-feedback-text">${falschText}</span>`;
           els.resultPoints.classList.remove("hidden");
           els.resultPoints.classList.add("fade-in");
 
