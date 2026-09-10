@@ -465,20 +465,22 @@
 
     .hs-tabs {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-top: 4px;
     }
 
     .hs-tab {
-      flex: 1;
-      padding: 10px 12px;
-      border-radius: 999px;
+      flex: 1 1 110px;
+      padding: 10px 10px;
+      border-radius: 14px;
       border: 1.5px solid rgba(255,255,255,0.10);
       background: rgba(255,255,255,0.04);
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       font-family: inherit;
+      line-height: 1.25;
     }
 
     .hs-tab:hover {
@@ -1221,7 +1223,7 @@
           </button>
           <button type="button" class="mode-card" id="mode-card-classic-ki" data-mode="classic-ki">
             <span class="mode-card-title">Klassisch mit KI-Fragen</span>
-            <span class="mode-card-desc">Testrunde mit den neuen KI-generierten Fragen, gleiche Joker wie Klassisch</span>
+            <span class="mode-card-desc">Klassisch mit den neuen KI-generierten Fragen, eigene Highscore-Liste, gleiche Joker wie Klassisch</span>
           </button>
         </div>
 
@@ -1258,6 +1260,7 @@
         <div class="hs-tabs" id="hs-tabs">
           <button type="button" class="hs-tab is-active" data-mode="new">Neues Spielprinzip</button>
           <button type="button" class="hs-tab" data-mode="classic">Klassisch</button>
+          <button type="button" class="hs-tab" data-mode="classic-ki">Klassisch mit KI-Fragen</button>
         </div>
         <div id="highscore-list"><p class="hs-loading">Wird geladen…</p></div>
         <div class="button-row" style="margin-top: 24px;">
@@ -1387,9 +1390,9 @@
     // liefert nur Dokumente, die das jeweilige Feld überhaupt besitzen, das trennt die
     // Ranglisten ohne where()/Composite-Index/neue Security Rule.
     function scoreFieldNames(mode) {
-      return mode === "classic"
-        ? { score: "scoreClassic", games: "gamesClassic" }
-        : { score: "score", games: "gamesNew" };
+      if (mode === "classic") return { score: "scoreClassic", games: "gamesClassic" };
+      if (mode === "classic-ki") return { score: "scoreClassicKi", games: "gamesClassicKi" };
+      return { score: "score", games: "gamesNew" };
     }
 
     window.saveScore = async function(plz, score, mode) {
@@ -3440,8 +3443,7 @@
     }
 
     async function showHighscores(mode) {
-      const fallbackMode = state.gameMode === "classic-ki" ? "classic" : state.gameMode;
-      highscoreMode = mode || fallbackMode || "new";
+      highscoreMode = mode || state.gameMode || "new";
       updateHsTabsUi();
       showScreen("highscore");
       els.highscoreList.innerHTML = '<p class="hs-loading">Wird geladen…</p>';
@@ -3452,7 +3454,7 @@
         els.highscoreList.innerHTML = '<p class="hs-loading">Noch keine Einträge.</p>';
         return;
       }
-      const scoreLabel = highscoreMode === "classic" ? "Serie gesamt" : "Punkte gesamt";
+      const scoreLabel = highscoreMode === "new" ? "Punkte gesamt" : "Serie gesamt";
       const table = document.createElement("table");
       table.className = "hs-table";
       table.innerHTML = `<thead><tr>
@@ -3497,8 +3499,7 @@
       if (state.pendingGameOver) {
         state.pendingGameOver = false;
         renderGameOverSummary();
-        // Klassisch mit KI-Fragen ist eine Testrunde und soll die echten Highscore-Listen nicht verfälschen
-        if (state.gameMode !== "classic-ki" && typeof window.saveScore === "function") {
+        if (typeof window.saveScore === "function") {
           window.saveScore(state.plz, state.totalScore, state.gameMode);
         }
         els.goRestartBtn.disabled = true;
