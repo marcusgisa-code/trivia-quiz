@@ -303,6 +303,80 @@
       }
     }
 
+    /* ── Skip-Joker: 3 zufällige Auflöse-Effekte für Frage + Antworten ── */
+
+    .dissolve-letter {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+
+    /* Effekt 1: kurz vibrieren, dann in eine zufällige Richtung wegfliegen */
+    @keyframes dissolve-vibrate-kf {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(-2px, 1px) rotate(-3deg); }
+      40% { transform: translate(2px, -1px) rotate(3deg); }
+      60% { transform: translate(-2px, -1px) rotate(-2deg); }
+      80% { transform: translate(2px, 1px) rotate(2deg); }
+    }
+    .dissolve-vibrate {
+      animation: dissolve-vibrate-kf 0.09s ease-in-out infinite;
+    }
+    @keyframes dissolve-fly-kf {
+      0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translate(var(--dx, 60px), var(--dy, -40px)) rotate(var(--rot, 180deg)) scale(0.4); opacity: 0; }
+    }
+    .dissolve-fly {
+      animation: dissolve-fly-kf 0.65s cubic-bezier(0.3,0,0.7,1) forwards;
+      pointer-events: none;
+    }
+
+    /* Effekt 2: kurz glitchen, dann in Fragmente zersplittern */
+    @keyframes dissolve-glitch-kf {
+      0%, 100% { transform: translate(0,0); filter: none; }
+      20% { transform: translate(-3px, 1px); filter: hue-rotate(40deg); }
+      40% { transform: translate(3px, -2px); filter: hue-rotate(-40deg); }
+      60% { transform: translate(-2px, 2px); filter: hue-rotate(20deg); }
+      80% { transform: translate(2px, -1px); filter: hue-rotate(-20deg); }
+    }
+    .dissolve-glitch {
+      animation: dissolve-glitch-kf 0.05s steps(2) infinite;
+    }
+    @keyframes dissolve-content-fade-kf {
+      0% { opacity: 1; filter: blur(0); }
+      100% { opacity: 0; filter: blur(4px); }
+    }
+    .dissolve-content-fade {
+      animation: dissolve-content-fade-kf 0.5s ease-in forwards;
+    }
+    .dissolve-fragments {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .dissolve-fragment {
+      position: absolute;
+      background: linear-gradient(135deg, var(--accent-soft), var(--accent));
+      border-radius: 2px;
+      animation: dissolve-fragment-kf 0.75s ease-out forwards;
+    }
+    @keyframes dissolve-fragment-kf {
+      0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 0.95; }
+      100% { transform: translate(var(--dx,0px), var(--dy,0px)) rotate(var(--rot,90deg)) scale(0.3); opacity: 0; }
+    }
+
+    /* Effekt 3: einsaugen – drehen, schrumpfen, nach oben verschwinden */
+    @keyframes dissolve-vortex-kf {
+      0% { transform: scale(1) rotate(0deg) translateY(0); opacity: 1; }
+      55% { opacity: 0.7; }
+      100% { transform: scale(0) rotate(540deg) translateY(-50px); opacity: 0; }
+    }
+    .dissolve-vortex {
+      animation: dissolve-vortex-kf 0.9s cubic-bezier(0.6,0,0.8,1) forwards;
+      pointer-events: none;
+      transform-origin: center center;
+    }
+
     .joker-count-badge {
       background: rgba(192,132,252,0.28);
       border-radius: 999px;
@@ -2192,6 +2266,16 @@
       els.uiTimer.classList.remove("is-penalty");
       if (els.uiWert) { els.uiWert.textContent = "–"; }
       els.answers.innerHTML = "";
+      // Reste eines Skip-Joker-Auflöse-Effekts vom questionBox-Element entfernen
+      // (es wird zwischen Runden nicht neu erstellt, anders als die Antworten).
+      const questionBox = document.querySelector(".question-box");
+      if (questionBox) {
+        questionBox.classList.remove("dissolve-glitch", "dissolve-content-fade", "dissolve-vortex");
+        questionBox.style.overflow = "";
+        questionBox.style.animationDelay = "";
+        const leftoverFragments = questionBox.querySelector(".dissolve-fragments");
+        if (leftoverFragments) leftoverFragments.remove();
+      }
       els.nextAnswerWrap.className = "next-answer-wrap hidden";
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
       if (els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
@@ -2472,6 +2556,105 @@
       els.fiftyWrap.classList.add("fade-in");
     }
 
+    // ── Skip-Joker: 3 zufällige Auflöse-Effekte ─────────────────────────
+    // Beim Klick auf "Frage überspringen" lösen sich Frage und Antworten
+    // sichtbar auf, bevor (wie gehabt) automatisch die nächste Frage lädt.
+
+    function splitTextIntoLetterSpans(el) {
+      const text = el.textContent;
+      el.textContent = "";
+      const spans = [];
+      for (const ch of text) {
+        const span = document.createElement("span");
+        span.className = "dissolve-letter";
+        span.textContent = ch === " " ? " " : ch;
+        el.appendChild(span);
+        spans.push(span);
+      }
+      return spans;
+    }
+
+    // Erzeugt einen Schwall kleiner Fragmente, die aus `el` herausfliegen,
+    // während der eigentliche Inhalt verblasst (für Effekt "Zersplittern").
+    function burstFragments(el, count) {
+      el.style.overflow = "visible";
+      const container = document.createElement("div");
+      container.className = "dissolve-fragments";
+      for (let i = 0; i < count; i += 1) {
+        const frag = document.createElement("span");
+        frag.className = "dissolve-fragment";
+        const size = 6 + Math.random() * 12;
+        frag.style.left = `${Math.random() * 100}%`;
+        frag.style.top = `${Math.random() * 100}%`;
+        frag.style.width = `${size}px`;
+        frag.style.height = `${size}px`;
+        frag.style.setProperty("--dx", `${(Math.random() - 0.5) * 220}px`);
+        frag.style.setProperty("--dy", `${(Math.random() - 0.5) * 160 - 30}px`);
+        frag.style.setProperty("--rot", `${(Math.random() - 0.5) * 400}deg`);
+        frag.style.animationDelay = `${Math.random() * 100}ms`;
+        container.appendChild(frag);
+      }
+      el.appendChild(container);
+    }
+
+    // Effekt 1: Buchstaben/Antworten vibrieren kurz, fliegen dann in eine
+    // zufällige Richtung weg.
+    function runVibrateFlyEffect(targets, onDone) {
+      targets.forEach(el => {
+        el.style.setProperty("--dx", `${(Math.random() - 0.5) * 260}px`);
+        el.style.setProperty("--dy", `${(Math.random() - 0.5) * 160 - 60}px`);
+        el.style.setProperty("--rot", `${(Math.random() - 0.5) * 480}deg`);
+        el.classList.add("dissolve-vibrate");
+      });
+      window.setTimeout(() => {
+        targets.forEach(el => {
+          el.classList.remove("dissolve-vibrate");
+          el.classList.add("dissolve-fly");
+        });
+      }, 260);
+      window.setTimeout(onDone, 260 + 650);
+    }
+
+    // Effekt 2: kurzes Glitchen, dann Zersplittern in Fragmente.
+    function runShatterEffect(targets, onDone) {
+      targets.forEach(el => el.classList.add("dissolve-glitch"));
+      window.setTimeout(() => {
+        targets.forEach(el => {
+          el.classList.remove("dissolve-glitch");
+          el.classList.add("dissolve-content-fade");
+          burstFragments(el, 16);
+        });
+      }, 200);
+      window.setTimeout(onDone, 200 + 750);
+    }
+
+    // Effekt 3: Einsaugen – drehen, schrumpfen, nach oben verschwinden.
+    function runVortexEffect(targets, onDone) {
+      targets.forEach((el, i) => {
+        el.style.animationDelay = `${i * 60}ms`;
+        el.classList.add("dissolve-vortex");
+      });
+      window.setTimeout(onDone, 900 + (targets.length * 60));
+    }
+
+    // Wählt zufällig einen der drei Effekte aus und wendet ihn auf die
+    // aktuelle Frage (Buchstabe für Buchstabe bei Effekt 1) sowie alle
+    // sichtbaren Antwortoptionen an.
+    function runSkipDissolveEffect(onDone) {
+      const questionBox = document.querySelector(".question-box");
+      const answerRows = [...els.answers.children];
+      const effectIndex = Math.floor(Math.random() * 3);
+
+      if (effectIndex === 0) {
+        const letterSpans = splitTextIntoLetterSpans(els.questionText);
+        runVibrateFlyEffect([...letterSpans, ...answerRows], onDone);
+      } else if (effectIndex === 1) {
+        runShatterEffect([questionBox, ...answerRows], onDone);
+      } else {
+        runVortexEffect([questionBox, ...answerRows], onDone);
+      }
+    }
+
     // Lässt eine Antwortoption in kleine Splitter zerbröckeln und danach
     // unsichtbar werden (visibility:hidden statt display:none), damit die
     // übrigen Antwortoptionen ihre Position nicht verändern.
@@ -2727,13 +2910,20 @@
 
       state.jokersLeft -= 1;
       state.questionsPlayed += 1;
+      state.roundAnswered = true; // sperrt Interaktionen, während der Auflöse-Effekt läuft
       stopTimer();
-      state.round += 1;
-      if (isClassicMode()) {
-        loadRoundClassic();
-      } else {
-        loadRound();
-      }
+      lockAllAnswers();
+      if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
+      if (els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
+
+      runSkipDissolveEffect(() => {
+        state.round += 1;
+        if (isClassicMode()) {
+          loadRoundClassic();
+        } else {
+          loadRound();
+        }
+      });
     }
 
     // ── /Klassisch-Modus ─────────────────────────────────────────────────
