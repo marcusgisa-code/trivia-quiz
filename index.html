@@ -1128,12 +1128,54 @@
 
     /* Label-Teil ("Korrekte Antworten:" / "Score für Frage:") in gleicher
        Fontgröße wie die Frage selbst, weiß, fett, ohne Outline; die Zahl
-       behält Fontgröße und Outline von .result-points-sub unverändert. */
+       behält Fontgröße und Outline von .result-points-sub unverändert.
+       margin-right verdoppelt den Abstand zur Zahl (zusätzlich zum
+       Leerzeichen im Text ~5.4px -> Gesamtabstand ~10.8px). */
     .result-label {
       font-size: 20px;
       color: #ffffff;
       font-weight: 700;
       -webkit-text-stroke: 0;
+      margin-right: 5px;
+    }
+
+    .result-value {
+      display: inline-block;
+    }
+
+    /* Zahl bei "Korrekte Antworten" etwas kleiner als die Standard-Zahl-Größe
+       von .result-points-sub (26px). */
+    .result-value-correct {
+      font-size: 22px;
+    }
+
+    /* Effekte für die Zahl hinter "Score für Frage", gestaffelt nach
+       Punktzahl (nur Modus Klassisch ohne KI-Fragen). */
+    @keyframes scoreFadeSlow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+    @keyframes scoreFadeFast {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+    @keyframes scoreBounceExcited {
+      0%, 100% { transform: translateY(0); }
+      15% { transform: translateY(-10px); }
+      30% { transform: translateY(0); }
+      45% { transform: translateY(-10px); }
+      60% { transform: translateY(0); }
+      75% { transform: translateY(-10px); }
+      90% { transform: translateY(0); }
+    }
+    .score-effect-fade-slow {
+      animation: scoreFadeSlow 1.8s ease-in-out infinite;
+    }
+    .score-effect-fade-fast {
+      animation: scoreFadeFast 0.7s ease-in-out infinite;
+    }
+    .score-effect-bounce {
+      animation: scoreBounceExcited 1s ease-in-out 1;
     }
 
     #result-total {
@@ -3010,6 +3052,15 @@
       }, 1000);
     }
 
+    // Effekt-Klasse für die "Score für Frage"-Zahl, gestaffelt nach
+    // erreichter Punktzahl (nur Modus Klassisch ohne KI-Fragen).
+    function soloScoreEffectClass(points) {
+      if (points >= 60) return "score-effect-bounce";
+      if (points >= 40) return "score-effect-fade-fast";
+      if (points >= 20) return "score-effect-fade-slow";
+      return "";
+    }
+
     function classicHandleCorrect() {
       playSound("correct");
       state.totalScore += 1;
@@ -3057,9 +3108,9 @@
 
       const richtigText = randomRichtigText(state.currentQuestion.difficulty);
       const soloScoreLine = state.gameMode === "classic"
-        ? `<br><span class="result-points-sub"><span class="result-label">Score für Frage:</span> ${state.lastClassicSoloPoints}</span>`
+        ? `<br><span class="result-points-sub"><span class="result-label">Score für Frage:</span> <span class="result-value ${soloScoreEffectClass(state.lastClassicSoloPoints)}">${state.lastClassicSoloPoints}</span></span>`
         : "";
-      els.resultPoints.innerHTML = `<span class="result-feedback-text" id="result-richtig-headline"></span><br><span class="result-points-sub"><span class="result-label">Korrekte Antworten:</span> ${state.totalScore}</span>${soloScoreLine}`;
+      els.resultPoints.innerHTML = `<span class="result-feedback-text" id="result-richtig-headline"></span><br><span class="result-points-sub"><span class="result-label">Korrekte Antworten:</span> <span class="result-value result-value-correct">${state.totalScore}</span></span>${soloScoreLine}`;
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
       typewriterReveal(document.getElementById("result-richtig-headline"), richtigText);
