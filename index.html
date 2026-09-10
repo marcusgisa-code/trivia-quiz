@@ -1129,15 +1129,15 @@
         <div class="mode-select" id="mode-select">
           <button type="button" class="mode-card is-selected" id="mode-card-new" data-mode="new">
             <span class="mode-card-title">Neues Spielprinzip</span>
-            <span class="mode-card-desc">Antworten selbst aufdecken, Tempo-Bonus, steigende Schwierigkeit</span>
+            <span class="mode-card-desc">Antworten selbst aufdecken, Tempo-Bonus, steigende Schwierigkeit, 2 Joker-Arten</span>
           </button>
           <button type="button" class="mode-card" id="mode-card-classic" data-mode="classic">
             <span class="mode-card-title">Klassisch</span>
-            <span class="mode-card-desc">Serie sammeln, 3 Joker + 1 alle 5 richtigen Antworten, ein Fehler beendet das Spiel</span>
+            <span class="mode-card-desc">Serie sammeln, 2 Joker-Arten (Überspringen + 50:50), ein Fehler beendet das Spiel</span>
           </button>
           <button type="button" class="mode-card" id="mode-card-classic-ki" data-mode="classic-ki">
             <span class="mode-card-title">Klassisch mit KI-Fragen</span>
-            <span class="mode-card-desc">Testrunde mit den neuen KI-generierten Fragen, plus 50:50-Joker (3 + 1 alle 3 Level-3-Fragen)</span>
+            <span class="mode-card-desc">Testrunde mit den neuen KI-generierten Fragen, gleiche Joker wie Klassisch</span>
           </button>
         </div>
 
@@ -2148,17 +2148,29 @@
       }
     }
 
+    function tickTimer() {
+      state.timerId = setInterval(() => {
+        state.timerValue += 1;
+        els.uiTimerNum.textContent = String(state.timerValue);
+        updateTimerUrgency();
+      }, 1000);
+    }
+
     function startTimer() {
       clearInterval(state.timerId);
       state.timerValue = 0;
       els.uiTimerNum.textContent = "0";
       els.uiTimer.classList.remove("is-penalty");
       updateTimerUrgency();
-      state.timerId = setInterval(() => {
-        state.timerValue += 1;
-        els.uiTimerNum.textContent = String(state.timerValue);
-        updateTimerUrgency();
-      }, 1000);
+      tickTimer();
+    }
+
+    // Setzt den hochzählenden Timer des "Neuen Spielprinzips" unverändert fort
+    // (z.B. nach der kurzen Pause während der 50:50-Joker-Animation), analog zu
+    // resumeTimerClassic() für die beiden Klassisch-Modi.
+    function resumeTimer() {
+      clearInterval(state.timerId);
+      tickTimer();
     }
 
     function stopTimer() {
@@ -2327,6 +2339,14 @@
       renderVisibleAnswers(state.currentVisibleAnswers);
       updateNextAnswerButton();
 
+      // 50:50-Joker erst anbieten, wenn alle 3 Antwortoptionen sichtbar sind:
+      // renderVisibleAnswers() baut die Antwortliste bei jedem weiteren Reveal
+      // komplett neu auf, was eine bereits zerbröckelte Option sonst wieder
+      // sichtbar machen würde.
+      if (state.currentVisibleAnswers === 3) {
+        revealFiftyFiftyButton();
+      }
+
       // Update Wert to reflect new multiplier
       if (els.uiWert) {
         const base = getBasePoints();
@@ -2368,11 +2388,10 @@
       els.jokerWrap.classList.add("fade-in");
     }
 
-    // 50:50-Joker: nur im Modus "Klassisch mit KI-Fragen" verfügbar.
-    // Erscheint zusammen mit dem Skip-Joker.
+    // 50:50-Joker: in allen drei Spielmodi verfügbar, erscheint zusammen mit
+    // dem Skip-Joker.
     function revealFiftyFiftyButton() {
       if (state.roundAnswered) return;
-      if (state.gameMode !== "classic-ki") return;
       if (state.fiftyFiftyLeft <= 0) return;
       if (!els.fiftyWrap) return;
       els.fiftyWrap.classList.remove("hidden", "fade-in");
@@ -2413,7 +2432,6 @@
 
     function fiftyFiftySkip() {
       if (state.roundAnswered) return;
-      if (state.gameMode !== "classic-ki") return;
       if (state.fiftyFiftyLeft <= 0) return;
       if (!state.currentQuestion) return;
       if (state.fiftyAnimating) return;
@@ -2428,6 +2446,7 @@
 
       const pick = wrongButtons[Math.floor(Math.random() * wrongButtons.length)];
       const token = state.flowToken;
+      const wasClassic = isClassicMode();
 
       state.fiftyAnimating = true;
       stopTimer();
@@ -2436,7 +2455,11 @@
       crumbleAnswerRow(pick, () => {
         state.fiftyAnimating = false;
         if (token !== state.flowToken) return;
-        resumeTimerClassic(token);
+        if (wasClassic) {
+          resumeTimerClassic(token);
+        } else {
+          resumeTimer();
+        }
       });
 
       state.fiftyFiftyLeft -= 1;
@@ -2586,9 +2609,9 @@
         showJokerAwardAnimation("5 Richtig → +1 Joker");
       }
 
-      // Klassisch mit KI-Fragen: alle 3 richtig beantworteten Level-3-Fragen
-      // gibt's einen zusätzlichen 50:50-Joker
-      if (state.gameMode === "classic-ki" && state.currentQuestion.difficulty === 3) {
+      // Alle 3 richtig beantworteten Level-3-Fragen gibt's einen
+      // zusätzlichen 50:50-Joker
+      if (state.currentQuestion.difficulty === 3) {
         state.hardCorrectCount += 1;
         if (state.hardCorrectCount % 3 === 0) {
           state.fiftyFiftyLeft += 1;
@@ -2647,6 +2670,7 @@
       stopTimer();
       els.nextAnswerWrap.classList.add("hidden");
       if (els.jokerWrap) els.jokerWrap.classList.add("hidden");
+      if (els.fiftyWrap) els.fiftyWrap.classList.add("hidden");
       lockAllAnswers();
 
       // Show clicked state immediately
@@ -2914,6 +2938,16 @@
       if (state.correctAnswers % 5 === 0) {
         state.jokersLeft += 1;
         showJokerAwardAnimation("5 Richtig → +1 Joker");
+      }
+
+      // Alle 3 richtig beantworteten Level-3-Fragen gibt's einen
+      // zusätzlichen 50:50-Joker
+      if (state.currentQuestion.difficulty === 3) {
+        state.hardCorrectCount += 1;
+        if (state.hardCorrectCount % 3 === 0) {
+          state.fiftyFiftyLeft += 1;
+          showJokerAwardAnimation("3× Schwer richtig → +1 50:50-Joker");
+        }
       }
 
       // Update score display in header
