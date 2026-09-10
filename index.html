@@ -2026,7 +2026,8 @@
     // ── Sound-Effekte ────────────────────────────────────────────────────
     const sounds = {
       correct: new Audio("Sound/correct.mp3"),
-      wrong: new Audio("Sound/Wrong.wav")
+      wrong: new Audio("Sound/Wrong.wav"),
+      reveal: new Audio("Sound/585257__lesaucisson__swoosh-1.mp3")
     };
 
     function playSound(name) {
@@ -2255,6 +2256,7 @@
       for (let i = 0; i < count; i += 1) {
         els.answers.appendChild(createAnswerRow(i, state.currentQuestion.answers[i]));
       }
+      if (count > 0) playSound("reveal");
     }
 
     function difficultyLabel(difficulty) {
