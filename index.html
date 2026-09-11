@@ -946,6 +946,7 @@
     .go-btns {
       padding: 16px;
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
     }
     .go-btn {
@@ -960,12 +961,13 @@
     .go-btn-primary {
       background: #c47a0a;
       color: #ffffff;
-      flex: 2;
+      flex: 1 1 100%;
     }
     .go-btn-secondary {
       background: #1e3048;
       color: #ffffff;
-      flex: 1;
+      flex: 1 1 30%;
+      min-width: 0;
       border: 1.5px solid #3a5070;
     }
 
@@ -1458,6 +1460,7 @@
         </div>
         <div class="go-btns">
           <button id="go-hs-btn" class="go-btn go-btn-secondary">Highscore</button>
+          <button id="go-share-btn" class="go-btn go-btn-secondary">Share</button>
           <button id="go-menu-btn" class="go-btn go-btn-secondary">Hauptmenü</button>
           <button id="go-restart-btn" class="go-btn go-btn-primary">Nochmal spielen</button>
         </div>
@@ -2459,6 +2462,7 @@
       goSoloScoreStat: document.getElementById("go-solo-score-stat"),
       goSoloScore: document.getElementById("go-solo-score"),
       goHsBtn: document.getElementById("go-hs-btn"),
+      goShareBtn: document.getElementById("go-share-btn"),
       goMenuBtn: document.getElementById("go-menu-btn"),
       goRestartBtn: document.getElementById("go-restart-btn"),
       questionBox: document.querySelector(".question-box"),
@@ -3860,6 +3864,31 @@
       resetRun();
       showScreen("welcome");
     });
+    if (els.goShareBtn) {
+      els.goShareBtn.addEventListener("click", async () => {
+        const shareUrl = window.location.origin + window.location.pathname;
+        const shareData = {
+          title: "Das Quiz",
+          text: "Schau dir dieses Trivia-Quiz an!",
+          url: shareUrl
+        };
+        if (navigator.share) {
+          try { await navigator.share(shareData); } catch (e) { /* Nutzer hat abgebrochen oder Fehler – ignorieren */ }
+          return;
+        }
+        const originalText = els.goShareBtn.textContent;
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          els.goShareBtn.textContent = "Kopiert!";
+        } catch (e) {
+          window.prompt("Link kopieren:", shareUrl);
+          return;
+        }
+        window.setTimeout(() => {
+          els.goShareBtn.textContent = originalText;
+        }, 1800);
+      });
+    }
 
     if (els.jokerBtn) els.jokerBtn.addEventListener("click", jokerSkip);
     if (els.fiftyBtn) els.fiftyBtn.addEventListener("click", fiftyFiftySkip);
