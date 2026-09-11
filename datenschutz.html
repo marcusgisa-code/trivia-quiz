@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datenschutzerklärung – Das Quiz</title>
+  <style>
+    :root {
+      --bg: #051622;
+      --shell: #071725;
+      --shell-2: #03101b;
+      --text-main: #f9fbff;
+      --text-muted: #b7c3d1;
+      --accent-soft: #ffb74d;
+      --shadow-soft: 0 18px 40px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #0d2b45 0, #020c16 60%, #000 100%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(720px, 100%);
+      margin: max(24px, 6vh) auto 40px;
+      background: linear-gradient(135deg, var(--shell), var(--shell-2));
+      border-radius: 28px;
+      box-shadow: var(--shadow-soft);
+      padding: 32px 28px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    h1 {
+      font-size: clamp(26px, 4vw, 34px);
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      margin: 0 0 24px;
+      color: var(--accent-soft);
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 32px 0 10px;
+      color: var(--text-main);
+    }
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 18px 0 6px;
+      color: var(--accent-soft);
+    }
+    p, li {
+      margin: 0 0 10px;
+      line-height: 1.6;
+      color: var(--text-main);
+    }
+    ul { padding-left: 20px; margin: 0 0 12px; }
+    a { color: var(--accent-soft); }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 24px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .back-link:hover { color: var(--text-main); }
+    .muted { color: var(--text-muted); font-size: 13.5px; }
+    .intro { color: var(--text-muted); font-size: 13.5px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <a class="back-link" href="index.html">← Zurück zum Quiz</a>
+    <h1>Datenschutzerklärung</h1>
+    <p class="intro">Stand: September 2026. Diese Erklärung informiert dich darüber, welche Daten bei der Nutzung dieses Quiz verarbeitet werden.</p>
+
+    <h2>1. Verantwortlicher</h2>
+    <p>
+      Marcus Gisa<br />
+      Maximilian-Kolbe-Weg 2<br />
+      71229 Leonberg<br />
+      Deutschland<br />
+      E-Mail: <a href="mailto:findezwergle@icloud.com">findezwergle@icloud.com</a>
+    </p>
+
+    <h2>2. Welche Daten werden verarbeitet?</h2>
+
+    <h3>2.1 Angaben beim Spielstart</h3>
+    <p>Beim Start eines Spiels gibst du freiwillig einen selbst gewählten Namen und deine Postleitzahl (PLZ) an. Diese Angaben dienen ausschließlich dazu, deinen Punktestand einem Bezirk (PLZ) zuzuordnen und in der Highscore-Liste anzuzeigen. Eine Identitätsprüfung findet nicht statt – die Angaben sind frei wählbar.</p>
+
+    <h3>2.2 Spieldaten (Firebase Firestore)</h3>
+    <p>Punktestände, Anzahl gespielter Runden und die PLZ werden in der Cloud-Datenbank <strong>Google Firebase Firestore</strong> gespeichert, um die Highscore-Listen anzuzeigen. Google LLC (USA) verarbeitet diese Daten dabei ggf. auch außerhalb der EU; Grundlage hierfür sind die Standardvertragsklauseln der EU-Kommission bzw. das EU-U.S. Data Privacy Framework, sofern Google diesem beigetreten ist. Weitere Informationen: <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">firebase.google.com/support/privacy</a>.</p>
+    <p>Gespeicherte Felder je nach Spielmodus: Name, PLZ, Ort (aus PLZ abgeleitet), Punktestand, Anzahl Spiele, Zeitstempel sowie eine Liste bereits gespielter Fragen-IDs (damit dir Fragen nicht zu häufig wiederholt werden).</p>
+
+    <h3>2.3 Ortsname zur PLZ (Zippopotam.us)</h3>
+    <p>Um zu deiner PLZ einen Ortsnamen anzuzeigen, wird die PLZ an den kostenlosen, öffentlichen Dienst <a href="https://www.zippopotam.us/" target="_blank" rel="noopener">Zippopotam.us</a> übermittelt. Es werden dabei keine weiteren personenbezogenen Daten übertragen.</p>
+
+    <h3>2.4 Fragen-Abruf (Cloudflare Worker)</h3>
+    <p>Die Quizfragen werden über einen eigenen, bei Cloudflare gehosteten Worker ausgeliefert. Dabei werden technisch bedingt IP-Adresse und Standard-Zugriffsdaten von Cloudflare verarbeitet (Server-Log-Daten), jedoch keine von dir eingegebenen personenbezogenen Daten.</p>
+
+    <h3>2.5 Hosting (GitHub Pages)</h3>
+    <p>Diese Seite wird über GitHub Pages (GitHub, Inc. / Microsoft) ausgeliefert. Beim Aufruf der Seite verarbeitet GitHub automatisch technische Zugriffsdaten (u. a. IP-Adresse, Browsertyp, Zeitpunkt des Zugriffs) in Server-Logs. Näheres: <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
+
+    <h3>2.6 Lokale Speicherung im Browser</h3>
+    <p>Einige technische Einstellungen (z. B. ob der Sound stummgeschaltet ist) werden ausschließlich lokal in deinem Browser (localStorage) gespeichert und nicht an einen Server übertragen. Es werden keine Cookies zu Tracking- oder Werbezwecken eingesetzt.</p>
+
+    <h2>3. Zweck und Rechtsgrundlage der Verarbeitung</h2>
+    <p>Die Verarbeitung von Name, PLZ und Punktestand erfolgt zur Bereitstellung der Spiel- und Highscore-Funktion. Rechtsgrundlage ist Art. 6 Abs. 1 lit. a DSGVO (Einwilligung durch freiwillige Eingabe) bzw. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem funktionierenden Highscore-System für dieses Hobby-Projekt).</p>
+
+    <h2>4. Speicherdauer</h2>
+    <p>Spieldaten werden gespeichert, solange das Projekt betrieben wird. Eine automatische Löschung nach einem festen Zeitraum findet derzeit nicht statt. Du kannst jederzeit die Löschung deiner Daten beantragen (siehe Punkt 6).</p>
+
+    <h2>5. Keine Weitergabe an Dritte zu Werbezwecken</h2>
+    <p>Es findet keine Weitergabe deiner Daten an Dritte zu Werbe- oder Marketingzwecken statt. Die unter Punkt 2 genannten Dienstleister (Google Firebase, Cloudflare, GitHub, Zippopotam.us) werden ausschließlich zum technischen Betrieb dieser Anwendung eingesetzt.</p>
+
+    <h2>6. Deine Rechte</h2>
+    <p>Du hast nach der DSGVO folgende Rechte bezüglich deiner personenbezogenen Daten:</p>
+    <ul>
+      <li>Auskunft (Art. 15 DSGVO)</li>
+      <li>Berichtigung (Art. 16 DSGVO)</li>
+      <li>Löschung (Art. 17 DSGVO)</li>
+      <li>Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+      <li>Datenübertragbarkeit (Art. 20 DSGVO)</li>
+      <li>Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)</li>
+    </ul>
+    <p>Da im Spiel kein Nutzerkonto existiert, kannst du zur Ausübung dieser Rechte formlos per E-Mail an <a href="mailto:findezwergle@icloud.com">findezwergle@icloud.com</a> Kontakt aufnehmen – bitte gib dabei den von dir verwendeten Namen und die PLZ an, damit dein Eintrag zugeordnet werden kann.</p>
+    <p>Außerdem hast du das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren, z. B. beim <a href="https://www.baden-wuerttemberg.datenschutz.de/" target="_blank" rel="noopener">Landesbeauftragten für den Datenschutz und die Informationsfreiheit Baden-Württemberg</a>.</p>
+
+    <h2>7. Hinweis</h2>
+    <p class="muted">Dieses Angebot ist ein privates Hobby-Projekt ohne kommerzielle Nutzerdatenverarbeitung. Diese Erklärung wurde nach bestem Wissen erstellt, ersetzt jedoch keine Rechtsberatung.</p>
+  </div>
+</body>
+</html>
