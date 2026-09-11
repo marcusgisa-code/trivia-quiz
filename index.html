@@ -966,9 +966,42 @@
     .go-btn-secondary {
       background: #1e3048;
       color: #ffffff;
-      flex: 1 1 30%;
-      min-width: 0;
+      flex: 1 1 auto;
+      min-width: 130px;
       border: 1.5px solid #3a5070;
+    }
+    .go-btn-wide {
+      flex: 1 1 100%;
+      position: relative;
+    }
+    .share-menu {
+      flex: 1 1 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #101c2e;
+      border: 1.5px solid #3a5070;
+      border-radius: 16px;
+      padding: 10px;
+      margin-top: -2px;
+    }
+    .share-menu-item {
+      display: block;
+      width: 100%;
+      background: #1e3048;
+      color: #ffffff;
+      border: none;
+      border-radius: 999px;
+      padding: 12px 0;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .share-menu-item:active {
+      filter: brightness(1.15);
     }
 
     .answers {
@@ -1460,8 +1493,13 @@
         </div>
         <div class="go-btns">
           <button id="go-hs-btn" class="go-btn go-btn-secondary">Highscore</button>
-          <button id="go-share-btn" class="go-btn go-btn-secondary">Share</button>
           <button id="go-menu-btn" class="go-btn go-btn-secondary">Hauptmenü</button>
+          <button id="go-share-btn" class="go-btn go-btn-secondary go-btn-wide">Zeig es deinen Freunden</button>
+          <div id="share-menu" class="share-menu hidden">
+            <a id="share-whatsapp" class="share-menu-item" target="_blank" rel="noopener">WhatsApp</a>
+            <a id="share-facebook" class="share-menu-item" target="_blank" rel="noopener">Facebook</a>
+            <button type="button" id="share-copy" class="share-menu-item">Link kopieren</button>
+          </div>
           <button id="go-restart-btn" class="go-btn go-btn-primary">Nochmal spielen</button>
         </div>
       </div>
@@ -2465,6 +2503,10 @@
       goShareBtn: document.getElementById("go-share-btn"),
       goMenuBtn: document.getElementById("go-menu-btn"),
       goRestartBtn: document.getElementById("go-restart-btn"),
+      shareMenu: document.getElementById("share-menu"),
+      shareWhatsapp: document.getElementById("share-whatsapp"),
+      shareFacebook: document.getElementById("share-facebook"),
+      shareCopy: document.getElementById("share-copy"),
       questionBox: document.querySelector(".question-box"),
       belowPanel: document.querySelector(".below-panel")
     };
@@ -3485,6 +3527,7 @@
       els.questionBox.classList.add("hidden");
       els.answers.classList.add("hidden");
       els.belowPanel.classList.add("hidden");
+      if (els.shareMenu) els.shareMenu.classList.add("hidden");
 
       els.goPlayerName.textContent = state.username || "–";
       els.goQuestionsPlayed.textContent = `${state.questionsPlayed} Frage${state.questionsPlayed !== 1 ? "n" : ""} gespielt`;
@@ -3864,30 +3907,43 @@
       resetRun();
       showScreen("welcome");
     });
-    if (els.goShareBtn) {
+    if (els.goShareBtn && els.shareMenu) {
+      const SHARE_TEXT = "Schau dir dieses Trivia-Quiz an!";
+      const shareUrl = () => window.location.origin + window.location.pathname;
+
       els.goShareBtn.addEventListener("click", async () => {
-        const shareUrl = window.location.origin + window.location.pathname;
-        const shareData = {
-          title: "Das Quiz",
-          text: "Schau dir dieses Trivia-Quiz an!",
-          url: shareUrl
-        };
+        const url = shareUrl();
+        // Mobile Browser: natives Share-Sheet (listet dort installierte Apps wie
+        // WhatsApp, Signal, Instagram etc. automatisch auf).
         if (navigator.share) {
-          try { await navigator.share(shareData); } catch (e) { /* Nutzer hat abgebrochen oder Fehler – ignorieren */ }
+          try { await navigator.share({ title: "Das Quiz", text: SHARE_TEXT, url }); }
+          catch (e) { /* Nutzer hat abgebrochen oder Fehler – ignorieren */ }
           return;
         }
-        const originalText = els.goShareBtn.textContent;
-        try {
-          await navigator.clipboard.writeText(shareUrl);
-          els.goShareBtn.textContent = "Kopiert!";
-        } catch (e) {
-          window.prompt("Link kopieren:", shareUrl);
-          return;
-        }
-        window.setTimeout(() => {
-          els.goShareBtn.textContent = originalText;
-        }, 1800);
+        // Kein natives Share-Sheet (z.B. Firefox Desktop) -> eigenes Mini-Menü mit
+        // den Plattformen, die einen direkten Web-Share-Link unterstützen.
+        els.shareWhatsapp.href = `https://wa.me/?text=${encodeURIComponent(SHARE_TEXT + " " + url)}`;
+        els.shareFacebook.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        els.shareMenu.classList.toggle("hidden");
       });
+
+      if (els.shareCopy) {
+        els.shareCopy.addEventListener("click", async () => {
+          const url = shareUrl();
+          const originalText = els.shareCopy.textContent;
+          try {
+            await navigator.clipboard.writeText(url);
+            els.shareCopy.textContent = "Kopiert!";
+          } catch (e) {
+            window.prompt("Link kopieren:", url);
+            return;
+          }
+          window.setTimeout(() => {
+            els.shareCopy.textContent = originalText;
+            els.shareMenu.classList.add("hidden");
+          }, 1400);
+        });
+      }
     }
 
     if (els.jokerBtn) els.jokerBtn.addEventListener("click", jokerSkip);
