@@ -718,22 +718,21 @@
       z-index: 1;
     }
 
-    /* ── Topbar: new 3-column header ── */
-    /* ── Topbar ── */
+    /* ── Topbar: player box + info grid stacked over the timer ── */
     .topbar {
       display: flex;
-      align-items: center;
+      align-items: stretch;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
       margin-bottom: 20px;
     }
 
-    /* Left: player pill */
+    /* Left: player box (name over score) */
     .tb-player {
       background: #162035;
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 999px;
-      padding: 8px 18px 8px 8px;
+      border-radius: 14px;
+      padding: 8px 20px 8px 8px;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -765,47 +764,56 @@
       line-height: 1.2;
     }
 
-    /* Center: three chips */
-    .tb-chips {
-      display: flex;
-      gap: 8px;
-    }
-
-    .tb-chip {
+    /* Center: 2x2 info grid — Frage/Niveau over Wert/Punkte */
+    .tb-info {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: auto 1fr;
       background: #162035;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      padding: 7px 18px;
-      display: flex; flex-direction: column; align-items: center; gap: 2px;
-      flex-shrink: 0;
+      border: 1px solid rgba(55,138,221,0.3);
+      border-radius: 14px;
+      overflow: hidden;
     }
 
-    .c-label {
-      font-size: 9px;
-      color: rgba(255,255,255,0.35);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    .c-val {
-      font-size: 16px;
+    .tb-info-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px 16px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--text-main);
-      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .tb-info-cell:nth-child(-n+2) {
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .tb-info-cell:nth-child(odd) {
+      border-right: 1px solid rgba(255,255,255,0.08);
+      justify-content: flex-start;
+    }
+
+    .tb-info-cell:nth-child(even) {
+      justify-content: center;
     }
 
     .tb-gold { color: #f5a623; }
 
-    /* Mute toggle (between player pill and chips) */
+    /* Mute toggle (between player box and info grid) */
     .tb-mute {
-      width: 40px; height: 40px;
+      align-self: center;
+      width: 36px; height: 36px;
       border-radius: 50%;
       background: #162035;
       border: 1px solid rgba(255,255,255,0.08);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1;
       padding: 0;
       transition: background 0.2s ease, border-color 0.2s ease;
@@ -818,14 +826,15 @@
       background: rgba(180,30,50,0.12);
     }
 
-    .tb-chips.level-3 .label-level {
+    .tb-info.level-3 .label-level {
       color: #ff8a50;
       text-shadow: 0 0 10px rgba(255,100,30,0.6);
     }
 
-    /* Right: timer circle */
+    /* Right: timer circle — matches the info grid's height */
     #ui-timer {
-      width: 56px; height: 56px;
+      width: 72px; height: 72px;
+      align-self: center;
       border-radius: 50%;
       background: rgba(55,138,221,0.12);
       border: 1.5px solid rgba(55,138,221,0.35);
@@ -836,7 +845,7 @@
     }
 
     .tb-timer-num {
-      font-size: 22px; font-weight: 700;
+      font-size: 24px; font-weight: 700;
       color: var(--text-main);
       line-height: 1;
     }
@@ -1276,15 +1285,14 @@
         padding: 18px 20px 20px;
       }
 
-      .topbar { gap: 8px; }
+      .topbar { gap: 6px; }
       .tb-player { padding: 6px 12px 6px 6px; gap: 7px; }
       .tb-avatar { width: 30px; height: 30px; font-size: 12px; }
       #ui-username { font-size: 12px; }
-      .tb-chip { padding: 6px 12px; }
-      .c-val { font-size: 14px; }
-      #ui-timer { width: 46px; height: 46px; }
+      .tb-info-cell { padding: 5px 8px; font-size: 12px; gap: 3px; }
+      #ui-timer { width: 54px; height: 54px; }
       .tb-timer-num { font-size: 18px; }
-      .tb-mute { width: 32px; height: 32px; font-size: 14px; }
+      .tb-mute { width: 30px; height: 30px; font-size: 13px; }
 
       .question-text {
         font-size: 18px;
@@ -1412,19 +1420,11 @@
           <span id="mute-icon">🔊</span>
         </button>
 
-        <div class="tb-chips" id="ui-round-difficulty">
-          <div class="tb-chip">
-            <span class="c-label">Frage</span>
-            <span class="c-val label-frage">1</span>
-          </div>
-          <div class="tb-chip">
-            <span class="c-label">Niveau</span>
-            <span class="c-val tb-gold label-level">Leicht</span>
-          </div>
-          <div class="tb-chip">
-            <span class="c-label" id="ui-wert-label">Wert</span>
-            <span class="c-val tb-gold" id="ui-wert">–</span>
-          </div>
+        <div class="tb-info" id="ui-round-difficulty">
+          <div class="tb-info-cell">Frage&nbsp;<span class="label-frage">1</span></div>
+          <div class="tb-info-cell tb-gold label-level">Leicht</div>
+          <div class="tb-info-cell" id="ui-wert-label">Wert</div>
+          <div class="tb-info-cell tb-gold" id="ui-wert">–</div>
         </div>
 
         <div class="tb-timer" id="ui-timer">
@@ -2805,7 +2805,7 @@
       const lvl = question.difficulty;
       els.uiRoundDifficulty.querySelector(".label-frage").textContent = String(state.round);
       els.uiRoundDifficulty.querySelector(".label-level").textContent = levelLabels[lvl] || "Leicht";
-      els.uiRoundDifficulty.className = `tb-chips level-${lvl}`;
+      els.uiRoundDifficulty.className = `tb-info level-${lvl}`;
 
       els.uiScore.textContent = `${state.totalScore} Punkte`;
       els.questionText.textContent = question.question;
@@ -3146,7 +3146,7 @@
       const lvl = question.difficulty;
       els.uiRoundDifficulty.querySelector(".label-frage").textContent = String(state.round);
       els.uiRoundDifficulty.querySelector(".label-level").textContent = levelLabels[lvl] || "Leicht";
-      els.uiRoundDifficulty.className = `tb-chips level-${lvl}`;
+      els.uiRoundDifficulty.className = `tb-info level-${lvl}`;
 
       els.uiScore.textContent = `${state.totalScore} in Folge`;
       els.questionText.textContent = question.question;
