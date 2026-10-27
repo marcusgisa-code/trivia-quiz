@@ -1,8 +1,23 @@
+import { handleChat } from './chat.js';
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json; charset=utf-8',
 };
+
+// Der Hilfe-Chat kostet pro Anfrage Geld – deshalb nur von der eigenen Seite
+// (und lokal zum Testen) zulassen. Anfragen ohne Origin-Header (z. B. das
+// Testskript) sind erlaubt; ein echter Schutz ist das nicht, nur eine Hürde.
+const CHAT_ORIGINS = [
+  /^https:\/\/marcusgisa-code\.github\.io$/,
+  /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
+];
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: CORS_HEADERS });
+}
 
 export default {
   async fetch(request, env) {
@@ -11,6 +26,16 @@ export default {
     }
 
     const url = new URL(request.url);
+
+    if (url.pathname === '/chat') {
+      if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+      const origin = request.headers.get('Origin');
+      if (origin && !CHAT_ORIGINS.some(re => re.test(origin))) {
+        return json({ error: 'Forbidden' }, 403);
+      }
+      return handleChat(request, env, json);
+    }
+
     const all = url.searchParams.get('all') === '1';
     const count = all ? Infinity : Math.min(parseInt(url.searchParams.get('count') || '20'), 50);
     const level = url.searchParams.get('level'); // optional filter
