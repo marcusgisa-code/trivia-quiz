@@ -1261,8 +1261,13 @@
       transition: transform 0.35s cubic-bezier(.2,.8,.2,1);
     }
 
-    .carousel-card {
+    .carousel-slot {
       flex: 0 0 100%;
+      display: flex;
+    }
+
+    .carousel-card {
+      flex: 1;
       min-height: 96px;
       display: flex;
       align-items: center;
@@ -1339,6 +1344,8 @@
     /* Im Karussell-Quiz ohne "Joker:"-Präfix (wie im Mockup) */
     .mode-carousel .joker-prefix { display: none; }
 
+    .mode-carousel .result-points { padding: 0 58px; }
+
     .carousel-hint {
       text-align: center;
       margin-top: 12px;
@@ -1349,6 +1356,270 @@
     @media (max-width: 420px) {
       .carousel-arrow { width: 40px; height: 40px; flex-basis: 40px; }
       .carousel-card { font-size: 19px; padding: 10px 14px; }
+    }
+
+    /* ══ Studyflix-Design (nur Karussell-Quiz, Umschalter CAROUSEL_THEME) ══
+       Farben/Fonts aus mockups/deinquiz_fragescreen_pfeilkreis_fix.html */
+    .sf-ico { display: none; }
+    .sf-theme .sf-ico { display: block; }
+    .sf-theme .cg-old,
+    .sf-theme #mute-icon,
+    .sf-theme .joker-emoji { display: none; }
+
+    body.sf-body { background: #f3f6f9; }
+
+    .quiz-screen.sf-theme {
+      background: #fff;
+      border: 1px solid #e6eaee;
+      box-shadow: 0 10px 40px rgba(40,60,80,0.10);
+      color: #3a4553;
+      font-family: "Open Sans", Arial, sans-serif;
+    }
+    .quiz-screen.sf-theme::before { display: none; }
+    .sf-theme button { font-family: inherit; }
+
+    /* Header */
+    /* Name schmaler, Info-Feld (Frage-Nr./Kategorie) breiter; schrumpft auf dem Handy mit */
+    .sf-theme .tb-player {
+      flex: 0.8 1 0;
+      min-width: 0;
+      padding: 10px 12px;
+      background: #fff;
+      border: 1px solid #dfe4e9;
+      border-radius: 16px;
+    }
+    .sf-theme .tb-player > div:last-child { min-width: 0; }
+    .sf-theme .tb-avatar {
+      width: 40px; height: 40px;
+      background: #e2f5fe;
+      border: none;
+      color: #3a4553;
+      font-size: 16px;
+    }
+    .sf-theme #ui-username {
+      color: #3a4553;
+      font-size: 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sf-theme #ui-score { color: #7b8590; font-size: 13px; }
+
+    .sf-theme .tb-info {
+      flex: 1.2 1 0;
+      background: #fff;
+      border: 1px solid #dfe4e9;
+      border-radius: 16px;
+    }
+    .sf-theme .tb-info-cell {
+      color: #3a4553;
+      font-weight: 600;
+      justify-content: center;
+      padding: 10px 8px;
+    }
+    .sf-theme .tb-info-cell:nth-child(-n+2) { border-bottom-color: #dfe4e9; }
+    .sf-theme .tb-info-cell:nth-child(odd) { border-right-color: #dfe4e9; }
+    .sf-theme .tb-info .label-level { color: inherit; text-shadow: none; }
+    .sf-theme .level-pill {
+      background: #8a9096;
+      color: #fff;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+    }
+    .sf-theme.mode-carousel .tb-info .tb-category {
+      color: #3a4553;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .sf-theme #ui-timer {
+      width: 78px; height: 78px;
+      background: #fff;
+      border: 2px solid #8f8f8f;
+      box-shadow: none;
+    }
+    .sf-theme .tb-timer-num { color: #3a4553; font-size: 28px; }
+    .sf-theme .tb-timer-sek { color: #7b8590; font-size: 11px; }
+    .sf-theme #ui-timer.is-penalty { background: #fdeaea; border-color: #d94b4b; box-shadow: none; }
+    .sf-theme #ui-timer.is-penalty .tb-timer-num { color: #d94b4b; }
+
+    /* Frage */
+    .sf-theme .question-box {
+      background: #e2f5fe;
+      border: none;
+      border-radius: 20px;
+      box-shadow: none;
+      padding: 24px 22px;
+    }
+    .sf-theme .question-text {
+      color: #2b333d;
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    /* Karussell: weiße Karten mit Schatten, graue Kreis-Buttons */
+    .sf-theme .carousel-row { gap: 12px; }
+    .sf-theme .carousel-arrow,
+    .sf-theme #joker-wrap .tb-mute {
+      position: relative;
+      z-index: 2;
+      width: 48px; height: 48px;
+      flex: 0 0 48px;
+      padding: 0;
+      border: 2px solid #8f8f8f;
+      background: #fff;
+      color: #8f8f8f;
+      box-shadow: 0 4px 18px rgba(40,60,80,0.10);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .sf-theme .carousel-arrow svg { width: 28px; height: 28px; }
+    .sf-theme #joker-wrap .tb-mute svg { width: 22px; height: 22px; }
+    .sf-theme .tb-mute .sf-vol-off,
+    .sf-theme .tb-mute.is-muted .sf-vol { display: none; }
+    .sf-theme .tb-mute.is-muted .sf-vol-off { display: block; }
+
+    .sf-theme .carousel-viewport {
+      padding: 6px 0 22px;
+      margin: -6px -14px -22px;
+      border-radius: 0;
+    }
+    .sf-theme .carousel-slot { padding: 0 14px; }
+    .sf-theme .carousel-card {
+      border: none;
+      border-radius: 24px;
+      background: #fff;
+      color: #3a4553;
+      font-size: 22px;
+      font-weight: 400;
+      box-shadow: 0 4px 18px rgba(40,60,80,0.10);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s, color 0.2s;
+    }
+    .sf-theme .carousel-card.clicked-state { background: #fff6d6; color: #7a5a00; }
+    .sf-theme .carousel-card.correct-state { background: #e3f6e8; color: #1f6b35; }
+    .sf-theme .carousel-card.wrong-state { background: #fdeaea; color: #a32d2d; }
+
+    .sf-theme .carousel-arrow:hover,
+    .sf-theme #joker-wrap .tb-mute:hover,
+    .sf-theme .carousel-card:hover:not(.locked),
+    .sf-theme .joker-btn:hover {
+      transform: translateY(5px);
+      box-shadow: 0 2px 10px rgba(40,60,80,0.16);
+    }
+    .sf-theme #joker-wrap .tb-mute:hover { background: #fff; }
+
+    .sf-theme .carousel-dots { margin-top: 18px; }
+    .sf-theme .carousel-dot {
+      width: 36px; height: 36px;
+      border: none;
+      background: #cfcfcf;
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      transition: background 0.2s;
+    }
+    .sf-theme .carousel-dot:hover { background: #b0b0b0; transform: none; }
+    .sf-theme .carousel-dot.is-on { background: #707070; }
+    .sf-theme .carousel-dot.clicked-state { background: #f0c419; }
+    .sf-theme .carousel-dot.correct-state { background: #3aa55a; }
+    .sf-theme .carousel-dot.wrong-state { background: #d94b4b; }
+
+    /* Joker-Zeile */
+    .sf-theme #joker-wrap { margin-top: 20px; }
+    .sf-theme .joker-btn {
+      height: 48px;
+      padding: 10px 22px;
+      border: 2px solid #8f8f8f;
+      border-radius: 24px;
+      background: #fff;
+      color: #3a4553;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0;
+      gap: 10px;
+      box-shadow: 0 4px 18px rgba(40,60,80,0.10);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .sf-theme .joker-btn > span:first-child { display: flex; align-items: center; gap: 10px; }
+    .sf-theme .joker-btn .sf-card { width: 22px; height: 22px; }
+    .sf-theme .joker-count-badge {
+      background: #e2f5fe;
+      color: #3a4553;
+      padding: 1px 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .sf-theme .carousel-hint { color: #7b8590; }
+
+    /* Auflösung / Weiter */
+    .sf-theme .result-points,
+    .sf-theme .result-label { color: #3a4553; text-shadow: none; }
+    .sf-theme .result-points-sub { color: #3a4553; -webkit-text-stroke: 0; }
+    .sf-theme .joker-award { background: #e2f5fe; border-color: #b9e3f8; color: #3a4553; }
+    .sf-theme .continue-btn {
+      background: #3a4553;
+      color: #fff;
+      border-radius: 24px;
+      box-shadow: 0 4px 18px rgba(40,60,80,0.10);
+    }
+
+    /* Game Over */
+    .sf-theme .go-card {
+      background: #fff;
+      border: 1px solid #dfe4e9;
+      border-radius: 20px;
+      box-shadow: 0 4px 18px rgba(40,60,80,0.10);
+    }
+    .sf-theme .go-card-top,
+    .sf-theme .go-stats { border-bottom-color: #dfe4e9; }
+    .sf-theme .go-stat + .go-stat { border-left-color: #dfe4e9; }
+    .sf-theme .go-tag {
+      background: #fdeaea;
+      border-color: #f4c7c7;
+      color: #a32d2d;
+    }
+    .sf-theme .go-player,
+    .sf-theme .go-stat-n,
+    .sf-theme .go-stat-n.gold { color: #3a4553; }
+    .sf-theme .go-sub,
+    .sf-theme .go-stat-l { color: #7b8590; }
+    .sf-theme .go-btn {
+      border-radius: 24px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .sf-theme .go-btn-secondary,
+    .sf-theme .share-menu-item {
+      background: #fff;
+      border: 2px solid #8f8f8f;
+      color: #3a4553;
+      font-weight: 600;
+      box-shadow: 0 4px 18px rgba(40,60,80,0.10);
+    }
+    .sf-theme .go-btn-primary {
+      background: #3a4553;
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(40,60,80,0.10);
+    }
+    .sf-theme .go-btn:hover:not(:disabled) {
+      transform: translateY(5px);
+      box-shadow: 0 2px 10px rgba(40,60,80,0.16);
+    }
+    .sf-theme .share-menu {
+      background: #f3f6f9;
+      border-color: #dfe4e9;
+    }
+
+    @media (max-width: 520px) {
+      .sf-theme .tb-player { padding: 8px 10px; gap: 8px; }
+      .sf-theme .tb-avatar { width: 34px; height: 34px; font-size: 14px; }
+      .sf-theme #ui-username { font-size: 14px; }
+      .sf-theme #ui-score { font-size: 12px; }
+      .sf-theme .tb-info-cell { padding: 8px 6px; font-size: 13px; }
+      .sf-theme.mode-carousel .tb-info .tb-category { font-size: 14px; }
+      .sf-theme #ui-timer { width: 64px; height: 64px; }
+      .sf-theme .tb-timer-num { font-size: 24px; }
+      .sf-theme .question-text { font-size: 18px; }
+      .sf-theme .carousel-card { font-size: 19px; }
     }
 
     .below-panel {
@@ -1686,6 +1957,10 @@
       .help-panel { right: 16px; bottom: 16px; }
     }
   </style>
+  <!-- Open Sans für das Studyflix-Design des Karussell-Quiz -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app">
@@ -1694,9 +1969,9 @@
         <h1>Das <span id="quiz-title-q" style="cursor:default;">Q</span>uiz</h1>
 
         <div class="mode-select" id="mode-select">
-          <button type="button" class="mode-card is-selected" id="mode-card-new" data-mode="new">
-            <span class="mode-card-title">Neues Spielprinzip</span>
-            <span class="mode-card-desc">Antworten selbst aufdecken, Tempo-Bonus, steigende Schwierigkeit, 2 Joker-Arten</span>
+          <button type="button" class="mode-card" id="mode-card-carousel" data-mode="carousel">
+            <span class="mode-card-title">Karussell-Quiz</span>
+            <span class="mode-card-desc">Entdecke die vierte Spielvariante.</span>
           </button>
           <button type="button" class="mode-card" id="mode-card-classic" data-mode="classic">
             <span class="mode-card-title">Klassisch</span>
@@ -1706,9 +1981,9 @@
             <span class="mode-card-title">Klassisch mit KI-Fragen</span>
             <span class="mode-card-desc">Klassisch mit den neuen KI-generierten Fragen, eigene Highscore-Liste, gleiche Joker wie Klassisch</span>
           </button>
-          <button type="button" class="mode-card" id="mode-card-carousel" data-mode="carousel">
-            <span class="mode-card-title">Karussell-Quiz</span>
-            <span class="mode-card-desc">Entdecke die vierte Spielvariante.</span>
+          <button type="button" class="mode-card is-selected" id="mode-card-new" data-mode="new">
+            <span class="mode-card-title">Neues Spielprinzip</span>
+            <span class="mode-card-desc">Antworten selbst aufdecken, Tempo-Bonus, steigende Schwierigkeit, 2 Joker-Arten</span>
           </button>
         </div>
 
@@ -1727,8 +2002,8 @@
           <div class="field field-name">
             <label for="username">Name</label>
             <div class="input-wrap">
-              <input id="username" type="text" maxlength="15" placeholder="Anonym" autocomplete="off" />
-              <span class="input-max">max 15</span>
+              <input id="username" type="text" maxlength="12" placeholder="Anonym" autocomplete="off" />
+              <span class="input-max">max 12</span>
             </div>
           </div>
           <div class="field field-plz-wide">
@@ -1795,6 +2070,8 @@
 
         <button id="mute-btn" class="tb-mute" type="button" aria-label="Sound aus">
           <span id="mute-icon">🔊</span>
+          <svg class="sf-ico sf-vol" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 8a5 5 0 0 1 0 8"/><path d="M17.7 5a9 9 0 0 1 0 14"/><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v14a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5"/></svg>
+          <svg class="sf-ico sf-vol-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 8a5 5 0 0 1 1.912 4.934m-1.377 2.602a5 5 0 0 1 -.535 .464"/><path d="M17.7 5a9 9 0 0 1 2.362 11.086m-1.676 2.299a9 9 0 0 1 -.686 .615"/><path d="M9.069 5.054l.431 -.554a.8 .8 0 0 1 1.5 .5v2m0 4v8a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l1.294 -1.664"/><path d="M3 3l18 18"/></svg>
         </button>
 
         <div class="tb-info" id="ui-round-difficulty">
@@ -1819,7 +2096,7 @@
 
       <div id="joker-wrap" class="joker-wrap hidden">
         <button id="joker-btn" class="joker-btn" type="button">
-          <span>🃏 <span class="joker-prefix">Joker: </span>Frage überspringen</span>
+          <span><span class="joker-emoji">🃏 </span><svg class="sf-ico sf-card" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5v14a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2z"/><path d="M8 6v.01"/><path d="M16 18v.01"/><path d="M12 8.5l-2.5 3.5l2.5 3.5l2.5 -3.5z"/></svg><span class="joker-prefix">Joker: </span>Frage überspringen</span>
           <span id="joker-count-badge" class="joker-count-badge">3</span>
         </button>
       </div>
@@ -2784,7 +3061,10 @@
     }
 
     const CLASSIC_TIME_LIMIT = 25;
-    const CAROUSEL_AUTO_MS = 4000;
+    const CAROUSEL_AUTO_MS = 7000;
+    // Design des Karussell-Quiz: "studyflix" (hell, Bewerbung) oder "dark" (bisheriges
+    // DeinQuiz-Design). Zum Vergleichen per URL übersteuerbar: ?design=dark
+    const CAROUSEL_THEME = new URLSearchParams(location.search).get("design") === "dark" ? "dark" : "studyflix";
     const KI_QUESTIONS = parseCsv(KI_FRAGEN_CSV);
 
     const state = {
@@ -2964,6 +3244,8 @@
     }
 
     function showScreen(name) {
+      // Studyflix-Hintergrund vorerst nur auf dem Quiz-Screen des Karussell-Quiz
+      if (name !== "quiz") document.body.classList.remove("sf-body");
       Object.values(screens).forEach(screen => screen.classList.add("hidden"));
       screens[name].classList.remove("hidden");
     }
@@ -3000,8 +3282,12 @@
         muteHome.parent.insertBefore(els.muteBtn, muteHome.next);
       }
       screens.quiz.classList.toggle("mode-carousel", state.gameMode === "carousel");
+      const studyflix = state.gameMode === "carousel" && CAROUSEL_THEME === "studyflix";
+      screens.quiz.classList.toggle("sf-theme", studyflix);
+      document.body.classList.toggle("sf-body", studyflix);
       clearGameOverMode();
       restoreBelowPanelStructure();
+      if (els.belowPanel) els.belowPanel.style.marginTop = "";
       state.fiftyAnimating = false;
       state.roundAnswered = false;
       state.pendingGameOver = false;
@@ -3541,7 +3827,10 @@
       const levelLabels = { 1: "Leicht", 2: "Mittel", 3: "Schwer" };
       const lvl = question.difficulty;
       els.uiRoundDifficulty.querySelector(".label-frage").textContent = String(state.round);
-      els.uiRoundDifficulty.querySelector(".label-level").textContent = levelLabels[lvl] || "Leicht";
+      const levelPill = document.createElement("span");
+      levelPill.className = "level-pill";
+      levelPill.textContent = levelLabels[lvl] || "Leicht";
+      els.uiRoundDifficulty.querySelector(".label-level").replaceChildren(levelPill);
       els.uiRoundDifficulty.className = `tb-info level-${lvl}`;
 
       els.uiScore.textContent = `${state.totalScore} in Folge`;
@@ -3723,6 +4012,7 @@
       els.resultPoints.classList.remove("hidden");
       els.resultPoints.classList.add("fade-in");
       typewriterReveal(document.getElementById("result-richtig-headline"), richtigText);
+      alignResultWithMute();
 
       els.resultTotal.classList.add("hidden");
       els.resultInfo.classList.add("hidden");
@@ -3774,12 +4064,12 @@
       prev.type = "button";
       prev.className = "carousel-arrow";
       prev.setAttribute("aria-label", "Vorherige Antwort");
-      prev.textContent = "‹";
+      prev.innerHTML = `<span class="cg-old">‹</span><svg class="sf-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg>`;
       const next = document.createElement("button");
       next.type = "button";
       next.className = "carousel-arrow";
       next.setAttribute("aria-label", "Nächste Antwort");
-      next.textContent = "›";
+      next.innerHTML = `<span class="cg-old">›</span><svg class="sf-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6"/></svg>`;
 
       const viewport = document.createElement("div");
       viewport.className = "carousel-viewport";
@@ -3796,7 +4086,11 @@
           if (state.roundAnswered) return;
           chooseAnswerClassic(i + 1);
         });
-        track.appendChild(card);
+        // Slot als Abstandshalter, damit im Studyflix-Design der Karten-Schatten Platz hat
+        const slot = document.createElement("div");
+        slot.className = "carousel-slot";
+        slot.appendChild(card);
+        track.appendChild(slot);
         return card;
       });
       viewport.appendChild(track);
@@ -3810,14 +4104,17 @@
         dot.className = "carousel-dot";
         dot.textContent = LETTERS[i];
         dot.setAttribute("aria-label", `Antwort ${LETTERS[i]}`);
-        dot.addEventListener("click", () => go(i));
+        dot.addEventListener("click", () => { if (i !== current) go(i, true); });
         dotsWrap.appendChild(dot);
         return dot;
       });
 
       let current = 0;
       let autoTimer = null;
-      function go(n) {
+      // withSound: Woosh bei jeder Navigation durch den Spieler und beim
+      // automatischen Weiterdrehen (nicht beim Sprung zur richtigen Antwort)
+      function go(n, withSound) {
+        if (withSound) playSound("reveal");
         current = (n + cards.length) % cards.length;
         track.style.transform = `translateX(-${current * 100}%)`;
         dots.forEach((d, k) => d.classList.toggle("is-on", k === current));
@@ -3831,18 +4128,18 @@
         clearTimeout(autoTimer);
         autoTimer = setTimeout(() => {
           if (state.roundAnswered || !wrap.isConnected) return;
-          go(current + 1);
+          go(current + 1, true);
         }, CAROUSEL_AUTO_MS);
       }
-      prev.addEventListener("click", () => go(current - 1));
-      next.addEventListener("click", () => go(current + 1));
+      prev.addEventListener("click", () => go(current - 1, true));
+      next.addEventListener("click", () => go(current + 1, true));
 
       let x0 = null;
       viewport.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive: true });
       viewport.addEventListener("touchend", e => {
         if (x0 === null) return;
         const dx = e.changedTouches[0].clientX - x0;
-        if (Math.abs(dx) > 40) go(dx < 0 ? current + 1 : current - 1);
+        if (Math.abs(dx) > 40) go(dx < 0 ? current + 1 : current - 1, true);
         x0 = null;
       });
 
@@ -3865,12 +4162,36 @@
       });
     }
 
+    // Karussell: Auflösungstext (Zeile 1) auf Höhe des Mute-Buttons ziehen,
+    // "Weiter" rutscht mit. Gemessen statt fest verdrahtet, damit es in beiden
+    // Designs und bei jeder Schriftgröße passt.
+    function alignResultWithMute() {
+      if (state.gameMode !== "carousel" || !els.muteBtn || !els.belowPanel) return;
+      els.belowPanel.style.marginTop = "";
+      // Laufende Transforms (fade-in, Hover) herausrechnen
+      const shiftY = el => new DOMMatrix(getComputedStyle(el).transform).m42;
+      const line1 = els.resultPoints.firstElementChild || els.resultPoints; // "Richtig"-/"Falsch"-Text
+      const offset = () => {
+        const mute = els.muteBtn.getBoundingClientRect();
+        const box = line1.getBoundingClientRect();
+        return (mute.top - shiftY(els.muteBtn) + mute.height / 2)
+             - (box.top - shiftY(els.resultPoints) + box.height / 2);
+      };
+      if (!els.muteBtn.getBoundingClientRect().height) return;
+      // Zwei Durchgänge: der negative Abstand verschmilzt mit dem unteren Rand
+      // der Joker-Zeile (Margin Collapsing), der zweite gleicht das aus.
+      for (let i = 0; i < 2; i += 1) {
+        const current = parseFloat(getComputedStyle(els.belowPanel).marginTop) || 0;
+        els.belowPanel.style.marginTop = `${current + offset()}px`;
+      }
+    }
+
     document.addEventListener("keydown", event => {
       if (!state.carouselGo || screens.quiz.classList.contains("hidden")) return;
       if (event.target && event.target.tagName === "INPUT") return;
       const current = [...els.answers.querySelectorAll(".carousel-dot")].findIndex(d => d.classList.contains("is-on"));
-      if (event.key === "ArrowLeft") state.carouselGo(current - 1);
-      if (event.key === "ArrowRight") state.carouselGo(current + 1);
+      if (event.key === "ArrowLeft") state.carouselGo(current - 1, true);
+      if (event.key === "ArrowRight") state.carouselGo(current + 1, true);
     });
 
     // ── /Klassisch-Modus ─────────────────────────────────────────────────
@@ -4156,6 +4477,7 @@
           els.resultPoints.innerHTML = `<span class="result-feedback-text">${falschText}</span>`;
           els.resultPoints.classList.remove("hidden");
           els.resultPoints.classList.add("fade-in");
+          alignResultWithMute();
 
           state.pendingGameOver = true;
           showContinueDisabledThenEnable(false);
@@ -4263,7 +4585,7 @@
         return;
       }
 
-      state.username = rawName.slice(0, 15);
+      state.username = rawName.slice(0, 12);
       state.plz = rawPlz;
       if (rawPlz !== "00000") lookupAndSaveOrtsname(state.plz); // im Hintergrund, blockiert den Spielstart nicht
 

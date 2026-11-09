@@ -11,7 +11,7 @@ export const KNOWLEDGE = [
     keywords: ["start", "starten", "falsch", "eingegeben", "tippfehler", "korrigieren", "anmelden", "anmeldung", "name", "postleitzahl", "plz", "spielen", "kostenlos", "app", "download", "installieren", "registrieren", "konto", "account", "login"],
     text:
       "Das Quiz ist ein kostenloses Wissensquiz, das direkt im Browser läuft – ohne Download, ohne Konto und ohne Passwort. " +
-      "Zum Start wählst du einen Spielmodus und tippst auf „Spiel starten“. Name (max. 15 Zeichen) und Postleitzahl sind optional: Ohne Angaben spielst du als „Anonym“ mit der Postleitzahl 00000. " +
+      "Zum Start wählst du einen Spielmodus und tippst auf „Spiel starten“. Name (max. 12 Zeichen) und Postleitzahl sind optional: Ohne Angaben spielst du als „Anonym“ mit der Postleitzahl 00000. " +
       "Name und PLZ werden nur für die Highscore-Listen verwendet; eine Identitätsprüfung gibt es nicht. " +
       "Beide Angaben gibst du bei jedem Spielstart neu ein – einen Tippfehler korrigierst du also einfach beim nächsten Start. Bereits gespeicherte Highscore-Einträge lassen sich per E-Mail an findezwergle@icloud.com ändern oder löschen.",
   },
@@ -51,7 +51,7 @@ export const KNOWLEDGE = [
     text:
       "Im Karussell-Quiz siehst du immer nur eine Antwortoption auf einmal. Mit den Pfeilen links und rechts, den Punkten A, B und C oder per Wischen blätterst du durch die drei Antworten; " +
       "tippst du eine Antwort an, ist sie gewählt. Sonst gelten die Regeln von Klassisch: 25 Sekunden pro Frage, eine falsche Antwort beendet das Spiel, gezählt wird die Serie richtiger Antworten. " +
-      "Ohne Eingabe dreht das Karussell nach 4 Sekunden selbst zur nächsten Antwort weiter. Gespielt werden die KI-Fragen; oben im Kopfbereich steht die Kategorie der Frage. " +
+      "Ohne Eingabe dreht das Karussell nach 7 Sekunden selbst zur nächsten Antwort weiter. Gespielt werden die KI-Fragen; oben im Kopfbereich steht die Kategorie der Frage. " +
       "Es gibt nur den Joker „Frage überspringen“, keinen 50:50-Joker. Der Modus hat eine eigene Highscore-Liste.",
   },
   {
