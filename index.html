@@ -1984,7 +1984,7 @@
         <h1>Das <span id="quiz-title-q" style="cursor:default;">Q</span>uiz</h1>
 
         <div class="mode-select" id="mode-select">
-          <button type="button" class="mode-card" id="mode-card-carousel" data-mode="carousel">
+          <button type="button" class="mode-card is-selected" id="mode-card-carousel" data-mode="carousel">
             <span class="mode-card-title">Karussell-Quiz</span>
             <span class="mode-card-desc">Entdecke die vierte Spielvariante.</span>
           </button>
@@ -1996,7 +1996,7 @@
             <span class="mode-card-title">Klassisch mit KI-Fragen</span>
             <span class="mode-card-desc">Klassisch mit den neuen KI-generierten Fragen, eigene Highscore-Liste, gleiche Joker wie Klassisch</span>
           </button>
-          <button type="button" class="mode-card is-selected" id="mode-card-new" data-mode="new">
+          <button type="button" class="mode-card" id="mode-card-new" data-mode="new">
             <span class="mode-card-title">Neues Spielprinzip</span>
             <span class="mode-card-desc">Antworten selbst aufdecken, Tempo-Bonus, steigende Schwierigkeit, 2 Joker-Arten</span>
           </button>
@@ -3099,7 +3099,7 @@
       correctAnswers: 0,
       questions: [],
       usedIds: new Set(),
-      gameMode: "new",
+      gameMode: "carousel", // muss zur vorausgewählten Karte auf der Startseite passen
       jokersLeft: 3,
       fiftyFiftyLeft: 3,
       fiftyAnimating: false,
