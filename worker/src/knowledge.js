@@ -11,7 +11,7 @@ export const KNOWLEDGE = [
     keywords: ["start", "starten", "falsch", "eingegeben", "tippfehler", "korrigieren", "anmelden", "anmeldung", "name", "postleitzahl", "plz", "spielen", "kostenlos", "app", "download", "installieren", "registrieren", "konto", "account", "login"],
     text:
       "Das Quiz ist ein kostenloses Wissensquiz, das direkt im Browser läuft – ohne Download, ohne Konto und ohne Passwort. " +
-      "Zum Start gibst du einen frei wählbaren Namen (max. 12 Zeichen) und deine Postleitzahl ein, wählst einen Spielmodus und tippst auf „Spiel starten“. " +
+      "Zum Start wählst du einen Spielmodus und tippst auf „Spiel starten“. Name (max. 15 Zeichen) und Postleitzahl sind optional: Ohne Angaben spielst du als „Anonym“ mit der Postleitzahl 00000. " +
       "Name und PLZ werden nur für die Highscore-Listen verwendet; eine Identitätsprüfung gibt es nicht. " +
       "Beide Angaben gibst du bei jedem Spielstart neu ein – einen Tippfehler korrigierst du also einfach beim nächsten Start. Bereits gespeicherte Highscore-Einträge lassen sich per E-Mail an findezwergle@icloud.com ändern oder löschen.",
   },
@@ -45,6 +45,16 @@ export const KNOWLEDGE = [
       "verwendet aber neue, mit künstlicher Intelligenz erstellte Fragen. Der Modus hat eine eigene Highscore-Liste. Einen Einzelspieler-Score gibt es hier nicht.",
   },
   {
+    id: "modus-karussell",
+    title: "Spielmodus „Karussell-Quiz“",
+    keywords: ["karussell", "carousel", "blättern", "wischen", "pfeil", "pfeile", "swipe", "durchblättern", "vierte"],
+    text:
+      "Im Karussell-Quiz siehst du immer nur eine Antwortoption auf einmal. Mit den Pfeilen links und rechts, den Punkten A, B und C oder per Wischen blätterst du durch die drei Antworten; " +
+      "tippst du eine Antwort an, ist sie gewählt. Sonst gelten die Regeln von Klassisch: 25 Sekunden pro Frage, eine falsche Antwort beendet das Spiel, gezählt wird die Serie richtiger Antworten. " +
+      "Ohne Eingabe dreht das Karussell nach 4 Sekunden selbst zur nächsten Antwort weiter. Gespielt werden die KI-Fragen; oben im Kopfbereich steht die Kategorie der Frage. " +
+      "Es gibt nur den Joker „Frage überspringen“, keinen 50:50-Joker. Der Modus hat eine eigene Highscore-Liste.",
+  },
+  {
     id: "schwierigkeit",
     title: "Schwierigkeitsgrade und Reihenfolge der Fragen",
     keywords: ["schwierigkeit", "schwierigkeitsgrad", "leicht", "mittel", "schwer", "schwerer", "schwieriger", "länger", "steigt", "steigend", "einfacher", "level", "niveau", "reihenfolge", "steigend", "fragen", "wiederholung", "wiederholen", "gleich", "doppelt", "anzahl", "pool"],
@@ -68,7 +78,7 @@ export const KNOWLEDGE = [
     title: "Highscores und Bestenlisten",
     keywords: ["highscore", "bestenliste", "rangliste", "top", "platz", "liste", "ranking", "punkte", "gespeichert", "löschen", "ändern", "name"],
     text:
-      "Über den Button „Highscore“ auf der Startseite siehst du die Top 10 – getrennt nach vier Listen: Neues Spielprinzip, Klassisch, Klassisch mit KI-Fragen und Klassisch Einzelspieler Score. " +
+      "Über den Button „Highscore“ auf der Startseite siehst du die Top 10 – getrennt nach fünf Listen: Neues Spielprinzip, Klassisch, Klassisch mit KI-Fragen, Klassisch Einzelspieler Score und Karussell-Quiz. " +
       "Angezeigt werden Name, Ort (aus der PLZ abgeleitet) und Punkte. " +
       "Möchtest du einen Eintrag ändern oder löschen lassen, schreib eine E-Mail an findezwergle@icloud.com.",
   },
