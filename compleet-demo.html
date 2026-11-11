@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compliance-Ampel – Prototyp</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    :root {
+      --navy: #14213d;
+      --navy-2: #1f2f52;
+      --blue: #2f6fed;
+      --blue-soft: #e8f0fe;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --ink: #1b2433;
+      --muted: #5f6b7d;
+      --line: #dde3ec;
+      --green: #1e7a46;
+      --green-soft: #e4f4ea;
+      --amber: #9a6200;
+      --amber-soft: #fdf1dc;
+      --red: #b42318;
+      --red-soft: #fdeae8;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    .note {
+      background: var(--navy);
+      color: #fff;
+      font-size: 13px;
+      text-align: center;
+      padding: 8px 16px;
+    }
+    header {
+      background: var(--navy-2);
+      color: #fff;
+      padding: 28px 16px 32px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+    header h1 { margin: 0 0 6px; font-size: clamp(22px, 3vw, 30px); }
+    header p { margin: 0; color: #c8d2e4; max-width: 72ch; }
+    main.wrap { padding-top: 24px; padding-bottom: 48px; }
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+    .kpi b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+    .kpi span { color: var(--muted); font-size: 13px; }
+    .kpi.red b { color: var(--red); }
+    .kpi.amber b { color: var(--amber); }
+    .kpi.green b { color: var(--green); }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 14px 16px; margin-bottom: 16px;
+    }
+    .toolbar label { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+    button, input, select {
+      font: inherit;
+    }
+    input, select {
+      padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+    }
+    button {
+      border: 1px solid var(--line); background: #fff; color: var(--ink);
+      border-radius: 999px; padding: 8px 14px; cursor: pointer;
+    }
+    button:hover { border-color: var(--blue); }
+    button.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    button.primary { background: var(--blue); border-color: var(--blue); color: #fff; border-radius: 8px; font-weight: 600; }
+    .table-box { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 820px; }
+    th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; background: #fafbfd; }
+    tr:last-child td { border-bottom: none; }
+    td.num { font-variant-numeric: tabular-nums; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .pill.green { color: var(--green); background: var(--green-soft); }
+    .pill.amber { color: var(--amber); background: var(--amber-soft); }
+    .pill.red { color: var(--red); background: var(--red-soft); }
+    .pill.planned { color: var(--blue); background: var(--blue-soft); }
+    .hint { color: var(--muted); font-size: 13px; }
+    .empty { padding: 24px; text-align: center; color: var(--muted); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-top: 20px; }
+    .card h2 { margin: 0 0 12px; font-size: 17px; }
+    .form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 10px; align-items: end; }
+    .form label { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+    .rules { color: var(--muted); font-size: 13px; margin: 20px 0 0; }
+    .rules li { margin-bottom: 4px; }
+    footer { color: var(--muted); font-size: 12px; padding: 0 0 32px; }
+    @media (max-width: 760px) {
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chips { margin-left: 0; }
+      .form { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="note">Bewerbungsprototyp von Marcus Gisa – kein Produkt von compleet. Personen und Dienstleister sind frei erfunden – bis auf einen; Regeln vereinfacht, keine Rechtsberatung. Es werden keine Daten gespeichert.</div>
+
+  <header>
+    <div class="wrap">
+      <h1>Compliance-Ampel für externe Einsätze</h1>
+      <p>Wer erreicht bald Equal Pay, wessen Einsatz stößt an die Höchstüberlassungsdauer? Statt das in Tabellen nachzurechnen, zeigt die Ampel auf einen Blick, wo Handlungsbedarf besteht – zu jedem beliebigen Stichtag.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="kpis" aria-label="Übersicht">
+      <div class="kpi"><b id="k-all">0</b><span>aktive Einsätze</span></div>
+      <div class="kpi red"><b id="k-red">0</b><span>sofort handeln</span></div>
+      <div class="kpi amber"><b id="k-amber">0</b><span>in den nächsten 60 Tagen</span></div>
+      <div class="kpi green"><b id="k-green">0</b><span>ohne Handlungsbedarf</span></div>
+    </section>
+
+    <section class="toolbar" aria-label="Filter">
+      <label for="stichtag">Stichtag
+        <input type="date" id="stichtag" />
+      </label>
+      <label for="vendor">Dienstleister
+        <select id="vendor"><option value="">Alle</option></select>
+      </label>
+      <div class="chips" role="group" aria-label="Schnellfilter">
+        <button type="button" class="active" data-filter="all">Alle</button>
+        <button type="button" data-filter="action">Handlungsbedarf</button>
+        <button type="button" data-filter="equalpay30">Equal Pay in 30 Tagen</button>
+        <button type="button" data-filter="max">Höchstdauer in Sicht</button>
+      </div>
+    </section>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Name</th>
+            <th>Dienstleister</th>
+            <th>Bereich</th>
+            <th>Einsatz seit</th>
+            <th>Dauer</th>
+            <th>Equal Pay ab</th>
+            <th>Höchstdauer bis</th>
+            <th>Nächster Schritt</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="empty" class="empty" hidden>Keine Einsätze für diesen Filter.</div>
+    </div>
+
+    <section class="card">
+      <h2>Neuen Einsatz anlegen</h2>
+      <form id="add" class="form">
+        <label for="f-name">Name<input id="f-name" required placeholder="z. B. Mia Schulte" /></label>
+        <label for="f-vendor">Dienstleister<input id="f-vendor" required placeholder="z. B. Nordstaff" /></label>
+        <label for="f-area">Bereich<input id="f-area" required placeholder="z. B. Lager" /></label>
+        <label for="f-start">Einsatzbeginn<input id="f-start" type="date" required /></label>
+        <button type="submit" class="primary">Hinzufügen</button>
+      </form>
+    </section>
+
+    <ul class="rules">
+      <li><b>Equal Pay</b>: nach 9 Monaten im selben Kundenbetrieb (vereinfacht, ohne Branchenzuschlags-Tarife).</li>
+      <li><b>Höchstüberlassungsdauer</b>: 18 Monate (vereinfacht, ohne tarifliche Abweichungen und ohne Unterbrechungen).</li>
+      <li><b>Ampel</b>: Rot = Höchstdauer erreicht oder höchstens 14 Tage entfernt · Gelb = ein Meilenstein in den nächsten 60 Tagen · Grün = kein Meilenstein in Sicht.</li>
+    </ul>
+  </main>
+
+  <footer class="wrap">Prototyp als Arbeitsprobe für eine Bewerbung (2026). Keine Verbindung zu compleet oder einem Personaldienstleister.</footer>
+
+  <script>
+    const DAY = 24 * 60 * 60 * 1000;
+    const $ = id => document.getElementById(id);
+    const fmtDate = d => d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const toInput = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const fromInput = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+
+    function addMonths(date, months) {
+      const d = new Date(date.getFullYear(), date.getMonth() + months, 1);
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      d.setDate(Math.min(date.getDate(), lastDay));
+      return d;
+    }
+    const daysBetween = (a, b) => Math.round((b - a) / DAY);
+
+    // Beispieldaten relativ zu heute, damit die Ampel immer etwas zeigt.
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const ago = days => new Date(today.getTime() - days * DAY);
+    const assignments = [
+      { name: "Lena Brandt",    vendor: "Nordstaff",    area: "Lager",          start: ago(25) },
+      { name: "Yusuf Demir",    vendor: "ProPersonal",  area: "Montage",        start: ago(255) },
+      { name: "Jana Hoffmann",  vendor: "Nordstaff",    area: "Kundenservice",  start: ago(290) },
+      { name: "Tomasz Nowak",   vendor: "WorkBridge",   area: "Produktion",     start: ago(510) },
+      { name: "Sara Keller",    vendor: "ProPersonal",  area: "Buchhaltung",    start: ago(552) },
+      { name: "Daniel Vogt",    vendor: "WorkBridge",   area: "Lager",          start: ago(95) },
+      { name: "Aylin Kaya",     vendor: "Nordstaff",    area: "IT-Support",     start: ago(372) },
+      { name: "Felix Wagner",   vendor: "ProPersonal",  area: "Produktion",     start: ago(485) },
+      { name: "Marcus Gisa",    vendor: "Product Innovator", area: "IT",       start: new Date(2026, 11, 1) },
+    ];
+
+    let filter = "all";
+
+    function evaluate(a, ref) {
+      const equalPay = addMonths(a.start, 9);
+      const maxEnd = addMonths(a.start, 18);
+      const toEqual = daysBetween(ref, equalPay);
+      const toMax = daysBetween(ref, maxEnd);
+      const months = Math.max(0, (ref.getFullYear() - a.start.getFullYear()) * 12 + ref.getMonth() - a.start.getMonth() - (ref.getDate() < a.start.getDate() ? 1 : 0));
+      let status = "green", next = "Kein Meilenstein in den nächsten 60 Tagen";
+      const toStart = daysBetween(ref, a.start);
+      if (toStart > 0) { status = "planned"; next = `Startet in ${toStart} Tagen`; }
+      else if (toMax <= 0) { status = "red"; next = "Höchstdauer erreicht – Einsatz beenden oder umplanen"; }
+      else if (toMax <= 14) { status = "red"; next = `Höchstdauer in ${toMax} Tagen – jetzt Anschluss klären`; }
+      else if (toMax <= 60) { status = "amber"; next = `Höchstdauer in ${toMax} Tagen – Nachfolge planen`; }
+      else if (toEqual > 0 && toEqual <= 60) { status = "amber"; next = `Equal Pay in ${toEqual} Tagen – Vergütung mit Dienstleister abstimmen`; }
+      else if (toEqual <= 0) { next = "Equal Pay gilt – Abrechnung prüfen"; }
+      return { equalPay, maxEnd, toEqual, toMax, months, status, next };
+    }
+
+    function render() {
+      const ref = fromInput($("stichtag").value);
+      const vendor = $("vendor").value;
+      const rows = $("rows");
+      rows.innerHTML = "";
+      const evaluated = assignments.map(a => ({ a, e: evaluate(a, ref) }));
+      const counts = { red: 0, amber: 0, green: 0, planned: 0 };
+      evaluated.forEach(({ e }) => counts[e.status]++);
+      $("k-all").textContent = evaluated.length - counts.planned;
+      $("k-red").textContent = counts.red;
+      $("k-amber").textContent = counts.amber;
+      $("k-green").textContent = counts.green;
+
+      const order = { red: 0, amber: 1, planned: 2, green: 3 };
+      const shown = evaluated
+        .filter(({ a }) => !vendor || a.vendor === vendor)
+        .filter(({ e }) => {
+          if (filter === "action") return e.status === "red" || e.status === "amber";
+          if (filter === "equalpay30") return e.toEqual > 0 && e.toEqual <= 30;
+          if (filter === "max") return e.status !== "planned" && e.toMax <= 90;
+          return true;
+        })
+        .sort((x, y) => order[x.e.status] - order[y.e.status] || x.e.toMax - y.e.toMax);
+
+      const labels = { red: "Sofort", amber: "Bald", green: "Ok", planned: "Geplant" };
+      shown.forEach(({ a, e }) => {
+        const tr = document.createElement("tr");
+        const cells = [
+          null,
+          a.name, a.vendor, a.area, fmtDate(a.start),
+          e.status === "planned" ? "–" : `${e.months} Mon.`, fmtDate(e.equalPay), fmtDate(e.maxEnd), e.next,
+        ];
+        cells.forEach((value, i) => {
+          const td = document.createElement("td");
+          if (i === 0) {
+            const pill = document.createElement("span");
+            pill.className = `pill ${e.status}`;
+            pill.textContent = labels[e.status];
+            td.appendChild(pill);
+          } else {
+            td.textContent = value;
+          }
+          if (i === 5) td.className = "num";
+          tr.appendChild(td);
+        });
+        rows.appendChild(tr);
+      });
+      $("empty").hidden = shown.length > 0;
+    }
+
+    function fillVendors() {
+      const select = $("vendor");
+      const current = select.value;
+      const vendors = [...new Set(assignments.map(a => a.vendor))].sort();
+      select.innerHTML = '<option value="">Alle</option>';
+      vendors.forEach(v => {
+        const o = document.createElement("option");
+        o.value = v; o.textContent = v;
+        select.appendChild(o);
+      });
+      select.value = vendors.includes(current) ? current : "";
+    }
+
+    $("stichtag").value = toInput(today);
+    $("f-start").value = toInput(today);
+    $("stichtag").addEventListener("change", render);
+    $("vendor").addEventListener("change", render);
+    document.querySelectorAll("[data-filter]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        filter = btn.dataset.filter;
+        document.querySelectorAll("[data-filter]").forEach(b => b.classList.toggle("active", b === btn));
+        render();
+      });
+    });
+    $("add").addEventListener("submit", event => {
+      event.preventDefault();
+      assignments.push({
+        name: $("f-name").value.trim(),
+        vendor: $("f-vendor").value.trim(),
+        area: $("f-area").value.trim(),
+        start: fromInput($("f-start").value),
+      });
+      event.target.reset();
+      $("f-start").value = toInput(today);
+      fillVendors();
+      render();
+    });
+
+    fillVendors();
+    render();
+  </script>
+</body>
+</html>
