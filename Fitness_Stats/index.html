@@ -227,6 +227,13 @@
     .tip b { display: block; margin-bottom: 4px; }
     .tip .row { display: flex; justify-content: space-between; gap: 12px; }
     .tip .row i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; background: var(--c); }
+    /* Musik */
+    .song { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
+    .songs { margin: 6px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--ink-2); }
+    .songs li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .songs li::before { content: "♪ "; color: var(--s4); }
+    .rec-music { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+    .rec-music .record { cursor: pointer; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -307,6 +314,56 @@
         <h2>Bestleistungen</h2>
         <p class="note" id="rec-note">Antippen öffnet das Training.</p>
         <div class="records" id="records"></div>
+      </div>
+
+      <div class="card" id="music-card">
+        <div class="chart-head">
+          <div>
+            <h2>Musik beim Training</h2>
+            <p class="note" id="music-note"></p>
+          </div>
+          <button type="button" class="btn hidden" id="music-forget">Musikdaten entfernen</button>
+        </div>
+        <div id="music-loader">
+          <label class="drop" id="music-drop" style="padding:24px 16px">
+            <strong>Musikdaten hier ablegen oder auswählen</strong>
+            <span><code>musik_daten.json</code> aus <code>Music_Stats/convert_music.py</code> – oder einmal die Musik-Statistik in diesem Browser öffnen, dann wird sie automatisch übernommen.</span>
+            <input type="file" id="music-file" accept=".json,application/json" hidden />
+          </label>
+        </div>
+        <div id="music-app" class="hidden">
+          <div class="tiles flat" id="music-tiles"></div>
+          <h3>Was lief bei meinen Bestleistungen?</h3>
+          <p class="note">Bestleistungen unter allen Trainings mit Musik. Bei den schnellsten Abschnitten (1 km, 5 km …) genau die Titel in diesem Abschnitt, sonst im ganzen Training. Antippen öffnet das Training.</p>
+          <div class="rec-music" id="music-records"></div>
+          <div class="chart-head" style="margin-top:18px">
+            <div>
+              <h3 style="margin-top:0">Trainings-Hitliste</h3>
+              <p class="note" id="mrank-note">Puls-Effekt: Puls während des Titels ggü. dem Ø des Trainings. Tempo-Effekt: Pace während des Titels ggü. der Ø Pace aller Titel im selben Training (− = schneller). Effekte ab 5 Wiedergaben mit Messwerten.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="seg" id="f-mkind">
+                <button type="button" data-v="band" class="is-on">Bands</button>
+                <button type="button" data-v="track">Titel</button>
+              </span>
+              <span class="seg" id="f-msort">
+                <button type="button" data-v="count" class="is-on">Wiedergaben</button>
+                <button type="button" data-v="hr">Puls-Effekt</button>
+                <button type="button" data-v="pace">Tempo-Effekt</button>
+              </span>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead id="mrank-head"></thead>
+              <tbody id="mrank-body"></tbody>
+            </table>
+          </div>
+          <button type="button" class="btn" id="mrank-more" style="margin-top:10px">Alle anzeigen</button>
+          <h3 style="margin-top:18px">Mit Musik oder ohne?</h3>
+          <p class="note">Nur Trainings im Zeitraum der Musikdaten. „Mit Musik“ = mindestens die Hälfte der Trainingszeit lief Musik.</p>
+          <div class="table-scroll" id="music-vs"></div>
+        </div>
       </div>
 
       <div class="card" id="cmp-card">
@@ -598,6 +655,10 @@
       const x = v => L + ((v - xMin) / Math.max(1e-9, xMax - xMin)) * iw;
       const y = v => opt.invert ? T + ((v - yMin) / (yMax - yMin)) * ih : T + ih - ((v - yMin) / (yMax - yMin)) * ih;
       let s = `<svg viewBox="0 0 ${W_} ${H}" role="img">`;
+      (opt.xBands || []).forEach(b => {
+        const a = Math.max(xMin, b.from), c = Math.min(xMax, b.to);
+        if (c > a) s += `<rect x="${x(a)}" width="${x(c) - x(a)}" y="${T}" height="${ih}" fill="${b.color}" opacity="${b.op || 0.1}"/>`;
+      });
       (opt.bands || []).forEach(b => {
         const a = Math.max(yMin, b.from), c = Math.min(yMax, b.to);
         if (c > a) s += `<rect x="${L}" width="${iw}" y="${Math.min(y(a), y(c))}" height="${Math.abs(y(c) - y(a))}" fill="${b.color}" opacity="0.2"/>`;
@@ -685,11 +746,13 @@
     // Schnellste Zeit für eine Distanz (m) innerhalb des Trainings, aus der kumulierten Distanz
     // Schnellere Abschnitte sind unrealistisch (GPS-Sprünge, im Fahrzeug weitergezählt) und zählen nicht
     const MIN_PACE = { run_out: 170, run_in: 170, walk: 360 };
+    // Langsamer heißt: (fast) Stillstand – zählt beim Tempo eines Musiktitels als Pause
+    const MAX_PACE = { run_out: 900, run_in: 900, walk: 1800 };
     function bestEffort(w, meters) {
       const d = w.reihen && w.reihen.dist;
       const minT = (MIN_PACE[w.art] || 0) * meters / 1000;
       if (!d || d[d.length - 1] < meters) return null;
-      let best = Infinity, i = 0;
+      let best = Infinity, from = 0, i = 0;
       for (let j = 0; j < d.length; j += 1) {
         while (i < j && d[j] - d[i + 1] >= meters) i += 1;
         if (d[j] - d[i] >= meters) {
@@ -698,10 +761,10 @@
           const segLen = j > 0 ? d[j] - d[j - 1] : 0;
           const frac = segLen > 0 ? Math.min(1, over / segLen) : 0;
           const t = (j - i - frac) * DATA.schritt;
-          if (t < best && t >= minT) best = t;
+          if (t < best && t >= minT) { best = t; from = i * DATA.schritt; }
         }
       }
-      return isFinite(best) ? best : null;
+      return isFinite(best) ? [best, from] : null;
     }
     function kmSplits(w) {
       const d = w.reihen && w.reihen.dist;
@@ -731,13 +794,21 @@
         const d = new Date(w.start * 1000);
         const x = Object.assign({}, w, {
           idx,
+          // Die wenigen als "Laufen" aufgezeichneten Trainings zählen als Gehen
+          art: isRun(w.art) ? "walk" : w.art,
+          artOrig: w.art,
           t: w.start * 1000,
           y: d.getFullYear(), mk: monthKey(d), wk: isoWeek(d),
           pace: hasDist(w.art) && w.km > 0.2 ? w.dauer / w.km : null
         });
         // Laufökonomie: Meter pro Herzschlag (höher = effizienter)
         x.eff = x.pace && w.hrAvg ? (1000 / x.pace * 60) / w.hrAvg : null;
-        x.best = hasDist(w.art) ? { 1: bestEffort(x, 1000), 5: bestEffort(x, 5000), 10: bestEffort(x, 10000), 21: bestEffort(x, 21097.5) } : {};
+        // best[d] = schnellste Zeit über d km, bestFrom[d] = Start dieses Abschnitts (s ab Trainingsbeginn)
+        x.best = {}; x.bestFrom = {};
+        if (hasDist(w.art)) [[1, 1000], [5, 5000], [10, 10000], [21, 21097.5]].forEach(([k, m]) => {
+          const b = bestEffort(x, m);
+          x.best[k] = b ? b[0] : null; x.bestFrom[k] = b ? b[1] : null;
+        });
         return x;
       }).sort((a, b) => a.t - b.t);
     }
@@ -838,11 +909,11 @@
 
     // Kennzahlen für "Entwicklung"
     const METRICS = {
-      pace: { name: "Ø Pace (Laufen & Gehen)", get: w => w.pace, fmt: v => fmtPace(v, false), unit: "/km", invert: true, dist: true },
+      pace: { name: "Ø Pace (Gehen)", get: w => w.pace, fmt: v => fmtPace(v, false), unit: "/km", invert: true, dist: true },
       eff: { name: "Ökonomie (m pro Herzschlag)", get: w => w.eff, fmt: v => fmtNum(v, 2), unit: "m/Schlag", dist: true },
       hrAvg: { name: "Ø Herzfrequenz", get: w => w.hrAvg, fmt: v => fmtNum(v), unit: "bpm" },
       dauer: { name: "Dauer", get: w => w.dauer / 60, fmt: v => fmtNum(v), unit: "min" },
-      km: { name: "Distanz (Laufen & Gehen)", get: w => w.km, fmt: v => fmtNum(v, 1), unit: "km", dist: true },
+      km: { name: "Distanz (Gehen)", get: w => w.km, fmt: v => fmtNum(v, 1), unit: "km", dist: true },
       kcalMin: { name: "Kalorien pro Minute", get: w => w.kcal ? w.kcal / (w.dauer / 60) : null, fmt: v => fmtNum(v, 1), unit: "kcal/min" },
       powAvg: { name: "Ø Laufleistung", get: w => isRun(w.art) ? w.powAvg : null, fmt: v => fmtNum(v), unit: "W", run: true },
       best5: { name: "Schnellste 5 km im Training", get: w => w.best[5] ? w.best[5] / 5 : null, fmt: v => fmtPace(v, false), unit: "/km", invert: true, dist: true },
@@ -903,15 +974,16 @@
       });
     }
 
-    function renderRecords(ws) {
+    function computeRecs(ws) {
       const runs = ws.filter(w => isRun(w.art));
       const top = (arr, f, min) => arr.filter(w => f(w) != null && (!min || min(w))).sort((a, b) => f(a) - f(b))[0];
       const topMax = (arr, f) => arr.filter(w => f(w) != null).sort((a, b) => f(b) - f(a))[0];
       const recs = [];
-      const add = (k, w, v, sub) => { if (w) recs.push({ k, w, v, sub: sub || `${KINDS[w.art].name} · ${fmtDate(w.t)}` }); };
+      // seg: [Start, Dauer] eines Abschnitts innerhalb des Trainings (bei schnellsten Abschnitten)
+      const add = (k, w, v, sub, seg) => { if (w) recs.push({ k, w, v, seg, sub: sub || `${KINDS[w.art].name} · ${fmtDate(w.t)}` }); };
       [[1, "Schnellster Kilometer"], [5, "Schnellste 5 km"], [10, "Schnellste 10 km"], [21, "Schnellster Halbmarathon"]].forEach(([d, label]) => {
         const w = top(runs, x => x.best[d]);
-        if (w) add(label, w, fmtClock(w.best[d]), `${fmtPace(w.best[d] / (d === 21 ? 21.0975 : d))} · ${fmtDate(w.t)}`);
+        if (w) add(label, w, fmtClock(w.best[d]), `${fmtPace(w.best[d] / (d === 21 ? 21.0975 : d))} · ${fmtDate(w.t)}`, [w.bestFrom[d], w.best[d]]);
       });
       let w = top(runs, x => x.pace, x => x.km >= 3);
       if (w) add("Schnellster Lauf (Ø, ab 3 km)", w, fmtPace(w.pace), `${fmtNum(w.km, 1)} km · ${fmtDate(w.t)}`);
@@ -924,16 +996,197 @@
       const walks = ws.filter(x => x.art === "walk");
       w = topMax(walks, x => x.km); if (w) add("Weiteste Geh-Runde", w, `${fmtNum(w.km, 2)} km`);
       w = top(walks, x => x.pace, x => x.km >= 3); if (w) add("Schnellste Geh-Runde (Ø, ab 3 km)", w, fmtPace(w.pace), `${fmtNum(w.km, 1)} km · ${fmtDate(w.t)}`);
-      w = top(walks, x => x.best[5]); if (w) add("Schnellste 5 km gehend", w, fmtClock(w.best[5]), `${fmtPace(w.best[5] / 5)} · ${fmtDate(w.t)}`);
+      w = top(walks, x => x.best[5]); if (w) add("Schnellste 5 km gehend", w, fmtClock(w.best[5]), `${fmtPace(w.best[5] / 5)} · ${fmtDate(w.t)}`, [w.bestFrom[5], w.best[5]]);
       w = topMax(walks, x => x.dauer); if (w) add("Längste Geh-Runde", w, fmtDur(w.dauer));
       w = topMax(walks, x => x.elev); if (w) add("Meiste Höhenmeter gehend", w, `${fmtNum(w.elev)} m`);
       const cross = ws.filter(x => x.art === "cross");
       w = topMax(cross, x => x.kcal ? x.kcal / x.dauer * 60 : null); if (w) add("Intensivstes Crosstrainer-Training", w, `${fmtNum(w.kcal / w.dauer * 60, 1)} kcal/min`);
       w = topMax(ws, x => x.hrMax); if (w) add("Höchster Puls", w, `${fmtNum(w.hrMax)} bpm`);
+      return recs;
+    }
+    function renderRecords(ws) {
+      const recs = computeRecs(ws);
       document.getElementById("rec-note").textContent = `${rangeLabel(ui.range)} · Antippen öffnet das Training.`;
       const host = document.getElementById("records");
       host.innerHTML = recs.map((r, i) => `<button type="button" class="record" data-i="${i}"><span class="k">${r.k}</span><b>${r.v}</b><span class="s">${esc(r.sub)}</span></button>`).join("") || `<p class="note">Keine Trainings.</p>`;
       host.querySelectorAll(".record").forEach(b => b.addEventListener("click", () => openDetail(recs[Number(b.dataset.i)].w.idx)));
+    }
+
+    // ── Musik beim Training ──
+    const MUSIC_LS_KEY = "musik-daten";   // so speichert die Musik-Statistik (gleiche Herkunft)
+    let MUSIC = null;                      // { bands, titel, von, bis }
+    const mUi = { kind: "band", sort: "count", showAll: false };
+    const dataGetMusic = () => idbDo("readonly", st => st.get("musik"));
+    const dataSetMusic = json => idbDo("readwrite", st => st.put(json, "musik"));
+    const dataDelMusic = () => idbDo("readwrite", st => st.delete("musik"));
+    const trackName = tr => MUSIC.titel[tr][0];
+    const trackBand = tr => MUSIC.bands[MUSIC.titel[tr][1]];
+
+    // Titel, die mindestens 30 s während eines Trainings liefen, dem Training zuordnen
+    function attachMusic(json) {
+      if (!json || !Array.isArray(json.wiedergaben)) throw new Error("Keine Musikdaten");
+      const plays = json.wiedergaben.slice().sort((a, b) => a[0] - b[0]);
+      const ts = plays.map(p => p[0]);
+      MUSIC = { bands: json.bands, titel: json.titel, von: ts[0] * 1000, bis: ts[ts.length - 1] * 1000, quellen: json.quellen || {} };
+      const lower = t => { let lo = 0, hi = ts.length; while (lo < hi) { const m = (lo + hi) >> 1; if (ts[m] < t) lo = m + 1; else hi = m; } return lo; };
+      W.forEach(w => {
+        w.music = [];
+        const r = w.reihen || {}, step = DATA.schritt;
+        for (let i = lower(w.start - 1800); i < plays.length && plays[i][0] <= w.end; i += 1) {
+          const [t, tr, sec] = plays[i];
+          const a = Math.max(t, w.start), b = Math.min(t + sec, w.end);
+          if (b - a < 30) continue;
+          const off = a - w.start, dur = b - a;
+          const i0 = Math.floor(off / step), i1 = Math.min(Math.ceil((off + dur) / step), (r.hr || r.dist || []).length - 1);
+          let hr = null, pace = null;
+          if (r.hr) { const v = r.hr.slice(i0, i1 + 1).filter(Boolean); if (v.length) hr = v.reduce((x, y) => x + y, 0) / v.length; }
+          if (r.dist && i1 > i0) { const m = r.dist[i1] - r.dist[i0]; if (m > 30) { const spk = (i1 - i0) * step / (m / 1000); if (spk >= (MIN_PACE[w.art] || 0) && spk <= (MAX_PACE[w.art] || Infinity)) pace = spk; } }
+          w.music.push({ off, dur, tr, hr, pace });
+        }
+        // Bezugswert für den Tempo-Effekt: Ø Pace während aller Titel dieses Trainings
+        // (die Gesamt-Pace enthält Stehzeiten und würde jeden Titel "schneller" wirken lassen)
+        const mp = w.music.filter(m => m.pace);
+        w.musicPace = mp.length >= 2 ? mp.reduce((x, m) => x + m.pace * m.dur, 0) / mp.reduce((x, m) => x + m.dur, 0) : null;
+        const secs = w.music.reduce((x, m) => x + m.dur, 0);
+        w.musicShare = Math.min(1, secs / Math.max(1, w.dauer));
+        w.inMusicPeriod = w.t >= MUSIC.von - 864e5 && w.t <= MUSIC.bis + 864e5;
+      });
+    }
+    function useMusic(json, remember) {
+      attachMusic(json);
+      if (remember) dataSetMusic(json);
+      showMusicUi(true);
+      renderMusic(filteredW());
+      renderDetail();
+    }
+    function showMusicUi(on) {
+      document.getElementById("music-loader").classList.toggle("hidden", on);
+      document.getElementById("music-app").classList.toggle("hidden", !on);
+      document.getElementById("music-forget").classList.toggle("hidden", !on);
+    }
+    function songsDuring(w, seg) {
+      if (!w.music) return [];
+      if (!seg) return w.music;
+      const [from, len] = seg;
+      return w.music.filter(m => m.off < from + len && m.off + m.dur > from);
+    }
+    function renderMusic(ws) {
+      if (!MUSIC) {
+        document.getElementById("music-note").textContent = "Welche Musik lief bei welchem Training? Dafür werden die Hördaten aus der Musik-Statistik gebraucht.";
+        return;
+      }
+      const q = MUSIC.quellen;
+      const src = [["deezer", "Deezer"], ["apple", "Apple Music"]].filter(([k]) => q[k]).map(([k, n]) => `${n} ${q[k].von} – ${q[k].bis}`).join(" · ");
+      document.getElementById("music-note").textContent = `Musikdaten: ${src || `${fmtDate(MUSIC.von)} – ${fmtDate(MUSIC.bis)}`} · ${rangeLabel(ui.range)}`;
+      const inP = ws.filter(w => w.inMusicPeriod);
+      const withM = inP.filter(w => w.music && w.music.length);
+      const entries = withM.flatMap(w => w.music.map(m => Object.assign({ w }, m)));
+      const minutes = entries.reduce((a, m) => a + m.dur, 0);
+      const count = (key) => { const c = new Map(); entries.forEach(m => { const k = key(m); c.set(k, (c.get(k) || 0) + 1); }); return [...c.entries()].sort((a, b) => b[1] - a[1])[0]; };
+      const tb = entries.length ? count(m => MUSIC.titel[m.tr][1]) : null, tt = entries.length ? count(m => m.tr) : null;
+      const tiles = [
+        ["Trainings mit Musik", `${fmtNum(withM.length)} von ${fmtNum(inP.length)}`, inP.length ? `${fmtNum(withM.length / inP.length * 100)} % im Musik-Zeitraum` : "keine Trainings im Musik-Zeitraum"],
+        ["Titel im Training", fmtNum(entries.length), `${fmtHours(minutes)} Musik`],
+        ["Top-Band beim Training", tb ? esc(MUSIC.bands[tb[0]]) : "–", tb ? `${fmtNum(tb[1])} Titel` : ""],
+        ["Top-Titel beim Training", tt ? esc(trackName(tt[0])) : "–", tt ? `${trackBand(tt[0])} · ${fmtNum(tt[1])}×` : ""]
+      ];
+      document.getElementById("music-tiles").innerHTML = tiles.map(([k, v, s_]) =>
+        `<div class="tile"><div class="k">${k}</div><div class="v" style="font-size:18px;padding:4px 0 2px" title="${v}">${v}</div><div class="s" title="${esc(s_)}">${esc(s_)}</div></div>`).join("");
+
+      // Bestleistungen mit Musik
+      const recHost = document.getElementById("music-records");
+      // Bestleistungen unter den Trainings mit Musik
+      const recs = computeRecs(withM);
+      recHost.innerHTML = recs.map((r, i) => {
+        const songs = songsDuring(r.w, r.seg);
+        const uniq = [...new Map(songs.map(m => [m.tr, m])).values()];
+        return `<button type="button" class="record" data-i="${i}"><span class="k">${r.k}</span><b>${r.v}</b><span class="s">${esc(r.sub)}</span>
+          ${uniq.length ? `<ul class="songs">${uniq.slice(0, 4).map(m => `<li>${esc(trackBand(m.tr))} – ${esc(trackName(m.tr))}</li>`).join("")}${uniq.length > 4 ? `<li style="list-style:none">… und ${uniq.length - 4} weitere</li>` : ""}</ul>` : `<p class="numsmall" style="margin-top:6px">${r.seg ? "in diesem Abschnitt keine Musik" : "ohne Musik"}</p>`}
+        </button>`;
+      }).join("") || `<p class="note">Keine Trainings mit Musik in diesem Zeitraum.</p>`;
+      recHost.querySelectorAll(".record").forEach(b => b.addEventListener("click", () => openDetail(recs[Number(b.dataset.i)].w.idx)));
+
+      // Hitliste mit Puls-/Tempo-Effekt
+      const by = new Map();
+      entries.forEach(m => {
+        const k = mUi.kind === "band" ? MUSIC.titel[m.tr][1] : m.tr;
+        let e = by.get(k);
+        if (!e) { e = { k, tr: m.tr, n: 0, dur: 0, ws: new Set(), hrD: 0, hrW: 0, paD: 0, paW: 0, hrN: 0, paN: 0 }; by.set(k, e); }
+        e.n += 1; e.dur += m.dur; e.ws.add(m.w.idx);
+        if (m.hr && m.w.hrAvg) { e.hrD += (m.hr - m.w.hrAvg) * m.dur; e.hrW += m.dur; e.hrN += 1; }
+        if (m.pace && m.w.musicPace) { e.paD += (m.pace - m.w.musicPace) * m.dur; e.paW += m.dur; e.paN += 1; }
+      });
+      const MIN = 5;
+      let list = [...by.values()].map(e => Object.assign(e, {
+        hrE: e.hrN >= MIN ? e.hrD / e.hrW : null,
+        paE: e.paN >= MIN ? e.paD / e.paW : null
+      }));
+      if (mUi.sort === "hr") list = list.filter(e => e.hrE != null).sort((a, b) => b.hrE - a.hrE);
+      else if (mUi.sort === "pace") list = list.filter(e => e.paE != null).sort((a, b) => a.paE - b.paE);
+      else list.sort((a, b) => b.n - a.n || b.dur - a.dur);
+      const shown = mUi.showAll ? list.slice(0, 500) : list.slice(0, 15);
+      const fmtHrE = v => v == null ? "–" : `<span class="${v > 0.5 ? "down" : v < -0.5 ? "up" : ""}" title="Puls während des Titels ggü. Trainings-Ø">${v > 0 ? "+" : v < 0 ? "−" : "±"}${fmtNum(Math.abs(v), 1)} bpm</span>`;
+      const fmtPaE = v => v == null ? "–" : `<span class="${v < -1 ? "up" : v > 1 ? "down" : ""}" title="Pace während des Titels ggü. Trainings-Ø (− = schneller)">${v > 0 ? "+" : v < 0 ? "−" : "±"}${fmtClock(Math.abs(v))} /km</span>`;
+      document.getElementById("mrank-head").innerHTML = `<tr><th class="num">#</th><th>${mUi.kind === "band" ? "Band" : "Titel"}</th>
+        <th class="num">Wiedergaben</th><th class="num hide-sm">Trainings</th><th class="num hide-sm">Hörzeit</th>
+        <th class="num">Puls-Effekt</th><th class="num">Tempo-Effekt</th></tr>`;
+      document.getElementById("mrank-body").innerHTML = shown.map((e, i) => `<tr>
+          <td class="num">${i + 1}</td>
+          <td><div class="song">${esc(mUi.kind === "band" ? MUSIC.bands[e.k] : trackName(e.tr))}</div>${mUi.kind === "track" ? `<span class="numsmall">${esc(trackBand(e.tr))}</span>` : ""}</td>
+          <td class="num">${fmtNum(e.n)}</td><td class="num hide-sm">${fmtNum(e.ws.size)}</td><td class="num hide-sm">${fmtDur(e.dur)}</td>
+          <td class="num">${fmtHrE(e.hrE)}</td><td class="num">${fmtPaE(e.paE)}</td></tr>`).join("") ||
+        `<tr><td colspan="7" class="note">${entries.length ? "Zu wenige Wiedergaben für diesen Effekt (mind. 5 mit Messwerten)." : "Keine Musik bei Trainings in diesem Zeitraum."}</td></tr>`;
+      const more = document.getElementById("mrank-more");
+      more.classList.toggle("hidden", list.length <= 15);
+      more.textContent = mUi.showAll ? "Nur Top 15" : `Alle ${fmtNum(Math.min(list.length, 500))} anzeigen`;
+
+      // Mit Musik vs. ohne – pro Trainingsart, damit Crosstrainer und Gehen nicht vermischt werden
+      const kinds = [...new Set(inP.map(w => w.art))];
+      const rows = kinds.map(k => {
+        const all = inP.filter(w => w.art === k);
+        const mit = all.filter(w => w.musicShare >= 0.5), ohne = all.filter(w => !w.music || !w.music.length);
+        const st = arr => ({
+          n: arr.length,
+          dur: arr.length ? sum(arr, w => w.dauer) / arr.length : null,
+          hr: avgW(arr, w => w.hrAvg, w => w.dauer),
+          kcal: (() => { const t = sum(arr.filter(w => w.kcal), w => w.dauer); return t ? sum(arr, w => w.kcal) / (t / 60) : null; })(),
+          pace: hasDist(k) ? avgW(arr.filter(w => w.pace), w => w.pace, w => w.km) : null
+        });
+        return { k, mit: st(mit), ohne: st(ohne) };
+      }).filter(r => r.mit.n && r.ohne.n);
+      const cell = (a, b, f) => `<td class="num">${a != null ? f(a) : "–"}</td><td class="num">${b != null ? f(b) : "–"}</td>`;
+      document.getElementById("music-vs").innerHTML = rows.length ? `<table><thead><tr><th>Training</th>
+          <th class="num">Anzahl mit</th><th class="num">ohne</th><th class="num">Ø Dauer mit</th><th class="num">ohne</th>
+          <th class="num">Ø Puls mit</th><th class="num">ohne</th><th class="num">kcal/min mit</th><th class="num">ohne</th>
+          <th class="num">Ø Pace mit</th><th class="num">ohne</th></tr></thead><tbody>` +
+        rows.map(r => `<tr><td><span class="dot" style="--c:${KINDS[r.k].color}"></span>${KINDS[r.k].name}</td>
+          ${cell(r.mit.n, r.ohne.n, v => fmtNum(v))}${cell(r.mit.dur, r.ohne.dur, fmtDur)}${cell(r.mit.hr, r.ohne.hr, v => `${fmtNum(v)} bpm`)}
+          ${cell(r.mit.kcal, r.ohne.kcal, v => fmtNum(v, 1))}${cell(r.mit.pace, r.ohne.pace, v => fmtPace(v))}</tr>`).join("") +
+        `</tbody></table>` : `<p class="note">Zu wenige Trainings für einen Vergleich.</p>`;
+    }
+    // Tracklist für die Trainingsansicht (nur wenn Musikdaten für diesen Tag vorhanden sind)
+    function tracklistHtml(w) {
+      if (!MUSIC || !w.inMusicPeriod) return "";
+      if (!w.music || !w.music.length) return `<h3>Tracklist</h3><p class="note">Bei diesem Training lief laut Hördaten keine Musik.</p>`;
+      const dist = hasDist(w.art);
+      const total = w.music.reduce((a, m) => a + m.dur, 0);
+      return `<h3>Tracklist</h3>
+        <p class="note">${fmtNum(w.music.length)} Titel · ${fmtDur(total)} Musik (${fmtNum(w.musicShare * 100)} % des Trainings) · in den Diagrammen oben als helle Streifen markiert</p>
+        <div class="table-scroll"><table><thead><tr><th class="num">#</th><th class="num">ab</th><th>Titel</th><th class="hide-sm">Album</th><th class="num">gehört</th><th class="num">Ø Puls</th>${dist ? `<th class="num">Pace</th>` : ""}</tr></thead><tbody>` +
+        w.music.map((m, i) => {
+          const hrD = m.hr && w.hrAvg ? m.hr - w.hrAvg : null;
+          return `<tr><td class="num">${i + 1}</td><td class="num">${fmtClock(m.off)}</td>
+            <td><div class="song">${esc(trackName(m.tr))}</div><span class="numsmall">${esc(trackBand(m.tr))}</span></td>
+            <td class="hide-sm"><div class="song" style="max-width:220px">${esc(MUSIC.titel[m.tr][2] || "")}</div></td>
+            <td class="num">${fmtClock(m.dur)}</td>
+            <td class="num">${m.hr ? fmtNum(m.hr) : "–"}${hrD != null && Math.abs(hrD) >= 3 ? `<span class="numsmall ${hrD > 0 ? "down" : "up"}">${hrD > 0 ? "+" : "−"}${fmtNum(Math.abs(hrD))} ggü. Ø</span>` : ""}</td>
+            ${dist ? `<td class="num">${fmtPace(m.pace)}</td>` : ""}</tr>`;
+        }).join("") + `</tbody></table></div>`;
+    }
+    // Helle Streifen für die Musiktitel in den Diagrammen der Trainingsansicht
+    const songBands = w => MUSIC && w.music ? w.music.map((m, i) => ({ from: m.off, to: m.off + m.dur, color: "var(--s4)", op: i % 2 ? 0.07 : 0.14 })) : [];
+    function songAt(w, off) {
+      return w.music ? w.music.find(m => off >= m.off && off < m.off + m.dur) : null;
     }
 
     // ── Vergleich ──
@@ -1015,7 +1268,6 @@
         ["Trainingszeit gesamt", "time", fmtHours, true],
         ["Ø Dauer", "avgDur", fmtDur, true],
         ["Distanz gesamt", "km", v => `${fmtNum(v, 1)} km`, true],
-        ["Distanz Gehen", "kmWalk", v => `${fmtNum(v, 1)} km`, true],
         ["Ø Pace Laufen", "pace", v => fmtPace(v), false],
         ["Ø Pace Gehen", "paceWalk", v => fmtPace(v), false],
         ["Schnellster Kilometer laufend", "b1", fmtClock, false],
@@ -1029,7 +1281,7 @@
         ["Ø Laufleistung", "pow", v => `${fmtNum(v)} W`, true],
         ["Kalorien gesamt", "kcal", v => `${fmtNum(v)} kcal`, true],
         ["Kalorien pro Minute", "kcalMin", v => fmtNum(v, 1), true],
-        ["Höhenmeter (Laufen & Gehen)", "elev", v => `${fmtNum(v)} m`, true]
+        ["Höhenmeter (Gehen)", "elev", v => `${fmtNum(v)} m`, true]
       ].filter(([, k]) => A[k] != null || B[k] != null);
       const delta = (a, b, better) => {
         if (a == null || b == null || !a) return "";
@@ -1068,7 +1320,8 @@
       { k: "hrAvg", name: "Ø Puls", get: w => w.hrAvg, fmt: w => w.hrAvg ? fmtNum(w.hrAvg) : "–", num: true, sm: true },
       { k: "hrMax", name: "Max", get: w => w.hrMax, fmt: w => w.hrMax ? fmtNum(w.hrMax) : "–", num: true, sm: true },
       { k: "kcal", name: "kcal", get: w => w.kcal, fmt: w => w.kcal ? fmtNum(w.kcal) : "–", num: true, sm: true },
-      { k: "elev", name: "Höhe", get: w => w.elev, fmt: w => w.elev != null ? `${fmtNum(w.elev)} m` : "–", num: true, sm: true }
+      { k: "elev", name: "Höhe", get: w => w.elev, fmt: w => w.elev != null ? `${fmtNum(w.elev)} m` : "–", num: true, sm: true },
+      { k: "music", name: "♪", get: w => w.music && w.music.length ? w.music.length : null, fmt: w => w.music && w.music.length ? `<span title="${w.music.length} Titel gehört">♪ ${w.music.length}</span>` : "", num: true }
     ];
     function renderList(ws) {
       const col = COLS.find(c => c.k === ui.sort);
@@ -1158,13 +1411,18 @@
         <div class="detail-head">
           <div>
             <h2><span class="dot" style="--c:${KINDS[w.art].color}"></span>${KINDS[w.art].name} am ${WEEKDAYS_LONG[new Date(w.t).getDay()]}, ${fmtDateTime(w.t)}</h2>
-            <p class="note">${w.verdacht ? `⚠ Ausreißer: ${SUS_TEXT[w.verdacht] || SUS_TEXT.lang}. · ` : ""}${esc(w.geraet || "")}${w.pausen ? ` · ${w.pausen.filter(p => p[0] === "p").length} Pausen` : ""}</p>
+            <p class="note">${esc([
+              w.verdacht ? `⚠ Ausreißer: ${SUS_TEXT[w.verdacht] || SUS_TEXT.lang}` : "",
+              w.geraet || "",
+              w.pausen ? (n => n ? `${n} ${n === 1 ? "Pause" : "Pausen"}` : "")(w.pausen.filter(p => p[0] === "p").length) : ""
+            ].filter(Boolean).join(" · "))}</p>
           </div>
           <button type="button" class="btn" id="detail-close">Schließen</button>
         </div>
         <div class="tiles flat">${tiles.map(([k, v, s]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`).join("")}</div>
         ${r.hr ? `<h3>Herzfrequenz</h3><div class="legend">${ZONES.map(z => `<span style="--c:${z.color}">${z.name}</span>`).join("")}</div><div id="d-hr"></div>` : ""}
         ${r.dist || r.pow ? `<h3>${r.dist ? "Pace" : ""}${r.dist && r.pow ? " und " : ""}${r.pow ? "Leistung" : ""}</h3><div class="legend">${r.dist ? `<span class="line" style="--c:var(--s1)">Pace (1-Min.-Mittel)</span>` : ""}${r.pow ? `<span class="line" style="--c:var(--s2)">Leistung</span>` : ""}</div><div id="d-pace"></div>${r.pow && r.dist ? `<div id="d-pow"></div>` : ""}` : ""}
+        ${tracklistHtml(w)}
         <div class="grid-2" style="margin-top:12px">
           <div>
             ${zt ? `<h3>Zeit in Zonen</h3>
@@ -1191,9 +1449,10 @@
         const sparse = r.hr.filter(v => v != null).length < r.hr.length * 0.5;
         lineChart(document.getElementById("d-hr"), {
           series: [{ name: "Puls", color: "var(--hr)", pts, hoverBase: true, connect: sparse, dots: sparse, r: 3 }],
+          xBands: songBands(w),
           xTicks: minuteTicks, yFmt: v => fmtNum(v), width: 1000, height: 240,
           bands: ZONES.map((z, i) => ({ from: ui.maxHr * z.from, to: i < ZONES.length - 1 ? ui.maxHr * ZONES[i + 1].from : ui.maxHr * 1.1, color: z.color })),
-          tip: i => `<b>${fmtClock(pts[i][0])} min</b>${tipRow("var(--hr)", "Puls", pts[i][1] ? `${pts[i][1]} bpm` : "–")}`
+          tip: i => { const m = songAt(w, pts[i][0]); return `<b>${fmtClock(pts[i][0])} min</b>${tipRow("var(--hr)", "Puls", pts[i][1] ? `${pts[i][1]} bpm` : "–")}` + (m ? `<div class="numsmall" style="margin-top:4px">♪ ${esc(trackBand(m.tr))} – ${esc(trackName(m.tr))}</div>` : ""); }
         });
       }
       if (r.dist) {
@@ -1207,9 +1466,10 @@
         });
         lineChart(document.getElementById("d-pace"), {
           series: [{ name: "Pace", color: "var(--s1)", pts, hoverBase: true }],
-          xTicks: minuteTicks, yFmt: v => fmtPace(v, false), invert: true, pace: true, width: 1000, height: 240,
+          xTicks: minuteTicks, yFmt: v => fmtPace(v, false), invert: true, pace: true, width: 1000, height: 240, xBands: songBands(w),
           tip: i => `<b>${fmtClock(pts[i][0])} min · ${fmtNum(r.dist[i] / 1000, 2)} km</b>${tipRow("var(--s1)", "Pace", fmtPace(pts[i][1]))}` +
-            (r.hr ? tipRow("var(--hr)", "Puls", r.hr[i] ? `${r.hr[i]} bpm` : "–") : "")
+            (r.hr ? tipRow("var(--hr)", "Puls", r.hr[i] ? `${r.hr[i]} bpm` : "–") : "") +
+            (() => { const m = songAt(w, pts[i][0]); return m ? `<div class="numsmall" style="margin-top:4px">♪ ${esc(trackBand(m.tr))} – ${esc(trackName(m.tr))}</div>` : ""; })()
         });
       }
       if (r.pow) {
@@ -1258,6 +1518,7 @@
       renderTimeCharts();
       renderTrend();
       renderRecords(ws);
+      renderMusic(ws);
       renderCompare();
       renderDetail();
       renderList(ws);
@@ -1288,6 +1549,9 @@
       fillKindSeg();
       fillMetricSelect();
       fillComparePresets();
+      // Musik-Zuordnung neu berechnen, falls schon Musikdaten da sind
+      if (MUSIC_RAW) { try { attachMusic(MUSIC_RAW); } catch (e) { MUSIC = null; } }
+      showMusicUi(!!MUSIC);
       renderAll();
     }
     function readFile(file) {
@@ -1336,12 +1600,48 @@
       document.getElementById("loader").classList.remove("hidden");
     });
 
+    // Musikdaten: eigene Kopie in IndexedDB, sonst die der Musik-Statistik (localStorage, gleiche Herkunft)
+    let MUSIC_RAW = null;
+    async function loadSavedMusic() {
+      let json = await dataGetMusic();
+      if (!json) { try { json = JSON.parse(storeGet(MUSIC_LS_KEY) || "null"); } catch (e) { json = null; } }
+      if (!json) return;
+      MUSIC_RAW = json;
+      if (DATA) { try { useMusic(json, false); } catch (e) { MUSIC = null; } }
+    }
+    function readMusicFile(file) {
+      const r = new FileReader();
+      r.onload = () => {
+        try { const json = JSON.parse(r.result); MUSIC_RAW = json; useMusic(json, true); }
+        catch (e) { document.getElementById("music-note").textContent = "Diese Datei konnte nicht gelesen werden – bitte musik_daten.json aus convert_music.py verwenden."; }
+      };
+      r.readAsText(file);
+    }
+    const mdrop = document.getElementById("music-drop");
+    document.getElementById("music-file").addEventListener("change", e => { if (e.target.files[0]) readMusicFile(e.target.files[0]); });
+    ["dragenter", "dragover"].forEach(ev => mdrop.addEventListener(ev, e => { e.preventDefault(); mdrop.classList.add("is-over"); }));
+    ["dragleave", "drop"].forEach(ev => mdrop.addEventListener(ev, e => { e.preventDefault(); mdrop.classList.remove("is-over"); }));
+    mdrop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) readMusicFile(e.dataTransfer.files[0]); });
+    document.getElementById("music-forget").addEventListener("click", () => {
+      dataDelMusic();
+      MUSIC = null; MUSIC_RAW = null;
+      W.forEach(w => { delete w.music; delete w.musicShare; delete w.inMusicPeriod; });
+      showMusicUi(false);
+      renderMusic(filteredW()); renderDetail();
+    });
+    [["f-mkind", "kind"], ["f-msort", "sort"]].forEach(([id, key]) => document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener("click", () => {
+      document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle("is-on", x === b));
+      mUi[key] = b.dataset.v; mUi.showAll = false;
+      renderMusic(filteredW());
+    })));
+    document.getElementById("mrank-more").addEventListener("click", () => { mUi.showAll = !mUi.showAll; renderMusic(filteredW()); });
+
     // Beim letzten Mal geladene Daten wieder anzeigen (nur in diesem Browser gespeichert)
     storeDel(STORE_KEY); // ältere Version hat die Daten in localStorage abgelegt
     dataGet().then(saved => {
       if (!saved || DATA) return;
       try { useData(saved, false); } catch (e) { dataDel(); }
-    });
+    }).then(loadSavedMusic);
   </script>
 </body>
 </html>
