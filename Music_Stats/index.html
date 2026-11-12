@@ -200,6 +200,30 @@
     .hbar-row { display: grid; grid-template-columns: minmax(90px, 140px) 1fr auto; gap: 10px; align-items: center; }
     .hbar-row .bar { height: 10px; border-radius: 3px; background: var(--s1); min-width: 2px; }
     .hbar-row span:last-child { font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+    /* Top 3 des Tages */
+    .day-pick { display: flex; gap: 6px; align-items: center; }
+    .day-pick input[type="date"] {
+      font: inherit; font-size: 14px; color: var(--ink);
+      background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 5px 8px;
+    }
+    .day-pick .btn { padding: 6px 12px; }
+    .day-pick .btn:disabled { color: var(--muted); cursor: default; }
+    .top3 { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; }
+    .top3 li {
+      display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center;
+      padding: 10px 12px; border-radius: 10px; background: var(--page);
+    }
+    .top3 .pos {
+      width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+      font-weight: 700; background: var(--accent-wash); color: var(--s1);
+    }
+    .top3 li:first-child .pos { background: var(--s1); color: #fff; }
+    .top3 .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .top3 .a { font-size: 12px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .top3 .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .top3 .n b { font-size: 18px; }
+    .top3 .n span { display: block; font-size: 12px; color: var(--muted); }
+    .top3 > div, .top3 li > div { min-width: 0; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -317,6 +341,21 @@
         <h2>Fun Facts</h2>
         <div class="facts" id="facts"></div>
       </div>
+
+      <div class="card">
+        <div class="chart-head">
+          <div>
+            <h2>Top 3 des Tages</h2>
+            <p class="note" id="day-note"></p>
+          </div>
+          <div class="day-pick">
+            <button type="button" class="btn" id="day-prev" aria-label="Vorheriger Tag mit Musik">‹</button>
+            <input type="date" id="day-input" aria-label="Datum wählen" />
+            <button type="button" class="btn" id="day-next" aria-label="Nächster Tag mit Musik">›</button>
+          </div>
+        </div>
+        <ol class="top3" id="top3"></ol>
+      </div>
     </section>
   </div>
   <div class="tip" id="tip"></div>
@@ -338,7 +377,8 @@
       sort: "count",
       search: "",
       band: null,     // Band-Index oder null
-      showAll: false
+      showAll: false,
+      day: null       // Tagesnummer für "Top 3 des Tages" (null = letzter Hörtag)
     };
     let DATA = null;
     let PLAYS = [];   // aufbereitete Wiedergaben
@@ -760,6 +800,57 @@
       document.getElementById("facts").innerHTML = facts.map(([b, t]) => `<div class="fact"><b>${esc(b)}</b>${esc(t)}</div>`).join("");
     }
 
+    // ── Top 3 des Tages ── (gilt für Quelle, Mindestdauer und Band-Filter, nicht für den Zeitraum)
+    let dayList = [];   // sortierte Tagesnummern mit Wiedergaben
+    const dayToIso = n => new Date(n * 86400000).toISOString().slice(0, 10);
+    const isoToDay = s => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d) / 86400000; };
+    function renderTop3() {
+      const plays = basePlays();
+      dayList = [...new Set(plays.map(p => p.day))].sort((a, b) => a - b);
+      const input = document.getElementById("day-input");
+      if (!dayList.length) {
+        document.getElementById("top3").innerHTML = "";
+        document.getElementById("day-note").textContent = "Keine Wiedergaben.";
+        return;
+      }
+      if (ui.day === null) ui.day = dayList[dayList.length - 1];
+      input.min = dayToIso(dayList[0]);
+      input.max = dayToIso(dayList[dayList.length - 1]);
+      input.value = dayToIso(ui.day);
+      document.getElementById("day-prev").disabled = ui.day <= dayList[0];
+      document.getElementById("day-next").disabled = ui.day >= dayList[dayList.length - 1];
+
+      const today = plays.filter(p => p.day === ui.day);
+      const by = new Map();
+      today.forEach(p => {
+        const e = by.get(p.tr) || { tr: p.tr, n: 0, sec: 0 };
+        e.n += 1; e.sec += p.sec;
+        by.set(p.tr, e);
+      });
+      const top = [...by.values()].sort((a, b) => b.n - a.n || b.sec - a.sec).slice(0, 3);
+      const d = new Date(ui.day * 86400000 + 43200000);
+      const wd = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"][d.getDay()];
+      const total = today.reduce((a, p) => a + p.sec, 0);
+      document.getElementById("day-note").textContent = today.length
+        ? `${wd}, ${fmtDate(d)} · ${fmtNum(today.length)} Wiedergaben · ${fmtDur(total)} · ${fmtNum(by.size)} verschiedene Titel`
+        : `${wd}, ${fmtDate(d)} · an diesem Tag keine Musik gehört`;
+      document.getElementById("top3").innerHTML = top.map((e, i) => `
+        <li>
+          <span class="pos">${i + 1}</span>
+          <div>
+            <div class="t" title="${esc(trackTitle(e.tr))}">${esc(trackTitle(e.tr))}</div>
+            <div class="a">${esc(bandName(DATA.titel[e.tr][1]))}${DATA.titel[e.tr][2] ? ` · ${esc(DATA.titel[e.tr][2])}` : ""}</div>
+          </div>
+          <div class="n"><b>${fmtNum(e.n)}×</b><span>${fmtDur(e.sec)}</span></div>
+        </li>`).join("");
+    }
+    function stepDay(dir) {
+      const i = dayList.findIndex(n => (dir > 0 ? n > ui.day : n >= ui.day));
+      if (dir > 0) { if (i !== -1) ui.day = dayList[i]; }
+      else { const j = (i === -1 ? dayList.length : i) - 1; if (j >= 0) ui.day = dayList[j]; }
+      renderTop3();
+    }
+
     function renderBandChip() {
       const host = document.getElementById("band-chip");
       host.innerHTML = ui.band === null ? "" :
@@ -802,6 +893,7 @@
       renderHeatmap(plays);
       renderDevices(plays);
       renderFacts(plays);
+      renderTop3();
     }
 
     // ── Laden ──
@@ -822,6 +914,7 @@
       if (!json || !Array.isArray(json.wiedergaben) || !Array.isArray(json.titel)) throw new Error("Keine gültige Datei");
       DATA = json;
       PLAYS = prepare(json);
+      ui.day = null;
       if (!PLAYS.length) throw new Error("Leer");
       if (remember) storeSet(STORE_KEY, JSON.stringify(json));
       computeAxis();
@@ -867,6 +960,13 @@
     seg("f-gran", "gran");
     seg("f-kind", "kind");
     seg("f-sort", "sort");
+    document.getElementById("day-input").addEventListener("change", e => {
+      if (!e.target.value) return;
+      ui.day = isoToDay(e.target.value);
+      renderTop3();
+    });
+    document.getElementById("day-prev").addEventListener("click", () => stepDay(-1));
+    document.getElementById("day-next").addEventListener("click", () => stepDay(1));
     let searchTimer = null;
     document.getElementById("f-search").addEventListener("input", e => {
       clearTimeout(searchTimer);
