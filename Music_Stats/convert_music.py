@@ -73,13 +73,16 @@ def parse_deezer(path):
             t = datetime.strptime(r["Date"].strip(), "%Y-%m-%d %H:%M:%S")
         except (KeyError, ValueError):
             continue
+        sec = int(float(r.get("Listening Time") or 0))
         plays.append({
-            # Deezer liefert Ortszeit ohne Zeitzone -> als lokale Zeit dieses Rechners lesen
-            "t": int(t.timestamp()),
+            # Deezer liefert Ortszeit ohne Zeitzone -> als lokale Zeit dieses Rechners lesen.
+            # "Date" ist das ENDE der Wiedergabe; Start = Ende - Hördauer.
+            # (Offline gehörte Titel tragen alle den Zeitpunkt des späteren Abgleichs.)
+            "t": int(t.timestamp()) - sec,
             "title": r.get("Song Title", "").strip(),
             "artist": r.get("Artist", "").strip(),
             "album": r.get("Album Title", "").strip(),
-            "sec": int(float(r.get("Listening Time") or 0)),
+            "sec": sec,
             "src": "deezer",
             "dev": device_label(r.get("Platform Name"), r.get("Platform Model")),
             "id": r.get("ISRC", "").strip(),
