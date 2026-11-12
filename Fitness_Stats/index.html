@@ -99,6 +99,13 @@
     h2 { font-size: 17px; margin: 0 0 2px; }
     h3 { font-size: 14px; margin: 14px 0 4px; }
     .sub { color: var(--ink-2); margin: 0 0 20px; font-size: 14px; }
+    .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .nav-link {
+      display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+      font-size: 14px; font-weight: 600; color: var(--ink);
+      background: var(--surface); border: 1px solid var(--ring); border-radius: 999px; padding: 7px 14px;
+    }
+    .nav-link:hover { border-color: var(--s1); background: var(--accent-wash); }
     .note { color: var(--muted); font-size: 12px; margin: 4px 0 12px; }
     .card {
       background: var(--surface);
@@ -239,7 +246,10 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Meine Fitness-Statistik</h1>
+    <div class="page-head">
+      <h1>Meine Fitness-Statistik</h1>
+      <a class="nav-link" href="../Music_Stats/index.html">Musik-Statistik →</a>
+    </div>
     <p class="sub" id="subtitle">Crosstrainer- und Lauf-Trainings aus Apple Health.</p>
 
     <section id="loader">
