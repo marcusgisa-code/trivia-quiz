@@ -3,3 +3,14 @@
 worker/.wrangler/
 worker/node_modules/
 worker/.dev.vars
+
+# Persönliche Verbindungsdaten nie committen
+mobilfunk_daten*.json
+mobilfunk/*.json
+
+# Persönliche Hördaten nie committen
+Music_Stats/*.csv
+Music_Stats/*.xlsx
+Music_Stats/*.json
+Music_Stats/*.zip
+Music_Stats/Apple*/

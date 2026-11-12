@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Meine Musik-Statistik</title>
+  <style>
+    /* Seite enthält KEINE Daten: die JSON-Datei aus convert_music.py wird lokal im
+       Browser gelesen und nur dort ausgewertet (optional in localStorage gemerkt). */
+    :root {
+      color-scheme: light;
+      --page: #f9f9f7;
+      --surface: #fcfcfb;
+      --ink: #0b0b0b;
+      --ink-2: #52514e;
+      --muted: #898781;
+      --grid: #e1e0d9;
+      --axis: #c3c2b7;
+      --ring: rgba(11,11,11,0.10);
+      --s1: #2a78d6;   /* Deezer */
+      --s2: #eb6834;   /* Apple Music */
+      --seq-0: #f0efec;
+      --seq-1: #cde2fb;
+      --seq-2: #9ec5f4;
+      --seq-3: #5598e7;
+      --seq-4: #256abf;
+      --seq-5: #0d366b;
+      --accent-wash: rgba(42,120,214,0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:where(:not([data-theme="light"])) {
+        color-scheme: dark;
+        --page: #0d0d0d;
+        --surface: #1a1a19;
+        --ink: #f0efec;
+        --ink-2: #c3c2b7;
+        --muted: #898781;
+        --grid: #2c2c2a;
+        --axis: #383835;
+        --ring: rgba(255,255,255,0.10);
+        --s1: #3987e5;
+        --s2: #d95926;
+        --seq-0: #262625;
+        --seq-1: #062b57;
+        --seq-2: #104281;
+        --seq-3: #1c5cab;
+        --seq-4: #3987e5;
+        --seq-5: #86b6ef;
+        --accent-wash: rgba(57,135,229,0.14);
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f0efec;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --ring: rgba(255,255,255,0.10);
+      --s1: #3987e5;
+      --s2: #d95926;
+      --seq-0: #262625;
+      --seq-1: #062b57;
+      --seq-2: #104281;
+      --seq-3: #1c5cab;
+      --seq-4: #3987e5;
+      --seq-5: #86b6ef;
+      --accent-wash: rgba(57,135,229,0.14);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 16px 64px; }
+    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+    h2 { font-size: 17px; margin: 0 0 2px; }
+    .sub { color: var(--ink-2); margin: 0 0 20px; font-size: 14px; }
+    .note { color: var(--muted); font-size: 12px; margin: 4px 0 12px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--ring);
+      border-radius: 14px;
+      padding: 18px 18px 14px;
+      margin-bottom: 16px;
+      min-width: 0;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-2 > .card { margin-bottom: 0; }
+    .grid-2 + .card, .grid-2 + .grid-2 { margin-top: 16px; }
+    @media (max-width: 820px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* Datei laden */
+    .drop {
+      display: block;
+      border: 2px dashed var(--axis);
+      border-radius: 14px;
+      padding: 36px 20px;
+      text-align: center;
+      background: var(--surface);
+      cursor: pointer;
+    }
+    .drop.is-over { border-color: var(--s1); background: var(--accent-wash); }
+    .drop strong { display: block; font-size: 17px; margin-bottom: 6px; }
+    .drop code { font-size: 12px; background: var(--page); padding: 2px 6px; border-radius: 6px; }
+    .privacy { font-size: 13px; color: var(--ink-2); margin-top: 12px; }
+
+    /* Filter */
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .filters label { font-size: 12px; color: var(--ink-2); display: flex; flex-direction: column; gap: 3px; }
+    select, .seg button, .btn, input[type="search"] {
+      font: inherit; font-size: 14px; color: var(--ink);
+      background: var(--surface); border: 1px solid var(--ring); border-radius: 8px;
+      padding: 6px 10px;
+    }
+    .seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; }
+    .seg button { border: none; border-radius: 0; cursor: pointer; background: var(--surface); }
+    .seg button + button { border-left: 1px solid var(--ring); }
+    .seg button.is-on { background: var(--accent-wash); font-weight: 600; }
+    .seg button:disabled { color: var(--muted); cursor: default; }
+    .btn { cursor: pointer; }
+    .spacer { flex: 1; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent-wash); border: 1px solid var(--s1); color: var(--ink);
+      border-radius: 999px; padding: 5px 6px 5px 12px; font-size: 14px; font-weight: 600;
+    }
+    .chip button {
+      border: none; background: var(--surface); color: var(--ink); cursor: pointer;
+      width: 22px; height: 22px; border-radius: 50%; font-size: 14px; line-height: 1;
+    }
+
+    /* Kennzahlen */
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+    .tile .k { font-size: 12px; color: var(--ink-2); }
+    .tile .v { font-size: 26px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tile .v.text { font-size: 18px; padding: 5px 0 3px; }
+    .tile .s { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Charts */
+    .chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin: 6px 0 4px; }
+    .legend span::before {
+      content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+      margin-right: 6px; vertical-align: -1px; background: var(--c);
+    }
+    svg { display: block; width: 100%; height: auto; overflow: visible; }
+    svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+    .gridline { stroke: var(--grid); stroke-width: 1; }
+    .baseline { stroke: var(--axis); stroke-width: 1; }
+    .hit { fill: transparent; cursor: default; }
+    .bar-group:hover rect, .bar-group:hover path { filter: brightness(1.08); }
+    details { margin-top: 8px; font-size: 13px; }
+    summary { cursor: pointer; color: var(--ink-2); }
+
+    /* Tabelle */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); }
+    th { font-weight: 600; color: var(--ink-2); font-size: 12px; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .rank-bar { height: 6px; border-radius: 3px; background: var(--s1); min-width: 2px; }
+    .rank-bar-wrap { width: 120px; }
+    .link { border: none; background: none; padding: 0; font: inherit; color: var(--ink); cursor: pointer; text-align: left; }
+    .link:hover { text-decoration: underline; text-decoration-color: var(--s1); }
+    .numsmall { color: var(--muted); font-size: 11px; display: block; }
+    .table-scroll { overflow-x: auto; }
+    .rank-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 4px 0 10px; }
+    .rank-tools input[type="search"] { min-width: 0; flex: 1 1 180px; max-width: 280px; }
+    @media (max-width: 640px) { .hide-sm { display: none; } .rank-bar-wrap { width: 60px; } }
+
+    /* Tooltip */
+    .tip {
+      position: fixed; pointer-events: none; z-index: 10;
+      background: var(--surface); color: var(--ink);
+      border: 1px solid var(--ring); border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      padding: 8px 10px; font-size: 12px; min-width: 140px;
+      opacity: 0; transition: opacity 0.1s;
+    }
+    .tip.is-on { opacity: 1; }
+    .tip b { display: block; margin-bottom: 4px; }
+    .tip .row { display: flex; justify-content: space-between; gap: 12px; }
+    .tip .row i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; background: var(--c); }
+
+    .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .fact { padding: 10px 12px; border-radius: 10px; background: var(--page); font-size: 13px; }
+    .fact b { display: block; font-size: 18px; }
+    .hbars { display: grid; gap: 8px; font-size: 13px; }
+    .hbar-row { display: grid; grid-template-columns: minmax(90px, 140px) 1fr auto; gap: 10px; align-items: center; }
+    .hbar-row .bar { height: 10px; border-radius: 3px; background: var(--s1); min-width: 2px; }
+    .hbar-row span:last-child { font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Meine Musik-Statistik</h1>
+    <p class="sub" id="subtitle">Bands, Titel und Hörzeit aus Deezer und Apple Music.</p>
+
+    <section id="loader">
+      <label class="drop" id="drop">
+        <strong>Daten-Datei hier ablegen oder auswählen</strong>
+        <span><code>musik_daten.json</code> aus <code>convert_music.py</code></span>
+        <input type="file" id="file" accept=".json,application/json" hidden />
+      </label>
+      <p class="privacy">Die Datei wird nur in diesem Browser gelesen und ausgewertet – sie wird nirgendwohin hochgeladen.</p>
+    </section>
+
+    <section id="app" class="hidden">
+      <div class="filters">
+        <label>Zeitraum
+          <select id="f-range"></select>
+        </label>
+        <label>Quelle
+          <span class="seg" id="f-src">
+            <button type="button" data-v="all" class="is-on">Alle</button>
+            <button type="button" data-v="0">Deezer</button>
+            <button type="button" data-v="1">Apple Music</button>
+          </span>
+        </label>
+        <label>Zählen
+          <span class="seg" id="f-min">
+            <button type="button" data-v="30" class="is-on">ab 30 Sek.</button>
+            <button type="button" data-v="0">alles</button>
+          </span>
+        </label>
+        <label>Zeitachse
+          <span class="seg" id="f-gran">
+            <button type="button" data-v="year">pro Jahr</button>
+            <button type="button" data-v="month" class="is-on">pro Monat</button>
+            <button type="button" data-v="week">pro Woche</button>
+          </span>
+        </label>
+        <span id="band-chip"></span>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="btn-forget">Daten aus Browser entfernen</button>
+      </div>
+
+      <div class="tiles" id="tiles"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2 id="h-count">Wiedergaben</h2>
+          <div class="legend src-legend">
+            <span style="--c:var(--s1)">Deezer</span>
+            <span style="--c:var(--s2)">Apple Music</span>
+          </div>
+          <div id="c-count"></div>
+          <details><summary>Als Tabelle</summary><div class="table-scroll" id="t-count"></div></details>
+        </div>
+        <div class="card">
+          <h2 id="h-dur">Hörzeit</h2>
+          <div class="legend src-legend">
+            <span style="--c:var(--s1)">Deezer</span>
+            <span style="--c:var(--s2)">Apple Music</span>
+          </div>
+          <div id="c-dur"></div>
+          <details><summary>Als Tabelle</summary><div class="table-scroll" id="t-dur"></div></details>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="chart-head">
+          <div>
+            <h2>Hitliste</h2>
+            <p class="note" id="rank-note"></p>
+          </div>
+          <span class="seg" id="f-kind">
+            <button type="button" data-v="band" class="is-on">Bands</button>
+            <button type="button" data-v="track">Titel</button>
+            <button type="button" data-v="album">Alben</button>
+          </span>
+        </div>
+        <div class="rank-tools">
+          <input type="search" id="f-search" placeholder="Suchen …" aria-label="In der Hitliste suchen" />
+          <label style="font-size:12px;color:var(--ink-2);display:flex;gap:8px;align-items:center">Sortieren nach
+            <span class="seg" id="f-sort">
+              <button type="button" data-v="count" class="is-on">Wiedergaben</button>
+              <button type="button" data-v="dur">Hörzeit</button>
+            </span>
+          </label>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead id="rank-head"></thead>
+            <tbody id="rank-body"></tbody>
+          </table>
+        </div>
+        <button type="button" class="btn" id="btn-more" style="margin-top:10px">Alle anzeigen</button>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Wann höre ich Musik?</h2>
+          <p class="note">Wiedergaben nach Wochentag und Uhrzeit</p>
+          <div id="c-heat"></div>
+        </div>
+        <div class="card">
+          <h2>Geräte</h2>
+          <p class="note">nach Hörzeit</p>
+          <div class="hbars" id="c-dev"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>Fun Facts</h2>
+        <div class="facts" id="facts"></div>
+      </div>
+    </section>
+  </div>
+  <div class="tip" id="tip"></div>
+
+  <script>
+    const STORE_KEY = "musik-daten";
+    const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+    const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+    const SRC_LABEL = ["Deezer", "Apple Music"];
+    const SRC_COLOR = ["var(--s1)", "var(--s2)"];
+    const PAGE = 25;
+
+    const ui = {
+      range: "all",   // "all" | "y:2024" | "m:2024-05" | "w:2024-W07"
+      src: "all",     // "all" | "0" | "1"
+      min: 30,        // Mindest-Hördauer in Sekunden, damit ein Eintrag als Wiedergabe zählt
+      gran: "month",
+      kind: "band",
+      sort: "count",
+      search: "",
+      band: null,     // Band-Index oder null
+      showAll: false
+    };
+    let DATA = null;
+    let PLAYS = [];   // aufbereitete Wiedergaben
+
+    // ── Speicher (nur dieser Browser; darf fehlschlagen) ──
+    function storeGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+    function storeSet(key, val) { try { localStorage.setItem(key, val); } catch (e) { /* egal */ } }
+    function storeDel(key) { try { localStorage.removeItem(key); } catch (e) { /* egal */ } }
+
+    // ── Hilfsfunktionen ──
+    const pad = n => String(n).padStart(2, "0");
+    function monthKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
+    function isoWeek(d) {
+      const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const day = t.getUTCDay() || 7;
+      t.setUTCDate(t.getUTCDate() + 4 - day);
+      const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+      const week = Math.ceil(((t - yearStart) / 86400000 + 1) / 7);
+      return `${t.getUTCFullYear()}-W${pad(week)}`;
+    }
+    function weekMonday(key) {
+      const [y, w] = key.split("-W").map(Number);
+      const jan4 = new Date(y, 0, 4);
+      const monday = new Date(jan4);
+      monday.setDate(jan4.getDate() - ((jan4.getDay() || 7) - 1) + (w - 1) * 7);
+      return monday;
+    }
+    function monthLabel(key, long) {
+      const [y, m] = key.split("-").map(Number);
+      return long ? `${MONTHS[m - 1]} ${y}` : `${MONTHS[m - 1]} ${String(y).slice(2)}`;
+    }
+    function weekLabel(key) {
+      const mon = weekMonday(key);
+      return `KW ${Number(key.split("-W")[1])} · ${pad(mon.getDate())}.${pad(mon.getMonth() + 1)}.${String(mon.getFullYear()).slice(2)}`;
+    }
+    function rangeLabel(r) {
+      if (r === "all") return "gesamter Zeitraum";
+      const k = r.slice(2);
+      return r[0] === "y" ? k : r[0] === "m" ? monthLabel(k, true) : weekLabel(k);
+    }
+    function fmtDur(sec) {
+      sec = Math.round(sec);
+      if (sec < 60) return `${sec} s`;
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+      if (h === 0) return `${m} min`;
+      return `${fmtNum(h)} h ${pad(m)} min`;
+    }
+    const fmtHours = sec => sec >= 36000 ? `${fmtNum(sec / 3600)} h` : fmtDur(sec);
+    function fmtDate(t) {
+      const d = new Date(t);
+      return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+    }
+    function fmtNum(n, digits = 0) {
+      return n.toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const bandName = b => DATA.bands[b];
+    const trackTitle = tr => DATA.titel[tr][0];
+
+    // ── Filter ──
+    function inRange(p, range = ui.range) {
+      if (range === "all") return true;
+      const k = range.slice(2);
+      return range[0] === "y" ? p.y === Number(k) : range[0] === "m" ? p.mk === k : p.wk === k;
+    }
+    // ohne Zeitraum (für die Zeitachse) bzw. mit Zeitraum (für alles andere)
+    const basePlays = () => PLAYS.filter(p => p.sec >= ui.min && (ui.src === "all" || p.src === Number(ui.src)) && (ui.band === null || p.b === ui.band));
+    const filteredPlays = () => basePlays().filter(p => inRange(p));
+
+    // ── Tooltip ──
+    const tip = document.getElementById("tip");
+    function showTip(e, html) {
+      tip.innerHTML = html;
+      tip.classList.add("is-on");
+      const r = tip.getBoundingClientRect();
+      let x = e.clientX + 14, y = e.clientY + 14;
+      if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+      if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+      tip.style.left = `${x}px`;
+      tip.style.top = `${y}px`;
+    }
+    function hideTip() { tip.classList.remove("is-on"); }
+    function bindTip(el, html) {
+      el.addEventListener("mousemove", e => showTip(e, html));
+      el.addEventListener("mouseleave", hideTip);
+    }
+    const tipRow = (color, label, value) =>
+      `<div class="row"><span><i style="--c:${color}"></i>${label}</span><span>${value}</span></div>`;
+
+    // ── Gestapeltes Säulendiagramm (SVG) ──
+    // buckets: [{key,label,short,values:[..]}], series: [{name,color}]
+    // Obergrenze = 4 × "runder" Schritt (1, 2, 5 × 10^n), damit alle Achsenwerte glatt sind
+    function niceMax(v) {
+      if (v <= 0) return 4;
+      const raw = v / 4;
+      const p = Math.pow(10, Math.floor(Math.log10(raw)));
+      const f = raw / p;
+      const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+      return step * 4;
+    }
+    function stackedBars(host, buckets, series, fmt, onPick, activeKey) {
+      const W = 520, H = 230, L = 44, R = 6, T = 10, B = 34;
+      const max = niceMax(Math.max(1, ...buckets.map(b => b.values.reduce((a, v) => a + v, 0))));
+      const iw = W - L - R, ih = H - T - B;
+      const step = iw / Math.max(1, buckets.length);
+      const bw = Math.max(1.5, Math.min(28, step * 0.62));
+      const y = v => T + ih - (v / max) * ih;
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+      for (let i = 0; i <= 4; i += 1) {
+        const v = (max / 4) * i, yy = y(v);
+        s += `<line class="${i === 0 ? "baseline" : "gridline"}" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/>`;
+        s += `<text x="${L - 6}" y="${yy + 4}" text-anchor="end">${fmt(v, true)}</text>`;
+      }
+      const every = Math.ceil(buckets.length / 12);
+      buckets.forEach((b, i) => {
+        const cx = L + step * i + step / 2;
+        if (b.key === activeKey) s += `<rect x="${L + step * i}" y="${T}" width="${step}" height="${ih}" fill="var(--accent-wash)"/>`;
+        let acc = 0;
+        s += `<g class="bar-group">`;
+        const segs = [];
+        b.values.forEach((v, k) => { if (v > 0) segs.push([v, k]); });
+        segs.forEach(([v, k], j) => {
+          const y0 = y(acc), y1 = y(acc + v);
+          const top = j === segs.length - 1;
+          const h = Math.max(0, y0 - y1 - (j > 0 ? 2 : 0)); // 2px Spalt zwischen Segmenten
+          const yTop = y1;
+          if (top) {
+            // nur das oberste Segment bekommt runde Ecken oben
+            const r = Math.min(4, bw / 2, h);
+            s += `<path d="M${cx - bw / 2},${yTop + h} V${yTop + r} Q${cx - bw / 2},${yTop} ${cx - bw / 2 + r},${yTop} H${cx + bw / 2 - r} Q${cx + bw / 2},${yTop} ${cx + bw / 2},${yTop + r} V${yTop + h} Z" fill="${series[k].color}"/>`;
+          } else {
+            s += `<rect x="${cx - bw / 2}" y="${yTop}" width="${bw}" height="${h}" fill="${series[k].color}"/>`;
+          }
+          acc += v;
+        });
+        s += `</g>`;
+        s += `<rect class="hit" data-i="${i}" x="${L + step * i}" y="${T}" width="${step}" height="${ih}"/>`;
+        if (i % every === 0) {
+          s += `<text x="${cx}" y="${H - B + 16}" text-anchor="middle">${esc(b.short)}</text>`;
+        }
+      });
+      s += `</svg>`;
+      host.innerHTML = s;
+      host.querySelectorAll(".hit").forEach(el => {
+        const b = buckets[Number(el.dataset.i)];
+        const total = b.values.reduce((a, v) => a + v, 0);
+        const html = `<b>${esc(b.label)}</b>` +
+          series.map((se, k) => tipRow(se.color, se.name, fmt(b.values[k]))).join("") +
+          (series.length > 1 ? `<div class="row" style="margin-top:4px;border-top:1px solid var(--grid);padding-top:4px"><span>Gesamt</span><span>${fmt(total)}</span></div>` : "") +
+          (onPick ? `<div class="numsmall" style="margin-top:4px">Klicken: Zeitraum filtern</div>` : "");
+        bindTip(el, html);
+        if (onPick) { el.style.cursor = "pointer"; el.addEventListener("click", () => onPick(b.key)); }
+      });
+    }
+
+    function bucketTable(host, buckets, series, fmt) {
+      host.innerHTML = `<table><thead><tr><th>Zeitraum</th>${series.map(s => `<th class="num">${s.name}</th>`).join("")}</tr></thead><tbody>` +
+        buckets.map(b => `<tr><td>${esc(b.label)}</td>${b.values.map(v => `<td class="num">${fmt(v)}</td>`).join("")}</tr>`).join("") +
+        `</tbody></table>`;
+    }
+
+    // Lückenlose Jahre/Monate/Wochen zwischen start und end
+    function bucketKeys(gran, start, end) {
+      const keys = [];
+      if (gran === "year") {
+        for (let y = start.getFullYear(); y <= end.getFullYear(); y += 1) keys.push(String(y));
+      } else if (gran === "month") {
+        const d = new Date(start.getFullYear(), start.getMonth(), 1);
+        while (d <= end) { keys.push(monthKey(d)); d.setMonth(d.getMonth() + 1); }
+      } else {
+        const d = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        d.setDate(d.getDate() - ((d.getDay() || 7) - 1));
+        while (d <= end) { keys.push(isoWeek(d)); d.setDate(d.getDate() + 7); }
+      }
+      return keys;
+    }
+    // Beginn der Zeitachse: erster Monat mit nennenswert vielen Wiedergaben
+    // (einzelne Ausreißer, z. B. ein Eintrag Jahre vorher, sollen die Achse nicht strecken)
+    let AXIS_START = null, AXIS_END = null;
+    function computeAxis() {
+      const perMonth = new Map();
+      PLAYS.forEach(p => perMonth.set(p.mk, (perMonth.get(p.mk) || 0) + 1));
+      const months = [...perMonth.keys()].sort();
+      const first = months.find(k => perMonth.get(k) >= 20) || months[0];
+      const [y, m] = first.split("-").map(Number);
+      AXIS_START = new Date(y, m - 1, 1);
+      AXIS_END = new Date(PLAYS[PLAYS.length - 1].t);
+    }
+
+    // ── Rendern ──
+    function renderTiles(plays) {
+      const total = plays.reduce((a, p) => a + p.sec, 0);
+      const bands = new Map(), tracks = new Map();
+      plays.forEach(p => {
+        bands.set(p.b, (bands.get(p.b) || 0) + 1);
+        tracks.set(p.tr, (tracks.get(p.tr) || 0) + 1);
+      });
+      const top = m => [...m.entries()].sort((a, b) => b[1] - a[1])[0];
+      const tb = top(bands), tt = top(tracks);
+      const days = new Set(plays.map(p => p.day)).size;
+      const tiles = [
+        ["Wiedergaben", fmtNum(plays.length), days ? `an ${fmtNum(days)} Tagen` : "", false],
+        ["Hörzeit", fmtHours(total), days ? `Ø ${fmtDur(total / days)} pro Hörtag` : "", false],
+        ["Bands", fmtNum(bands.size), `${fmtNum(tracks.size)} verschiedene Titel`, false],
+        ["Top-Band", tb ? esc(bandName(tb[0])) : "–", tb ? `${fmtNum(tb[1])} Wiedergaben` : "", true],
+        ["Top-Titel", tt ? esc(trackTitle(tt[0])) : "–", tt ? `${bandName(DATA.titel[tt[0]][1])} · ${fmtNum(tt[1])}×` : "", true]
+      ];
+      if (ui.band !== null) tiles.splice(2, 2);
+      document.getElementById("tiles").innerHTML = tiles.map(([k, v, s, text]) =>
+        `<div class="tile"><div class="k">${k}</div><div class="v${text ? " text" : ""}" title="${v}">${v}</div><div class="s" title="${esc(s)}">${esc(s)}</div></div>`).join("");
+    }
+
+    function renderTimeCharts() {
+      const plays = basePlays();
+      // Ist ein Jahr (oder Monat/Woche darin) gewählt, zeigt die Zeitachse dieses Jahr im Detail
+      let start = AXIS_START, end = AXIS_END, gran = ui.gran;
+      if (ui.range !== "all" && gran !== "year") {
+        const y = Number(ui.range.slice(2, 6));
+        start = new Date(Math.max(new Date(y, 0, 1), AXIS_START));
+        end = new Date(Math.min(new Date(y, 11, 31), AXIS_END));
+      }
+      const keys = bucketKeys(gran, start, end);
+      const idx = new Map(keys.map((k, i) => [k, i]));
+      const cnt = keys.map(() => [0, 0]);
+      const dur = keys.map(() => [0, 0]);
+      plays.forEach(p => {
+        const i = idx.get(gran === "year" ? String(p.y) : gran === "month" ? p.mk : p.wk);
+        if (i === undefined) return;
+        cnt[i][p.src] += 1;
+        dur[i][p.src] += p.sec / 3600;
+      });
+      const prefix = { year: "y:", month: "m:", week: "w:" }[gran];
+      const mk = (vals, i) => {
+        const k = keys[i];
+        return {
+          key: prefix + k,
+          label: gran === "year" ? k : gran === "month" ? monthLabel(k, true) : weekLabel(k),
+          short: gran === "year" ? k : gran === "month" ? monthLabel(k) : `KW${Number(k.split("-W")[1])}`,
+          values: vals
+        };
+      };
+      // Nur Quellen zeigen, die vorkommen
+      const used = [0, 1].filter(s => plays.some(p => p.src === s));
+      const pickVals = v => used.map(s => v[s]);
+      const cb = cnt.map((v, i) => mk(pickVals(v), i)), db = dur.map((v, i) => mk(pickVals(v), i));
+      const series = used.map(s => ({ name: SRC_LABEL[s], color: SRC_COLOR[s] }));
+      document.querySelectorAll(".src-legend").forEach(l => l.classList.toggle("hidden", used.length < 2));
+      const per = { year: "pro Jahr", month: "pro Monat", week: "pro Woche" }[gran];
+      const of = ui.band !== null ? ` · ${bandName(ui.band)}` : "";
+      document.getElementById("h-count").textContent = `Wiedergaben ${per}${of}`;
+      document.getElementById("h-dur").textContent = `Hörzeit ${per}${of}`;
+      const fmtCount = v => fmtNum(v);
+      const fmtH = (v, axis) => axis ? `${fmtNum(v, v > 0 && v < 1 ? 1 : 0)} h` : fmtDur(v * 3600);
+      const pick = key => { ui.range = ui.range === key ? "all" : key; syncRange(); renderAll(); };
+      stackedBars(document.getElementById("c-count"), cb, series, fmtCount, pick, ui.range);
+      stackedBars(document.getElementById("c-dur"), db, series, fmtH, pick, ui.range);
+      bucketTable(document.getElementById("t-count"), cb, series, fmtCount);
+      bucketTable(document.getElementById("t-dur"), db, series, v => fmtDur(v * 3600));
+    }
+
+    function renderRanking(plays) {
+      const by = new Map();
+      const keyOf = ui.kind === "band" ? p => p.b
+        : ui.kind === "track" ? p => p.tr
+        : p => `${p.b}\u0001${DATA.titel[p.tr][2]}`;
+      plays.forEach(p => {
+        if (ui.kind === "album" && !DATA.titel[p.tr][2]) return;
+        const k = keyOf(p);
+        let e = by.get(k);
+        if (!e) { e = { k, p0: p, count: 0, dur: 0, first: p.t, last: p.t, tracks: new Set() }; by.set(k, e); }
+        e.count += 1;
+        e.dur += p.sec;
+        if (p.t < e.first) e.first = p.t;
+        if (p.t > e.last) e.last = p.t;
+        e.tracks.add(p.tr);
+      });
+      const name = e => ui.kind === "band" ? bandName(e.p0.b) : ui.kind === "track" ? trackTitle(e.p0.tr) : DATA.titel[e.p0.tr][2];
+      let list = [...by.values()].sort((a, b) => ui.sort === "dur" ? (b.dur - a.dur || b.count - a.count) : (b.count - a.count || b.dur - a.dur));
+      list.forEach((e, i) => { e.rank = i + 1; });
+      const total = list.length;
+      const q = ui.search.trim().toLowerCase();
+      if (q) list = list.filter(e => `${name(e)} ${bandName(e.p0.b)}`.toLowerCase().includes(q));
+      const shown = ui.showAll ? list.slice(0, 1000) : list.slice(0, PAGE);
+      const max = Math.max(1, ...list.map(e => ui.sort === "dur" ? e.dur : e.count));
+      const kindLabel = { band: "Bands", track: "Titel", album: "Alben" }[ui.kind];
+      document.getElementById("rank-note").textContent =
+        `${fmtNum(total)} ${kindLabel}${q ? ` · ${fmtNum(list.length)} passend zu „${ui.search.trim()}“` : ""} · ${rangeLabel(ui.range)}`;
+      const more = document.getElementById("btn-more");
+      more.classList.toggle("hidden", list.length <= PAGE);
+      more.textContent = ui.showAll ? `Nur Top ${PAGE}` : `Alle ${fmtNum(Math.min(list.length, 1000))} anzeigen`;
+
+      const third = ui.kind === "band" ? "Titel" : "Band";
+      document.getElementById("rank-head").innerHTML = `<tr>
+        <th class="num">#</th><th>${ui.kind === "band" ? "Band" : ui.kind === "track" ? "Titel" : "Album"}</th>
+        <th class="${ui.kind === "band" ? "num " : ""}hide-sm">${third}</th>
+        <th class="num">Wiedergaben</th><th class="num">Hörzeit</th>
+        <th class="hide-sm">Zuerst</th><th class="hide-sm">Zuletzt</th><th class="rank-bar-wrap"></th></tr>`;
+      const bandLink = b => `<button type="button" class="link band-link" data-b="${b}" title="Nur ${esc(bandName(b))} anzeigen">${esc(bandName(b))}</button>`;
+      document.getElementById("rank-body").innerHTML = shown.map(e => `
+        <tr>
+          <td class="num">${e.rank}</td>
+          <td>${ui.kind === "band" ? bandLink(e.p0.b) : esc(name(e))}
+              ${ui.kind !== "band" ? `<span class="numsmall" style="display:none" data-sm>${esc(bandName(e.p0.b))}</span>` : ""}</td>
+          <td class="${ui.kind === "band" ? "num " : ""}hide-sm">${ui.kind === "band" ? fmtNum(e.tracks.size) : bandLink(e.p0.b)}</td>
+          <td class="num">${fmtNum(e.count)}</td>
+          <td class="num">${fmtDur(e.dur)}</td>
+          <td class="hide-sm">${fmtDate(e.first)}</td>
+          <td class="hide-sm">${fmtDate(e.last)}</td>
+          <td class="rank-bar-wrap"><div class="rank-bar" style="width:${((ui.sort === "dur" ? e.dur : e.count) / max) * 100}%"></div></td>
+        </tr>`).join("") || `<tr><td colspan="8" class="note">Nichts gefunden.</td></tr>`;
+      // Auf schmalen Bildschirmen ist die Band-Spalte ausgeblendet -> Band unter dem Titel zeigen
+      if (matchMedia("(max-width: 640px)").matches) document.querySelectorAll("[data-sm]").forEach(el => { el.style.display = "block"; });
+      document.querySelectorAll(".band-link").forEach(btn => btn.addEventListener("click", () => setBand(Number(btn.dataset.b))));
+    }
+
+    function renderHeatmap(plays) {
+      const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
+      plays.forEach(p => { grid[p.wd][p.h] += 1; });
+      const max = Math.max(1, ...grid.flat());
+      const W = 520, L = 28, T = 4, cw = (W - L) / 24, ch = 22, H = T + ch * 7 + 22;
+      const steps = ["var(--seq-0)", "var(--seq-1)", "var(--seq-2)", "var(--seq-3)", "var(--seq-4)", "var(--seq-5)"];
+      const color = v => v === 0 ? steps[0] : steps[Math.min(5, 1 + Math.floor((v / max) * 4.999))];
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+      grid.forEach((row, r) => {
+        s += `<text x="${L - 6}" y="${T + r * ch + ch / 2 + 4}" text-anchor="end">${WEEKDAYS[r]}</text>`;
+        row.forEach((v, h) => {
+          s += `<rect class="cell" data-r="${r}" data-h="${h}" x="${L + h * cw + 1}" y="${T + r * ch + 1}" width="${cw - 2}" height="${ch - 2}" rx="3" fill="${color(v)}"/>`;
+        });
+      });
+      for (let h = 0; h < 24; h += 3) s += `<text x="${L + h * cw + cw / 2}" y="${H - 6}" text-anchor="middle">${h} Uhr</text>`;
+      s += `</svg>`;
+      const host = document.getElementById("c-heat");
+      host.innerHTML = s + `<div class="legend" style="margin-top:6px"><span style="--c:var(--seq-1)">wenige</span><span style="--c:var(--seq-3)">mittel</span><span style="--c:var(--seq-5)">viele Wiedergaben</span></div>`;
+      host.querySelectorAll(".cell").forEach(el => {
+        const r = Number(el.dataset.r), h = Number(el.dataset.h);
+        bindTip(el, `<b>${WEEKDAYS[r]}, ${h}–${h + 1} Uhr</b>${fmtNum(grid[r][h])} Wiedergaben`);
+      });
+    }
+
+    function renderDevices(plays) {
+      const by = new Map();
+      plays.forEach(p => {
+        const e = by.get(p.dev) || { dur: 0, count: 0 };
+        e.dur += p.sec; e.count += 1;
+        by.set(p.dev, e);
+      });
+      const list = [...by.entries()].sort((a, b) => b[1].dur - a[1].dur);
+      const total = list.reduce((a, [, e]) => a + e.dur, 0) || 1;
+      const max = Math.max(1, ...list.map(([, e]) => e.dur));
+      const host = document.getElementById("c-dev");
+      host.innerHTML = list.map(([d, e]) => `
+        <div class="hbar-row" data-d="${d}">
+          <span>${esc(DATA.geraete[d])}</span>
+          <div><div class="bar" style="width:${(e.dur / max) * 100}%"></div></div>
+          <span>${fmtNum((e.dur / total) * 100)} %</span>
+        </div>`).join("") || `<p class="note">Keine Daten.</p>`;
+      host.querySelectorAll(".hbar-row").forEach(row => {
+        const e = by.get(Number(row.dataset.d));
+        bindTip(row, `<b>${esc(DATA.geraete[row.dataset.d])}</b>${fmtDur(e.dur)} · ${fmtNum(e.count)} Wiedergaben`);
+      });
+    }
+
+    function renderFacts(plays) {
+      const facts = [];
+      if (!plays.length) { document.getElementById("facts").innerHTML = `<p class="note">Keine Wiedergaben in diesem Zeitraum.</p>`; return; }
+      // Tag mit den meisten Wiedergaben
+      const byDay = new Map();
+      plays.forEach(p => { const e = byDay.get(p.day) || { n: 0, sec: 0, t: p.t }; e.n += 1; e.sec += p.sec; byDay.set(p.day, e); });
+      const topDay = [...byDay.values()].sort((a, b) => b.sec - a.sec)[0];
+      const what = ui.band === null ? "Musik" : bandName(ui.band);
+      facts.push([fmtDur(topDay.sec), `${what} an einem Tag – am ${fmtDate(topDay.t)} (${fmtNum(topDay.n)} Titel)`]);
+      // Längste Serie an Tagen in Folge
+      const days = [...byDay.keys()].sort((a, b) => a - b);
+      let best = 1, run = 1, bestEnd = days[0];
+      for (let i = 1; i < days.length; i += 1) {
+        run = days[i] - days[i - 1] === 1 ? run + 1 : 1;
+        if (run > best) { best = run; bestEnd = days[i]; }
+      }
+      if (days.length > 1) facts.push([`${fmtNum(best)} Tage`, `am Stück ${what} gehört (bis ${fmtDate(bestEnd * 86400000 + 43200000)})`]);
+      // Ein Titel in Dauerschleife
+      const loop = new Map();
+      plays.forEach(p => { const k = `${p.day}|${p.tr}`; loop.set(k, (loop.get(k) || 0) + 1); });
+      const [lk, ln] = [...loop.entries()].sort((a, b) => b[1] - a[1])[0];
+      if (ln > 2) {
+        const [d, tr] = lk.split("|").map(Number);
+        facts.push([`${ln}×`, `„${trackTitle(tr)}“ von ${bandName(DATA.titel[tr][1])} an einem Tag (${fmtDate(d * 86400000 + 43200000)})`]);
+      }
+      // Neu entdeckte Bands im Zeitraum
+      if (ui.range !== "all" && ui.band === null) {
+        const firstSeen = new Map();
+        basePlays().forEach(p => { if (!firstSeen.has(p.b)) firstSeen.set(p.b, p); });
+        const fresh = [...firstSeen.values()].filter(p => inRange(p));
+        if (fresh.length) {
+          const cnt = new Map(); plays.forEach(p => cnt.set(p.b, (cnt.get(p.b) || 0) + 1));
+          const topFresh = fresh.sort((a, b) => cnt.get(b.b) - cnt.get(a.b)).slice(0, 3).map(p => bandName(p.b));
+          facts.push([`${fmtNum(fresh.length)} neue Bands`, `zum ersten Mal gehört, z. B. ${topFresh.join(", ")}`]);
+        }
+      }
+      // Abgebrochen / übersprungen
+      const all = PLAYS.filter(p => (ui.src === "all" || p.src === Number(ui.src)) && (ui.band === null || p.b === ui.band) && inRange(p));
+      const skipped = all.filter(p => p.sec < 30).length;
+      if (all.length && ui.min > 0) facts.push([`${fmtNum((skipped / all.length) * 100)} %`, `der gestarteten Titel nach weniger als 30 Sek. abgebrochen (${fmtNum(skipped)}×)`]);
+      // Treueste Band: über die meisten Monate gehört
+      if (ui.band === null) {
+        const months = new Map();
+        plays.forEach(p => { if (!months.has(p.b)) months.set(p.b, new Set()); months.get(p.b).add(p.mk); });
+        const [fb, fm] = [...months.entries()].sort((a, b) => b[1].size - a[1].size)[0];
+        if (fm.size > 2) facts.push([bandName(fb), `ist am treuesten: in ${fmtNum(fm.size)} verschiedenen Monaten gehört`]);
+      } else {
+        const tracks = new Set(plays.map(p => p.tr)).size;
+        facts.push([`${fmtNum(tracks)} Titel`, `von ${bandName(ui.band)} gehört`]);
+        facts.push([fmtDate(plays[0].t), `zum ersten Mal ${rangeLabel(ui.range) === "gesamter Zeitraum" ? "" : "in diesem Zeitraum "}gehört: „${trackTitle(plays[0].tr)}“`]);
+      }
+      // Nachteule / Frühaufsteher
+      const night = plays.filter(p => p.h >= 22 || p.h < 5).length;
+      facts.push([`${fmtNum((night / plays.length) * 100)} %`, "nach 22 Uhr oder vor 5 Uhr"]);
+      const weekend = plays.filter(p => p.wd >= 5).length;
+      facts.push([`${fmtNum((weekend / plays.length) * 100)} %`, "am Wochenende"]);
+      document.getElementById("facts").innerHTML = facts.map(([b, t]) => `<div class="fact"><b>${esc(b)}</b>${esc(t)}</div>`).join("");
+    }
+
+    function renderBandChip() {
+      const host = document.getElementById("band-chip");
+      host.innerHTML = ui.band === null ? "" :
+        `<span class="chip">${esc(bandName(ui.band))}<button type="button" id="band-clear" aria-label="Band-Filter aufheben">×</button></span>`;
+      if (ui.band !== null) document.getElementById("band-clear").addEventListener("click", () => setBand(null));
+      // In der Band-Ansicht ist "Bands" als Hitliste sinnlos
+      const bandBtn = document.querySelector('#f-kind button[data-v="band"]');
+      bandBtn.disabled = ui.band !== null;
+      if (ui.band !== null && ui.kind === "band") setSeg("f-kind", "kind", "track");
+    }
+
+    function setBand(b) {
+      ui.band = b;
+      ui.showAll = false;
+      if (b === null && ui.kind !== "band") setSeg("f-kind", "kind", "band");
+      renderAll();
+      if (b !== null) window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function fillRangeSelect() {
+      const sel = document.getElementById("f-range");
+      const years = bucketKeys("year", AXIS_START, AXIS_END).reverse();
+      const months = bucketKeys("month", AXIS_START, AXIS_END).reverse();
+      const weeks = bucketKeys("week", AXIS_START, AXIS_END).reverse();
+      sel.innerHTML = `<option value="all">Gesamter Zeitraum</option>` +
+        `<optgroup label="Jahr">${years.map(k => `<option value="y:${k}">${k}</option>`).join("")}</optgroup>` +
+        `<optgroup label="Monat">${months.map(k => `<option value="m:${k}">${monthLabel(k, true)}</option>`).join("")}</optgroup>` +
+        `<optgroup label="Woche">${weeks.map(k => `<option value="w:${k}">${weekLabel(k)}</option>`).join("")}</optgroup>`;
+      syncRange();
+    }
+    function syncRange() { document.getElementById("f-range").value = ui.range; }
+
+    function renderAll() {
+      hideTip();
+      renderBandChip();
+      const plays = filteredPlays();
+      renderTiles(plays);
+      renderTimeCharts();
+      renderRanking(plays);
+      renderHeatmap(plays);
+      renderDevices(plays);
+      renderFacts(plays);
+    }
+
+    // ── Laden ──
+    function prepare(json) {
+      return json.wiedergaben.map(([t, tr, sec, src, dev]) => {
+        const d = new Date(t * 1000);
+        return {
+          t: t * 1000, tr, sec, src, dev,
+          b: json.titel[tr][1],
+          y: d.getFullYear(), mk: monthKey(d), wk: isoWeek(d),
+          wd: (d.getDay() + 6) % 7, h: d.getHours(),
+          // laufende Tagesnummer (Ortszeit) für Serien und Tagesrekorde
+          day: Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000)
+        };
+      }).sort((a, b) => a.t - b.t);
+    }
+    function useData(json, remember) {
+      if (!json || !Array.isArray(json.wiedergaben) || !Array.isArray(json.titel)) throw new Error("Keine gültige Datei");
+      DATA = json;
+      PLAYS = prepare(json);
+      if (!PLAYS.length) throw new Error("Leer");
+      if (remember) storeSet(STORE_KEY, JSON.stringify(json));
+      computeAxis();
+      const q = json.quellen || {};
+      const srcText = [["deezer", "Deezer"], ["apple", "Apple Music"]].filter(([k]) => q[k])
+        .map(([k, n]) => `${n} ${q[k].von} – ${q[k].bis}`).join(" · ");
+      document.getElementById("subtitle").textContent = `Bands, Titel und Hörzeit. ${srcText}`;
+      // Quellen-Umschalter nur zeigen, wenn es mehr als eine Quelle gibt
+      document.getElementById("f-src").closest("label").classList.toggle("hidden", Object.keys(q).length < 2);
+      document.getElementById("loader").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      fillRangeSelect();
+      renderAll();
+    }
+    function readFile(file) {
+      const r = new FileReader();
+      r.onload = () => {
+        try { useData(JSON.parse(r.result), true); }
+        catch (e) { document.querySelector(".privacy").textContent = "Diese Datei konnte nicht gelesen werden – bitte musik_daten.json aus convert_music.py verwenden."; }
+      };
+      r.readAsText(file);
+    }
+    const drop = document.getElementById("drop");
+    document.getElementById("file").addEventListener("change", e => { if (e.target.files[0]) readFile(e.target.files[0]); });
+    ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("is-over"); }));
+    ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("is-over"); }));
+    drop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+
+    document.getElementById("f-range").addEventListener("change", e => { ui.range = e.target.value; ui.showAll = false; renderAll(); });
+    function setSeg(id, key, v) {
+      document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle("is-on", x.dataset.v === v));
+      ui[key] = key === "min" ? Number(v) : v;
+    }
+    function seg(id, key) {
+      document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener("click", () => {
+        setSeg(id, key, b.dataset.v);
+        ui.showAll = false;
+        renderAll();
+      }));
+    }
+    seg("f-src", "src");
+    seg("f-min", "min");
+    seg("f-gran", "gran");
+    seg("f-kind", "kind");
+    seg("f-sort", "sort");
+    let searchTimer = null;
+    document.getElementById("f-search").addEventListener("input", e => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { ui.search = e.target.value; renderRanking(filteredPlays()); }, 150);
+    });
+    document.getElementById("btn-more").addEventListener("click", () => { ui.showAll = !ui.showAll; renderRanking(filteredPlays()); });
+    document.getElementById("btn-forget").addEventListener("click", () => {
+      storeDel(STORE_KEY);
+      DATA = null; PLAYS = [];
+      document.getElementById("app").classList.add("hidden");
+      document.getElementById("loader").classList.remove("hidden");
+    });
+
+    // Beim letzten Mal geladene Daten wieder anzeigen (nur in diesem Browser gespeichert)
+    try {
+      const saved = storeGet(STORE_KEY);
+      if (saved) useData(JSON.parse(saved), false);
+    } catch (e) { storeDel(STORE_KEY); }
+  </script>
+</body>
+</html>
