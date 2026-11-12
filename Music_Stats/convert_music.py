@@ -180,6 +180,17 @@ def main():
             p["artist"] = known.get((p["title"].lower(), p["album"].lower())) \
                 or known.get((p["title"].lower(), "")) or "Unbekannt"
 
+    # Vereinzelte Ausreißer ganz am Anfang entfernen (Deezer enthält z. B. einen einzelnen
+    # Eintrag fast 5 Jahre vor allen anderen): höchstens 5 Einträge, danach > 180 Tage Pause
+    plays.sort(key=lambda p: p["t"])
+    for i in range(min(5, len(plays) - 1)):
+        if plays[i + 1]["t"] - plays[i]["t"] > 180 * 86400:
+            for p in plays[:i + 1]:
+                print(f"Ausreißer entfernt: {datetime.fromtimestamp(p['t']):%d.%m.%Y} "
+                      f"{p['artist']} – {p['title']} ({p['src']})")
+            plays = plays[i + 1:]
+            break
+
     # Doppelte Einträge (gleicher Zeitpunkt, gleicher Titel) entfernen
     seen, unique = set(), []
     for p in sorted(plays, key=lambda p: p["t"]):
