@@ -14,3 +14,10 @@ Music_Stats/*.xlsx
 Music_Stats/*.json
 Music_Stats/*.zip
 Music_Stats/Apple*/
+
+# Gesundheitsdaten nie committen
+Fitness_Stats/*.json
+Fitness_Stats/*.zip
+Fitness_Stats/*.xml
+Fitness_Stats/apple_health_export/
+Fitness_Stats/*export*/

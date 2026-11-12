@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Meine Fitness-Statistik</title>
+  <style>
+    /* Seite enthält KEINE Daten: die JSON-Datei aus convert_fitness.py wird lokal im
+       Browser gelesen und nur dort ausgewertet (optional in localStorage gemerkt). */
+    :root {
+      color-scheme: light;
+      --page: #f9f9f7;
+      --surface: #fcfcfb;
+      --ink: #0b0b0b;
+      --ink-2: #52514e;
+      --muted: #898781;
+      --grid: #e1e0d9;
+      --axis: #c3c2b7;
+      --ring: rgba(11,11,11,0.10);
+      --s1: #2a78d6;   /* Laufen outdoor */
+      --s2: #eb6834;   /* Laufen indoor */
+      --s3: #1baf7a;   /* Crosstrainer */
+      --s4: #8a5cd1;   /* Gehen */
+      --hr: #d63c4f;   /* Herzfrequenz */
+      --good: #1a8a5c;
+      --bad: #c2412d;
+      --seq-0: #f0efec;
+      --seq-1: #cde2fb;
+      --seq-2: #9ec5f4;
+      --seq-3: #5598e7;
+      --seq-4: #256abf;
+      --seq-5: #0d366b;
+      --accent-wash: rgba(42,120,214,0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:where(:not([data-theme="light"])) {
+        color-scheme: dark;
+        --page: #0d0d0d;
+        --surface: #1a1a19;
+        --ink: #f0efec;
+        --ink-2: #c3c2b7;
+        --muted: #898781;
+        --grid: #2c2c2a;
+        --axis: #383835;
+        --ring: rgba(255,255,255,0.10);
+        --s1: #3987e5;
+        --s2: #d95926;
+        --s3: #199e70;
+        --s4: #9b72e0;
+        --hr: #e8566a;
+        --good: #3cbf86;
+        --bad: #ef6a55;
+        --seq-0: #262625;
+        --seq-1: #062b57;
+        --seq-2: #104281;
+        --seq-3: #1c5cab;
+        --seq-4: #3987e5;
+        --seq-5: #86b6ef;
+        --accent-wash: rgba(57,135,229,0.14);
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f0efec;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --ring: rgba(255,255,255,0.10);
+      --s1: #3987e5;
+      --s2: #d95926;
+      --s3: #199e70;
+      --s4: #9b72e0;
+      --hr: #e8566a;
+      --good: #3cbf86;
+      --bad: #ef6a55;
+      --seq-0: #262625;
+      --seq-1: #062b57;
+      --seq-2: #104281;
+      --seq-3: #1c5cab;
+      --seq-4: #3987e5;
+      --seq-5: #86b6ef;
+      --accent-wash: rgba(57,135,229,0.14);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 16px 64px; }
+    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+    h2 { font-size: 17px; margin: 0 0 2px; }
+    h3 { font-size: 14px; margin: 14px 0 4px; }
+    .sub { color: var(--ink-2); margin: 0 0 20px; font-size: 14px; }
+    .note { color: var(--muted); font-size: 12px; margin: 4px 0 12px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--ring);
+      border-radius: 14px;
+      padding: 18px 18px 14px;
+      margin-bottom: 16px;
+      min-width: 0;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-2 > .card { margin-bottom: 0; }
+    @media (max-width: 820px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* Datei laden */
+    .drop {
+      display: block;
+      border: 2px dashed var(--axis);
+      border-radius: 14px;
+      padding: 36px 20px;
+      text-align: center;
+      background: var(--surface);
+      cursor: pointer;
+    }
+    .drop.is-over { border-color: var(--s1); background: var(--accent-wash); }
+    .drop strong { display: block; font-size: 17px; margin-bottom: 6px; }
+    .drop code { font-size: 12px; background: var(--page); padding: 2px 6px; border-radius: 6px; }
+    .privacy { font-size: 13px; color: var(--ink-2); margin-top: 12px; }
+
+    /* Filter */
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .filters label, .field { font-size: 12px; color: var(--ink-2); display: flex; flex-direction: column; gap: 3px; }
+    select, .seg button, .btn, input[type="date"], input[type="number"] {
+      font: inherit; font-size: 14px; color: var(--ink);
+      background: var(--surface); border: 1px solid var(--ring); border-radius: 8px;
+      padding: 6px 10px;
+    }
+    input[type="number"] { width: 84px; }
+    .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; }
+    .seg button { border: none; border-radius: 0; cursor: pointer; background: var(--surface); }
+    .seg button + button { border-left: 1px solid var(--ring); }
+    .seg button.is-on { background: var(--accent-wash); font-weight: 600; }
+    .btn { cursor: pointer; }
+    .spacer { flex: 1; }
+
+    /* Kennzahlen */
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+    .tiles.flat .tile { background: var(--page); border-color: transparent; }
+    .tile .k { font-size: 12px; color: var(--ink-2); }
+    .tile .v { font-size: 24px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tile .s { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Charts */
+    .chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin: 6px 0 4px; }
+    .legend span::before {
+      content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+      margin-right: 6px; vertical-align: -1px; background: var(--c);
+    }
+    .legend span.line::before { height: 3px; border-radius: 2px; vertical-align: 3px; }
+    svg { display: block; width: 100%; height: auto; overflow: visible; }
+    svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+    .gridline { stroke: var(--grid); stroke-width: 1; }
+    .baseline { stroke: var(--axis); stroke-width: 1; }
+    .hit { fill: transparent; cursor: default; }
+    .bar-group:hover rect, .bar-group:hover path { filter: brightness(1.08); }
+    .crosshair { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; }
+    details { margin-top: 8px; font-size: 13px; }
+    summary { cursor: pointer; color: var(--ink-2); }
+
+    /* Tabellen */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); }
+    th { font-weight: 600; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover, th.is-sorted { color: var(--ink); }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    tr.click { cursor: pointer; }
+    tr.click:hover td { background: var(--accent-wash); }
+    tr.is-sel td { background: var(--accent-wash); font-weight: 600; }
+    .table-scroll { overflow-x: auto; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 6px; }
+    .up { color: var(--good); }
+    .down { color: var(--bad); }
+    .numsmall { color: var(--muted); font-size: 11px; display: block; }
+    @media (max-width: 640px) { .hide-sm { display: none; } }
+
+    /* Bestleistungen */
+    .records { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+    .record {
+      text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+      padding: 10px 12px; border-radius: 10px; background: var(--page); border: 1px solid transparent;
+    }
+    .record:hover { border-color: var(--s1); }
+    .record .k { font-size: 12px; color: var(--ink-2); }
+    .record b { display: block; font-size: 18px; margin: 2px 0; }
+    .record .s { font-size: 12px; color: var(--muted); }
+
+    /* Vergleich */
+    .cmp-periods { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0 14px; }
+    .cmp-box { background: var(--page); border-radius: 10px; padding: 10px 12px; border-top: 4px solid var(--c); }
+    .cmp-box .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .cmp-box b { display: block; font-size: 13px; margin-bottom: 6px; }
+    @media (max-width: 640px) { .cmp-periods { grid-template-columns: 1fr; } }
+    .zbar { display: flex; height: 14px; gap: 2px; }
+    .zbar div { border-radius: 3px; min-width: 0; }
+
+    /* Detail */
+    #detail { scroll-margin-top: 12px; }
+    .detail-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+    .route-wrap { background: var(--page); border-radius: 10px; padding: 8px; max-width: 380px; }
+
+    /* Tooltip */
+    .tip {
+      position: fixed; pointer-events: none; z-index: 10;
+      background: var(--surface); color: var(--ink);
+      border: 1px solid var(--ring); border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      padding: 8px 10px; font-size: 12px; min-width: 140px;
+      opacity: 0; transition: opacity 0.1s;
+    }
+    .tip.is-on { opacity: 1; }
+    .tip b { display: block; margin-bottom: 4px; }
+    .tip .row { display: flex; justify-content: space-between; gap: 12px; }
+    .tip .row i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; background: var(--c); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Meine Fitness-Statistik</h1>
+    <p class="sub" id="subtitle">Crosstrainer- und Lauf-Trainings aus Apple Health.</p>
+
+    <section id="loader">
+      <label class="drop" id="drop">
+        <strong>Daten-Datei hier ablegen oder auswählen</strong>
+        <span><code>fitness_daten.json</code> aus <code>convert_fitness.py</code></span>
+        <input type="file" id="file" accept=".json,application/json" hidden />
+      </label>
+      <p class="privacy">Die Datei wird nur in diesem Browser gelesen und ausgewertet – sie wird nirgendwohin hochgeladen.</p>
+    </section>
+
+    <section id="app" class="hidden">
+      <div class="filters">
+        <label>Zeitraum
+          <select id="f-range"></select>
+        </label>
+        <label>Training
+          <span class="seg" id="f-kind"></span>
+        </label>
+        <label>Zeitachse
+          <span class="seg" id="f-gran">
+            <button type="button" data-v="year">pro Jahr</button>
+            <button type="button" data-v="month" class="is-on">pro Monat</button>
+            <button type="button" data-v="week">pro Woche</button>
+          </span>
+        </label>
+        <label title="Grundlage der Herzfrequenz-Zonen">Max. Puls
+          <input type="number" id="f-maxhr" min="120" max="230" step="1" />
+        </label>
+        <label id="sus-wrap" class="hidden" title="Trainings über 3 Stunden (vermutlich nicht beendet) und Geh-Trainings schneller als 7 min/km (vermutlich im Fahrzeug)">Ausreißer
+          <span class="seg" id="f-sus">
+            <button type="button" data-v="hide" class="is-on">ausblenden</button>
+            <button type="button" data-v="show">zeigen</button>
+          </span>
+        </label>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="btn-forget">Daten aus Browser entfernen</button>
+      </div>
+
+      <div class="tiles" id="tiles"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2 id="h-time">Trainingszeit</h2>
+          <div class="legend kind-legend"></div>
+          <div id="c-time"></div>
+          <details><summary>Als Tabelle</summary><div class="table-scroll" id="t-time"></div></details>
+        </div>
+        <div class="card">
+          <h2 id="h-dist">Distanz</h2>
+          <div class="legend kind-legend run-only"></div>
+          <div id="c-dist"></div>
+          <details><summary>Als Tabelle</summary><div class="table-scroll" id="t-dist"></div></details>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-head">
+          <div>
+            <h2>Entwicklung</h2>
+            <p class="note" id="trend-note">Jeder Punkt ist ein Training, die Linie der gleitende Durchschnitt über 5 Trainings.</p>
+          </div>
+          <label class="field">Kennzahl
+            <select id="f-metric"></select>
+          </label>
+        </div>
+        <div class="legend" id="trend-legend"></div>
+        <div id="c-trend"></div>
+      </div>
+
+      <div class="card">
+        <h2>Bestleistungen</h2>
+        <p class="note" id="rec-note">Antippen öffnet das Training.</p>
+        <div class="records" id="records"></div>
+      </div>
+
+      <div class="card" id="cmp-card">
+        <h2>Vergleich zweier Zeiträume</h2>
+        <p class="note">Es gilt die Auswahl „Training“ oben. Grün = besser, Rot = schlechter.</p>
+        <div class="cmp-periods">
+          <div class="cmp-box" style="--c:var(--s3)">
+            <b>Zeitraum A</b>
+            <div class="row">
+              <label class="field">Schnellwahl<select id="cmp-a-pre"></select></label>
+              <label class="field">von<input type="date" id="cmp-a-from" /></label>
+              <label class="field">bis<input type="date" id="cmp-a-to" /></label>
+            </div>
+          </div>
+          <div class="cmp-box" style="--c:var(--s1)">
+            <b>Zeitraum B</b>
+            <div class="row">
+              <label class="field">Schnellwahl<select id="cmp-b-pre"></select></label>
+              <label class="field">von<input type="date" id="cmp-b-from" /></label>
+              <label class="field">bis<input type="date" id="cmp-b-to" /></label>
+            </div>
+          </div>
+        </div>
+        <div class="table-scroll" id="cmp-table"></div>
+        <h3>Zeit in Herzfrequenz-Zonen</h3>
+        <div class="legend" id="zone-legend"></div>
+        <div id="cmp-zones"></div>
+      </div>
+
+      <div class="card hidden" id="detail"></div>
+
+      <div class="card">
+        <div class="chart-head">
+          <div>
+            <h2>Alle Trainings</h2>
+            <p class="note" id="list-note"></p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead id="list-head"></thead>
+            <tbody id="list-body"></tbody>
+          </table>
+        </div>
+        <button type="button" class="btn" id="btn-more" style="margin-top:10px">Alle anzeigen</button>
+      </div>
+    </section>
+  </div>
+  <div class="tip" id="tip"></div>
+
+  <script>
+    const STORE_KEY = "fitness-daten";
+    const MAXHR_KEY = "fitness-maxpuls";
+    const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+    const WEEKDAYS_LONG = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+    const KINDS = {
+      cross: { name: "Crosstrainer", color: "var(--s3)" },
+      run_out: { name: "Laufen outdoor", color: "var(--s1)" },
+      run_in: { name: "Laufen indoor", color: "var(--s2)" },
+      walk: { name: "Gehen", color: "var(--s4)" }
+    };
+    const isRun = k => k === "run_out" || k === "run_in";
+    const SUS_TEXT = { lang: "über 3 Stunden, vermutlich nicht beendet", fahrzeug: "zu schnell zum Gehen, vermutlich im Fahrzeug" };
+    const hasDist = k => isRun(k) || k === "walk";   // Trainings mit verlässlicher Distanz
+    // Herzfrequenz-Zonen in % der maximalen Herzfrequenz
+    const ZONES = [
+      { name: "Zone 1 · locker", from: 0.5, color: "var(--seq-1)" },
+      { name: "Zone 2 · Grundlage", from: 0.6, color: "var(--seq-2)" },
+      { name: "Zone 3 · aerob", from: 0.7, color: "var(--seq-3)" },
+      { name: "Zone 4 · Schwelle", from: 0.8, color: "var(--seq-4)" },
+      { name: "Zone 5 · maximal", from: 0.9, color: "var(--seq-5)" }
+    ];
+    const PAGE = 20;
+
+    const ui = {
+      range: "all",
+      kind: "all",
+      gran: "month",
+      metric: "pace",
+      sort: "start",
+      sortDir: -1,
+      showAll: false,
+      sel: null,       // Index des geöffneten Trainings
+      maxHr: null,
+      hideSus: true,   // Trainings über 3 h (vermutlich nicht beendet) ausblenden
+      cmp: { a: [null, null], b: [null, null] }
+    };
+    let DATA = null;
+    let W = [];       // aufbereitete Trainings
+
+    // ── Speicher (nur dieser Browser; darf fehlschlagen) ──
+    function storeGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+    function storeSet(key, val) { try { localStorage.setItem(key, val); } catch (e) { /* egal */ } }
+    function storeDel(key) { try { localStorage.removeItem(key); } catch (e) { /* egal */ } }
+    // Die Trainingsdaten sind zu groß für localStorage (~5 MB) -> IndexedDB, ebenfalls nur in diesem Browser
+    function idbOpen() {
+      return new Promise((res, rej) => {
+        try {
+          const r = indexedDB.open("fitness-statistik", 1);
+          r.onupgradeneeded = () => r.result.createObjectStore("daten");
+          r.onsuccess = () => res(r.result);
+          r.onerror = () => rej(r.error);
+        } catch (e) { rej(e); }
+      });
+    }
+    async function idbDo(mode, fn) {
+      try {
+        const db = await idbOpen();
+        return await new Promise((res, rej) => {
+          const q = fn(db.transaction("daten", mode).objectStore("daten"));
+          q.onsuccess = () => res(q.result);
+          q.onerror = () => rej(q.error);
+        });
+      } catch (e) { return null; }
+    }
+    const dataGet = () => idbDo("readonly", st => st.get("aktuell"));
+    const dataSet = json => idbDo("readwrite", st => st.put(json, "aktuell"));
+    const dataDel = () => idbDo("readwrite", st => st.delete("aktuell"));
+
+    // ── Hilfsfunktionen ──
+    const pad = n => String(n).padStart(2, "0");
+    function monthKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
+    function isoWeek(d) {
+      const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const day = t.getUTCDay() || 7;
+      t.setUTCDate(t.getUTCDate() + 4 - day);
+      const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+      const week = Math.ceil(((t - yearStart) / 86400000 + 1) / 7);
+      return `${t.getUTCFullYear()}-W${pad(week)}`;
+    }
+    function weekMonday(key) {
+      const [y, w] = key.split("-W").map(Number);
+      const jan4 = new Date(y, 0, 4);
+      const monday = new Date(jan4);
+      monday.setDate(jan4.getDate() - ((jan4.getDay() || 7) - 1) + (w - 1) * 7);
+      return monday;
+    }
+    function monthLabel(key, long) {
+      const [y, m] = key.split("-").map(Number);
+      return long ? `${MONTHS[m - 1]} ${y}` : `${MONTHS[m - 1]} ${String(y).slice(2)}`;
+    }
+    function weekLabel(key) {
+      const mon = weekMonday(key);
+      return `KW ${Number(key.split("-W")[1])} · ${pad(mon.getDate())}.${pad(mon.getMonth() + 1)}.${String(mon.getFullYear()).slice(2)}`;
+    }
+    function rangeLabel(r) {
+      if (r === "all") return "gesamter Zeitraum";
+      const k = r.slice(2);
+      return r[0] === "y" ? k : r[0] === "m" ? monthLabel(k, true) : weekLabel(k);
+    }
+    function fmtNum(n, digits = 0) {
+      return n.toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+    function fmtDur(sec) {
+      sec = Math.round(sec);
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+      if (h === 0) return `${m}:${pad(s)} min`;
+      return `${fmtNum(h)}:${pad(m)} h`;
+    }
+    function fmtHours(sec) { return sec >= 36000 ? `${fmtNum(sec / 3600)} h` : fmtDur(sec); }
+    // Pace in Sekunden pro km -> 5:32 /km
+    function fmtPace(spk, unit = true) {
+      if (!spk || !isFinite(spk)) return "–";
+      const s = Math.round(spk);
+      return `${Math.floor(s / 60)}:${pad(s % 60)}${unit ? " /km" : ""}`;
+    }
+    function fmtClock(sec) {
+      sec = Math.round(sec);
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+      return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+    }
+    function fmtDate(t) {
+      const d = new Date(t);
+      return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+    }
+    function fmtDateTime(t) {
+      const d = new Date(t);
+      return `${fmtDate(t)}, ${pad(d.getHours())}:${pad(d.getMinutes())} Uhr`;
+    }
+    const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const parseIso = (s, end) => { if (!s) return null; const [y, m, d] = s.split("-").map(Number); return end ? new Date(y, m - 1, d, 23, 59, 59).getTime() : new Date(y, m - 1, d).getTime(); };
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const sum = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
+    const avgW = (arr, f, wf) => { let s = 0, n = 0; arr.forEach(x => { const v = f(x); if (v != null && isFinite(v)) { const w = wf ? wf(x) : 1; s += v * w; n += w; } }); return n ? s / n : null; };
+
+    // ── Tooltip ──
+    const tip = document.getElementById("tip");
+    function showTip(e, html) {
+      tip.innerHTML = html;
+      tip.classList.add("is-on");
+      const r = tip.getBoundingClientRect();
+      let x = e.clientX + 14, y = e.clientY + 14;
+      if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+      if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+      tip.style.left = `${x}px`;
+      tip.style.top = `${y}px`;
+    }
+    function hideTip() { tip.classList.remove("is-on"); }
+    function bindTip(el, html) {
+      el.addEventListener("mousemove", e => showTip(e, typeof html === "function" ? html(e) : html));
+      el.addEventListener("mouseleave", hideTip);
+    }
+    const tipRow = (color, label, value) =>
+      `<div class="row"><span><i style="--c:${color}"></i>${label}</span><span>${value}</span></div>`;
+
+    // ── Achsen ──
+    function niceStep(range, count) {
+      const raw = range / count;
+      const p = Math.pow(10, Math.floor(Math.log10(raw)));
+      const f = raw / p;
+      return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+    }
+    function niceMax(v) {
+      if (v <= 0) return 4;
+      return niceStep(v, 4) * 4;
+    }
+
+    // ── Gestapeltes Säulendiagramm (SVG) ──
+    function stackedBars(host, buckets, series, fmt, onPick, activeKey) {
+      const W_ = 520, H = 230, L = 44, R = 6, T = 10, B = 34;
+      const max = niceMax(Math.max(0, ...buckets.map(b => b.values.reduce((a, v) => a + v, 0))));
+      const iw = W_ - L - R, ih = H - T - B;
+      const step = iw / Math.max(1, buckets.length);
+      const bw = Math.max(1.5, Math.min(28, step * 0.62));
+      const y = v => T + ih - (v / max) * ih;
+      let s = `<svg viewBox="0 0 ${W_} ${H}" role="img">`;
+      for (let i = 0; i <= 4; i += 1) {
+        const v = (max / 4) * i, yy = y(v);
+        s += `<line class="${i === 0 ? "baseline" : "gridline"}" x1="${L}" x2="${W_ - R}" y1="${yy}" y2="${yy}"/>`;
+        s += `<text x="${L - 6}" y="${yy + 4}" text-anchor="end">${fmt(v, true)}</text>`;
+      }
+      const every = Math.ceil(buckets.length / 12);
+      buckets.forEach((b, i) => {
+        const cx = L + step * i + step / 2;
+        if (b.key === activeKey) s += `<rect x="${L + step * i}" y="${T}" width="${step}" height="${ih}" fill="var(--accent-wash)"/>`;
+        let acc = 0;
+        s += `<g class="bar-group">`;
+        const segs = [];
+        b.values.forEach((v, k) => { if (v > 0) segs.push([v, k]); });
+        segs.forEach(([v, k], j) => {
+          const y0 = y(acc), y1 = y(acc + v);
+          const top = j === segs.length - 1;
+          const h = Math.max(0, y0 - y1 - (j > 0 ? 2 : 0)); // 2px Spalt zwischen Segmenten
+          if (top) {
+            const r = Math.min(4, bw / 2, h);
+            s += `<path d="M${cx - bw / 2},${y1 + h} V${y1 + r} Q${cx - bw / 2},${y1} ${cx - bw / 2 + r},${y1} H${cx + bw / 2 - r} Q${cx + bw / 2},${y1} ${cx + bw / 2},${y1 + r} V${y1 + h} Z" fill="${series[k].color}"/>`;
+          } else {
+            s += `<rect x="${cx - bw / 2}" y="${y1}" width="${bw}" height="${h}" fill="${series[k].color}"/>`;
+          }
+          acc += v;
+        });
+        s += `</g>`;
+        s += `<rect class="hit" data-i="${i}" x="${L + step * i}" y="${T}" width="${step}" height="${ih}"/>`;
+        if (i % every === 0) s += `<text x="${cx}" y="${H - B + 16}" text-anchor="middle">${esc(b.short)}</text>`;
+      });
+      s += `</svg>`;
+      host.innerHTML = s;
+      host.querySelectorAll(".hit").forEach(el => {
+        const b = buckets[Number(el.dataset.i)];
+        const total = b.values.reduce((a, v) => a + v, 0);
+        const html = `<b>${esc(b.label)}</b>` +
+          series.map((se, k) => tipRow(se.color, se.name, fmt(b.values[k]))).join("") +
+          (series.length > 1 ? `<div class="row" style="margin-top:4px;border-top:1px solid var(--grid);padding-top:4px"><span>Gesamt</span><span>${fmt(total)}</span></div>` : "") +
+          (onPick ? `<div class="numsmall" style="margin-top:4px">Klicken: Zeitraum filtern</div>` : "");
+        bindTip(el, html);
+        if (onPick) { el.style.cursor = "pointer"; el.addEventListener("click", () => onPick(b.key)); }
+      });
+    }
+    function bucketTable(host, buckets, series, fmt) {
+      host.innerHTML = `<table><thead><tr><th>Zeitraum</th>${series.map(s => `<th class="num">${s.name}</th>`).join("")}</tr></thead><tbody>` +
+        buckets.map(b => `<tr><td>${esc(b.label)}</td>${b.values.map(v => `<td class="num">${fmt(v)}</td>`).join("")}</tr>`).join("") +
+        `</tbody></table>`;
+    }
+
+    // ── Liniendiagramm (SVG) ──
+    // opt: { series:[{name,color,pts:[[x,y]],dots,line,width}], xFmt, xTicks(min,max)->[x], yFmt, invert, bands:[{from,to,color}], height, onDot(x,i) }
+    function lineChart(host, opt) {
+      const W_ = opt.width || 520, H = opt.height || 220, L = 46, R = 8, T = 10, B = 26;
+      const all = opt.series.flatMap(s => s.pts.filter(p => p[1] != null));
+      if (!all.length) { host.innerHTML = `<p class="note">Keine Werte.</p>`; return; }
+      const xMin = opt.xMin ?? Math.min(...all.map(p => p[0])), xMax = opt.xMax ?? Math.max(...all.map(p => p[0]));
+      let yMin = Math.min(...all.map(p => p[1])), yMax = Math.max(...all.map(p => p[1]));
+      if (opt.yMin != null) yMin = Math.min(yMin, opt.yMin);
+      if (yMax === yMin) { yMax += 1; yMin -= 1; }
+      // Pace-Achsen in glatten Sekunden-Schritten (0:15, 0:30, 1:00 …)
+      const ys = opt.pace ? ([5, 10, 15, 20, 30, 60, 120, 300].find(v => (yMax - yMin) / v <= 5) || 600) : niceStep(yMax - yMin, 4);
+      yMin = Math.floor(yMin / ys) * ys; yMax = Math.ceil(yMax / ys) * ys;
+      const iw = W_ - L - R, ih = H - T - B;
+      const x = v => L + ((v - xMin) / Math.max(1e-9, xMax - xMin)) * iw;
+      const y = v => opt.invert ? T + ((v - yMin) / (yMax - yMin)) * ih : T + ih - ((v - yMin) / (yMax - yMin)) * ih;
+      let s = `<svg viewBox="0 0 ${W_} ${H}" role="img">`;
+      (opt.bands || []).forEach(b => {
+        const a = Math.max(yMin, b.from), c = Math.min(yMax, b.to);
+        if (c > a) s += `<rect x="${L}" width="${iw}" y="${Math.min(y(a), y(c))}" height="${Math.abs(y(c) - y(a))}" fill="${b.color}" opacity="0.2"/>`;
+      });
+      for (let v = yMin; v <= yMax + ys / 2; v += ys) {
+        s += `<line class="${v === yMin && !opt.invert ? "baseline" : "gridline"}" x1="${L}" x2="${W_ - R}" y1="${y(v)}" y2="${y(v)}"/>`;
+        s += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${opt.yFmt(v)}</text>`;
+      }
+      opt.xTicks(xMin, xMax).forEach(([v, label]) => {
+        s += `<text x="${x(v)}" y="${H - 6}" text-anchor="middle">${esc(label)}</text>`;
+      });
+      opt.series.forEach(se => {
+        if (se.line !== false) {
+          let d = "", pen = false;
+          se.pts.forEach(p => {
+            if (p[1] == null) { if (!se.connect) pen = false; return; }
+            d += `${pen ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`;
+            pen = true;
+          });
+          s += `<path d="${d}" fill="none" stroke="${se.color}" stroke-width="${se.width || 2}" stroke-linejoin="round" stroke-linecap="round"/>`;
+        }
+        if (se.dots) se.pts.forEach((p, i) => { if (p[1] != null) s += `<circle cx="${x(p[0])}" cy="${y(p[1])}" r="${se.r || 3.5}" fill="${p[2] || se.color}" opacity="0.85"/>`; });
+      });
+      s += `<line class="crosshair hidden" y1="${T}" y2="${T + ih}"/>`;
+      s += `<rect class="hit" x="${L}" y="${T}" width="${iw}" height="${ih}"/>`;
+      s += `</svg>`;
+      host.innerHTML = s;
+      const svg = host.querySelector("svg"), hit = host.querySelector(".hit"), ch = host.querySelector(".crosshair");
+      const nearest = e => {
+        const r = svg.getBoundingClientRect();
+        const xv = xMin + ((e.clientX - r.left) / r.width * W_ - L) / iw * (xMax - xMin);
+        // Punkt mit kleinstem Abstand in der ersten Reihe mit Punkten
+        const base = opt.series.find(se => se.hoverBase) || opt.series[0];
+        let best = null;
+        base.pts.forEach((p, i) => { if (p[1] != null && (best === null || Math.abs(p[0] - xv) < Math.abs(base.pts[best][0] - xv))) best = i; });
+        return best === null ? null : { i: best, xv: base.pts[best][0] };
+      };
+      hit.addEventListener("mousemove", e => {
+        const n = nearest(e);
+        if (!n) return;
+        ch.classList.remove("hidden");
+        ch.setAttribute("x1", x(n.xv)); ch.setAttribute("x2", x(n.xv));
+        showTip(e, opt.tip(n.i, n.xv));
+      });
+      hit.addEventListener("mouseleave", () => { ch.classList.add("hidden"); hideTip(); });
+      if (opt.onPick) {
+        hit.style.cursor = "pointer";
+        hit.addEventListener("click", e => { const n = nearest(e); if (n) opt.onPick(n.i); });
+      }
+    }
+    // Zeitachse für Datumswerte (ms)
+    function dateTicks(min, max) {
+      const span = max - min, out = [];
+      const d = new Date(min); d.setDate(1); d.setHours(0, 0, 0, 0);
+      const stepM = span > 3 * 365 * 864e5 ? 12 : span > 400 * 864e5 ? 6 : span > 150 * 864e5 ? 2 : 1;
+      if (stepM === 12) d.setMonth(0);
+      while (d.getTime() <= max) {
+        if (d.getTime() >= min) out.push([d.getTime(), stepM === 12 ? String(d.getFullYear()) : monthLabel(monthKey(d))]);
+        d.setMonth(d.getMonth() + stepM);
+      }
+      return out;
+    }
+    // Zeitachse in Minuten (Offset in s)
+    function minuteTicks(min, max) {
+      const span = (max - min) / 60;
+      const st = span > 120 ? 30 : span > 60 ? 15 : span > 25 ? 10 : 5;
+      const out = [];
+      for (let m = 0; m * 60 <= max; m += st) out.push([m * 60, `${m} min`]);
+      return out;
+    }
+
+    // ── Auswertung pro Training ──
+    function zoneOf(hr) {
+      const r = hr / ui.maxHr;
+      for (let z = ZONES.length - 1; z >= 0; z -= 1) if (r >= ZONES[z].from) return z;
+      return -1; // unter Zone 1
+    }
+    function zoneSeconds(w) {
+      const out = new Array(ZONES.length).fill(0);
+      const hr = w.reihen && w.reihen.hr;
+      if (!hr) return out;
+      hr.forEach(v => { if (v) { const z = zoneOf(v); if (z >= 0) out[z] += DATA.schritt; } });
+      return out;
+    }
+    // Schnellste Zeit für eine Distanz (m) innerhalb des Trainings, aus der kumulierten Distanz
+    // Schnellere Abschnitte sind unrealistisch (GPS-Sprünge, im Fahrzeug weitergezählt) und zählen nicht
+    const MIN_PACE = { run_out: 170, run_in: 170, walk: 360 };
+    function bestEffort(w, meters) {
+      const d = w.reihen && w.reihen.dist;
+      const minT = (MIN_PACE[w.art] || 0) * meters / 1000;
+      if (!d || d[d.length - 1] < meters) return null;
+      let best = Infinity, i = 0;
+      for (let j = 0; j < d.length; j += 1) {
+        while (i < j && d[j] - d[i + 1] >= meters) i += 1;
+        if (d[j] - d[i] >= meters) {
+          // linear auf genau "meters" zurückrechnen
+          const over = d[j] - d[i] - meters;
+          const segLen = j > 0 ? d[j] - d[j - 1] : 0;
+          const frac = segLen > 0 ? Math.min(1, over / segLen) : 0;
+          const t = (j - i - frac) * DATA.schritt;
+          if (t < best && t >= minT) best = t;
+        }
+      }
+      return isFinite(best) ? best : null;
+    }
+    function kmSplits(w) {
+      const d = w.reihen && w.reihen.dist;
+      if (!d) return [];
+      const hr = w.reihen.hr || [], pw = w.reihen.pow || [];
+      const out = [];
+      let lastI = 0, lastT = 0, km = 1;
+      for (let i = 1; i < d.length; i += 1) {
+        while (d[i] >= km * 1000) {
+          const frac = (km * 1000 - d[i - 1]) / Math.max(1e-6, d[i] - d[i - 1]);
+          const t = (i - 1 + frac) * DATA.schritt;
+          const hrs = hr.slice(lastI, i + 1).filter(Boolean), pws = pw.slice(lastI, i + 1).filter(Boolean);
+          out.push({ km, sec: t - lastT, hr: hrs.length ? hrs.reduce((a, v) => a + v, 0) / hrs.length : null, pow: pws.length ? pws.reduce((a, v) => a + v, 0) / pws.length : null });
+          lastT = t; lastI = i; km += 1;
+        }
+      }
+      const rest = d[d.length - 1] - (km - 1) * 1000;
+      if (rest > 100) {
+        const t = (d.length - 1) * DATA.schritt;
+        const hrs = hr.slice(lastI).filter(Boolean);
+        out.push({ km: km - 1 + rest / 1000, sec: t - lastT, partial: rest, hr: hrs.length ? hrs.reduce((a, v) => a + v, 0) / hrs.length : null, pow: null });
+      }
+      return out;
+    }
+    function prepare(json) {
+      return json.trainings.map((w, idx) => {
+        const d = new Date(w.start * 1000);
+        const x = Object.assign({}, w, {
+          idx,
+          t: w.start * 1000,
+          y: d.getFullYear(), mk: monthKey(d), wk: isoWeek(d),
+          pace: hasDist(w.art) && w.km > 0.2 ? w.dauer / w.km : null
+        });
+        // Laufökonomie: Meter pro Herzschlag (höher = effizienter)
+        x.eff = x.pace && w.hrAvg ? (1000 / x.pace * 60) / w.hrAvg : null;
+        x.best = hasDist(w.art) ? { 1: bestEffort(x, 1000), 5: bestEffort(x, 5000), 10: bestEffort(x, 10000), 21: bestEffort(x, 21097.5) } : {};
+        return x;
+      }).sort((a, b) => a.t - b.t);
+    }
+
+    // ── Filter ──
+    function inRange(w, range = ui.range) {
+      if (range === "all") return true;
+      const k = range.slice(2);
+      return range[0] === "y" ? w.y === Number(k) : range[0] === "m" ? w.mk === k : w.wk === k;
+    }
+    const kindOk = w => (!ui.hideSus || !w.verdacht) && (ui.kind === "all" || (ui.kind === "run" ? isRun(w.art) : w.art === ui.kind));
+    const baseW = () => W.filter(kindOk);
+    const filteredW = () => baseW().filter(w => inRange(w));
+    const kindsPresent = () => Object.keys(KINDS).filter(k => W.some(w => w.art === k));
+
+    // ── Rendern ──
+    function renderTiles(ws) {
+      const runs = ws.filter(w => isRun(w.art)), walks = ws.filter(w => w.art === "walk");
+      const dists = ws.filter(w => hasDist(w.art) && w.km);
+      const time = sum(ws, w => w.dauer), km = sum(dists, w => w.km);
+      const kmRun = sum(runs, w => w.km), kmWalk = sum(walks, w => w.km);
+      const weeks = new Set(ws.map(w => w.wk)).size;
+      const tiles = [
+        ["Trainings", fmtNum(ws.length), weeks ? `in ${fmtNum(weeks)} Wochen` : ""],
+        ["Trainingszeit", fmtHours(time), ws.length ? `Ø ${fmtDur(time / ws.length)}` : ""],
+        ["Distanz", `${fmtNum(km, km < 100 ? 1 : 0)} km`, [runs.length ? `${fmtNum(kmRun, 1)} km Laufen` : "", walks.length ? `${fmtNum(kmWalk, 0)} km Gehen` : ""].filter(Boolean).join(" · ")],
+        ["Ø Pace Laufen", fmtPace(avgW(runs.filter(w => w.pace), w => w.pace, w => w.km)), `${fmtNum(runs.length)} Läufe`],
+        ["Ø Pace Gehen", fmtPace(avgW(walks.filter(w => w.pace), w => w.pace, w => w.km)), `${fmtNum(walks.length)} Runden · Ø ${walks.length ? fmtNum(kmWalk / walks.length, 1) : 0} km`],
+        ["Ø Herzfrequenz", (() => { const v = avgW(ws, w => w.hrAvg, w => w.dauer); return v ? `${fmtNum(v)} bpm` : "–"; })(), "gewichtet nach Dauer"],
+        ["Kalorien (kcal)", fmtNum(sum(ws, w => w.kcal)), "aktiv verbrannt"]
+      ].filter(([k]) => (k !== "Distanz" || dists.length) && (k !== "Ø Pace Laufen" || runs.length) && (k !== "Ø Pace Gehen" || walks.length));
+      document.getElementById("tiles").innerHTML = tiles.map(([k, v, s]) =>
+        `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`).join("");
+    }
+
+    function bucketKeys(gran, start, end) {
+      const keys = [];
+      if (gran === "year") {
+        for (let y = start.getFullYear(); y <= end.getFullYear(); y += 1) keys.push(String(y));
+      } else if (gran === "month") {
+        const d = new Date(start.getFullYear(), start.getMonth(), 1);
+        while (d <= end) { keys.push(monthKey(d)); d.setMonth(d.getMonth() + 1); }
+      } else {
+        const d = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        d.setDate(d.getDate() - ((d.getDay() || 7) - 1));
+        while (d <= end) { keys.push(isoWeek(d)); d.setDate(d.getDate() + 7); }
+      }
+      return keys;
+    }
+    function renderTimeCharts() {
+      const ws = baseW();
+      let start = new Date(W[0].t), end = new Date(W[W.length - 1].t), gran = ui.gran;
+      if (ui.range !== "all" && gran !== "year") {
+        const y = Number(ui.range.slice(2, 6));
+        start = new Date(Math.max(new Date(y, 0, 1), start));
+        end = new Date(Math.min(new Date(y, 11, 31), end));
+      }
+      const keys = bucketKeys(gran, start, end);
+      const idx = new Map(keys.map((k, i) => [k, i]));
+      const kinds = kindsPresent().filter(k => ui.kind === "all" || (ui.kind === "run" ? isRun(k) : k === ui.kind));
+      const runKinds = kinds.filter(hasDist);
+      const time = keys.map(() => kinds.map(() => 0));
+      const dist = keys.map(() => runKinds.map(() => 0));
+      ws.forEach(w => {
+        const i = idx.get(gran === "year" ? String(w.y) : gran === "month" ? w.mk : w.wk);
+        if (i === undefined) return;
+        time[i][kinds.indexOf(w.art)] += w.dauer / 3600;
+        if (hasDist(w.art) && w.km) dist[i][runKinds.indexOf(w.art)] += w.km;
+      });
+      const prefix = { year: "y:", month: "m:", week: "w:" }[gran];
+      const mk = (vals, i) => {
+        const k = keys[i];
+        return {
+          key: prefix + k, values: vals,
+          label: gran === "year" ? k : gran === "month" ? monthLabel(k, true) : weekLabel(k),
+          short: gran === "year" ? k : gran === "month" ? monthLabel(k) : `KW${Number(k.split("-W")[1])}`
+        };
+      };
+      const per = { year: "pro Jahr", month: "pro Monat", week: "pro Woche" }[gran];
+      document.getElementById("h-time").textContent = `Trainingszeit ${per}`;
+      document.getElementById("h-dist").textContent = `Distanz ${per}`;
+      const legend = ks => ks.length > 1 ? ks.map(k => `<span style="--c:${KINDS[k].color}">${KINDS[k].name}</span>`).join("") : "";
+      document.querySelectorAll(".kind-legend").forEach(l => { l.innerHTML = legend(l.classList.contains("run-only") ? runKinds : kinds); });
+      const pick = key => { ui.range = ui.range === key ? "all" : key; syncRange(); renderAll(); };
+      const sT = kinds.map(k => ({ name: KINDS[k].name, color: KINDS[k].color }));
+      const sD = runKinds.map(k => ({ name: KINDS[k].name, color: KINDS[k].color }));
+      const tb = time.map(mk), db = dist.map(mk);
+      const fmtH = (v, axis) => axis ? `${fmtNum(v, v > 0 && v < 1 ? 1 : 0)} h` : fmtDur(v * 3600);
+      const fmtKm = (v, axis) => axis ? fmtNum(v) : `${fmtNum(v, 1)} km`;
+      stackedBars(document.getElementById("c-time"), tb, sT, fmtH, pick, ui.range);
+      bucketTable(document.getElementById("t-time"), tb, sT, v => fmtDur(v * 3600));
+      document.getElementById("h-dist").closest(".card").classList.toggle("hidden", !runKinds.length);
+      if (runKinds.length) {
+        stackedBars(document.getElementById("c-dist"), db, sD, fmtKm, pick, ui.range);
+        bucketTable(document.getElementById("t-dist"), db, sD, v => `${fmtNum(v, 1)} km`);
+      }
+    }
+
+    // Kennzahlen für "Entwicklung"
+    const METRICS = {
+      pace: { name: "Ø Pace (Laufen & Gehen)", get: w => w.pace, fmt: v => fmtPace(v, false), unit: "/km", invert: true, dist: true },
+      eff: { name: "Ökonomie (m pro Herzschlag)", get: w => w.eff, fmt: v => fmtNum(v, 2), unit: "m/Schlag", dist: true },
+      hrAvg: { name: "Ø Herzfrequenz", get: w => w.hrAvg, fmt: v => fmtNum(v), unit: "bpm" },
+      dauer: { name: "Dauer", get: w => w.dauer / 60, fmt: v => fmtNum(v), unit: "min" },
+      km: { name: "Distanz (Laufen & Gehen)", get: w => w.km, fmt: v => fmtNum(v, 1), unit: "km", dist: true },
+      kcalMin: { name: "Kalorien pro Minute", get: w => w.kcal ? w.kcal / (w.dauer / 60) : null, fmt: v => fmtNum(v, 1), unit: "kcal/min" },
+      powAvg: { name: "Ø Laufleistung", get: w => isRun(w.art) ? w.powAvg : null, fmt: v => fmtNum(v), unit: "W", run: true },
+      best5: { name: "Schnellste 5 km im Training", get: w => w.best[5] ? w.best[5] / 5 : null, fmt: v => fmtPace(v, false), unit: "/km", invert: true, dist: true },
+      ruhepuls: { name: "Ruhepuls (täglich)", daily: "ruhepuls", fmt: v => fmtNum(v), unit: "bpm" },
+      vo2max: { name: "VO2max (Cardio-Fitness)", daily: "vo2max", fmt: v => fmtNum(v, 1), unit: "ml/kg/min" }
+    };
+    function fillMetricSelect() {
+      const sel = document.getElementById("f-metric");
+      const hasRun = W.some(w => isRun(w.art)), anyDist = W.some(w => hasDist(w.art));
+      sel.innerHTML = Object.entries(METRICS).filter(([, m]) => {
+        if ((m.run && !hasRun) || (m.dist && !anyDist)) return false;
+        if (m.daily) return (DATA.verlauf[m.daily] || []).length > 1;
+        return W.some(w => m.get(w) != null);
+      }).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join("");
+      if (!METRICS[ui.metric] || ![...sel.options].some(o => o.value === ui.metric)) ui.metric = sel.options[0].value;
+      sel.value = ui.metric;
+    }
+    function renderTrend() {
+      const m = METRICS[ui.metric];
+      const host = document.getElementById("c-trend");
+      let rows;
+      if (m.daily) {
+        rows = (DATA.verlauf[m.daily] || []).map(([d, v]) => ({ t: parseIso(d), v }))
+          .filter(r => ui.range === "all" || inRange({ y: new Date(r.t).getFullYear(), mk: monthKey(new Date(r.t)), wk: isoWeek(new Date(r.t)) }));
+      } else {
+        rows = filteredW().filter(w => (!m.run || isRun(w.art)) && (!m.dist || hasDist(w.art))).map(w => ({ t: w.t, v: m.get(w), w })).filter(r => r.v != null);
+      }
+      document.getElementById("trend-note").textContent = m.daily
+        ? "Tageswerte aus Apple Health, die Linie ist der gleitende Durchschnitt über 7 Werte."
+        : "Jeder Punkt ist ein Training, die Linie der gleitende Durchschnitt über 5 Trainings. Antippen öffnet das Training.";
+      const win = m.daily ? 7 : 5;
+      const avg = rows.map((r, i) => {
+        const part = rows.slice(Math.max(0, i - win + 1), i + 1);
+        return [r.t, part.reduce((a, x) => a + x.v, 0) / part.length];
+      });
+      const kinds = [...new Set(rows.filter(r => r.w).map(r => r.w.art))];
+      document.getElementById("trend-legend").innerHTML =
+        (kinds.length > 1 ? kinds.map(k => `<span style="--c:${KINDS[k].color}">${KINDS[k].name}</span>`).join("") : "") +
+        `<span class="line" style="--c:var(--ink-2)">gleitender Durchschnitt</span>`;
+      lineChart(host, {
+        series: [
+          { name: m.name, color: "var(--s1)", pts: rows.map(r => [r.t, r.v, r.w ? KINDS[r.w.art].color : null]), dots: true, line: false, hoverBase: true },
+          { name: "Durchschnitt", color: "var(--ink-2)", pts: avg, width: 2 }
+        ],
+        xTicks: dateTicks,
+        yFmt: m.fmt,
+        invert: m.invert,
+        pace: m.invert,
+        width: 1000, height: 280,
+        tip: i => {
+          const r = rows[i];
+          return `<b>${r.w ? `${KINDS[r.w.art].name} · ` : ""}${fmtDate(r.t)}</b>` +
+            tipRow("var(--s1)", "Wert", `${m.fmt(r.v)} ${m.unit}`) +
+            tipRow("var(--ink-2)", "Ø gleitend", `${m.fmt(avg[i][1])} ${m.unit}`) +
+            (r.w ? `<div class="numsmall" style="margin-top:4px">Klicken: Training öffnen</div>` : "");
+        },
+        onPick: m.daily ? null : i => openDetail(rows[i].w.idx)
+      });
+    }
+
+    function renderRecords(ws) {
+      const runs = ws.filter(w => isRun(w.art));
+      const top = (arr, f, min) => arr.filter(w => f(w) != null && (!min || min(w))).sort((a, b) => f(a) - f(b))[0];
+      const topMax = (arr, f) => arr.filter(w => f(w) != null).sort((a, b) => f(b) - f(a))[0];
+      const recs = [];
+      const add = (k, w, v, sub) => { if (w) recs.push({ k, w, v, sub: sub || `${KINDS[w.art].name} · ${fmtDate(w.t)}` }); };
+      [[1, "Schnellster Kilometer"], [5, "Schnellste 5 km"], [10, "Schnellste 10 km"], [21, "Schnellster Halbmarathon"]].forEach(([d, label]) => {
+        const w = top(runs, x => x.best[d]);
+        if (w) add(label, w, fmtClock(w.best[d]), `${fmtPace(w.best[d] / (d === 21 ? 21.0975 : d))} · ${fmtDate(w.t)}`);
+      });
+      let w = top(runs, x => x.pace, x => x.km >= 3);
+      if (w) add("Schnellster Lauf (Ø, ab 3 km)", w, fmtPace(w.pace), `${fmtNum(w.km, 1)} km · ${fmtDate(w.t)}`);
+      w = topMax(runs, x => x.km); if (w) add("Weitester Lauf", w, `${fmtNum(w.km, 2)} km`);
+      w = topMax(ws, x => x.dauer); if (w) add("Längstes Training", w, fmtDur(w.dauer));
+      w = topMax(ws, x => x.kcal); if (w) add("Meiste Kalorien", w, `${fmtNum(w.kcal)} kcal`);
+      w = topMax(runs, x => x.elev); if (w) add("Meiste Höhenmeter laufend", w, `${fmtNum(w.elev)} m`);
+      w = topMax(runs, x => x.powAvg); if (w) add("Höchste Ø Laufleistung", w, `${fmtNum(w.powAvg)} W`);
+      w = topMax(runs, x => x.eff); if (w) add("Beste Laufökonomie", w, `${fmtNum(w.eff, 2)} m/Schlag`, `bei ${fmtPace(w.pace)} und Ø ${fmtNum(w.hrAvg)} bpm · ${fmtDate(w.t)}`);
+      const walks = ws.filter(x => x.art === "walk");
+      w = topMax(walks, x => x.km); if (w) add("Weiteste Geh-Runde", w, `${fmtNum(w.km, 2)} km`);
+      w = top(walks, x => x.pace, x => x.km >= 3); if (w) add("Schnellste Geh-Runde (Ø, ab 3 km)", w, fmtPace(w.pace), `${fmtNum(w.km, 1)} km · ${fmtDate(w.t)}`);
+      w = top(walks, x => x.best[5]); if (w) add("Schnellste 5 km gehend", w, fmtClock(w.best[5]), `${fmtPace(w.best[5] / 5)} · ${fmtDate(w.t)}`);
+      w = topMax(walks, x => x.dauer); if (w) add("Längste Geh-Runde", w, fmtDur(w.dauer));
+      w = topMax(walks, x => x.elev); if (w) add("Meiste Höhenmeter gehend", w, `${fmtNum(w.elev)} m`);
+      const cross = ws.filter(x => x.art === "cross");
+      w = topMax(cross, x => x.kcal ? x.kcal / x.dauer * 60 : null); if (w) add("Intensivstes Crosstrainer-Training", w, `${fmtNum(w.kcal / w.dauer * 60, 1)} kcal/min`);
+      w = topMax(ws, x => x.hrMax); if (w) add("Höchster Puls", w, `${fmtNum(w.hrMax)} bpm`);
+      document.getElementById("rec-note").textContent = `${rangeLabel(ui.range)} · Antippen öffnet das Training.`;
+      const host = document.getElementById("records");
+      host.innerHTML = recs.map((r, i) => `<button type="button" class="record" data-i="${i}"><span class="k">${r.k}</span><b>${r.v}</b><span class="s">${esc(r.sub)}</span></button>`).join("") || `<p class="note">Keine Trainings.</p>`;
+      host.querySelectorAll(".record").forEach(b => b.addEventListener("click", () => openDetail(recs[Number(b.dataset.i)].w.idx)));
+    }
+
+    // ── Vergleich ──
+    function periodStats(ws) {
+      const runs = ws.filter(w => isRun(w.art)), walks = ws.filter(w => w.art === "walk");
+      const dists = ws.filter(w => hasDist(w.art) && w.km);
+      const zones = new Array(ZONES.length).fill(0);
+      ws.forEach(w => zoneSeconds(w).forEach((s, i) => { zones[i] += s; }));
+      const span = ws.length ? Math.max(1, (ws[ws.length - 1].t - ws[0].t) / (7 * 864e5)) : 0;
+      const best = d => { const v = runs.map(w => w.best[d]).filter(Boolean); return v.length ? Math.min(...v) : null; };
+      return {
+        n: ws.length,
+        perWeek: null, // wird mit Zeitraumlänge gefüllt
+        time: sum(ws, w => w.dauer),
+        avgDur: ws.length ? sum(ws, w => w.dauer) / ws.length : null,
+        km: dists.length ? sum(dists, w => w.km) : null,
+        pace: avgW(runs.filter(w => w.pace), w => w.pace, w => w.km),
+        paceWalk: avgW(walks.filter(w => w.pace), w => w.pace, w => w.km),
+        hrWalk: avgW(walks, w => w.hrAvg, w => w.dauer),
+        kmWalk: walks.length ? sum(walks, w => w.km) : null,
+        hr: avgW(ws, w => w.hrAvg, w => w.dauer),
+        hrRun: avgW(runs, w => w.hrAvg, w => w.dauer),
+        hrCross: avgW(ws.filter(w => w.art === "cross"), w => w.hrAvg, w => w.dauer),
+        eff: avgW(runs, w => w.eff, w => w.dauer),
+        pow: avgW(runs, w => w.powAvg, w => w.dauer),
+        kcal: sum(ws, w => w.kcal),
+        kcalMin: (() => { const t = sum(ws.filter(w => w.kcal), w => w.dauer); return t ? sum(ws, w => w.kcal) / (t / 60) : null; })(),
+        elev: dists.some(w => w.elev != null) ? sum(dists, w => w.elev) : null,
+        b1: best(1), b5: best(5), b10: best(10),
+        zones, span
+      };
+    }
+    function fillComparePresets() {
+      const years = [...new Set(W.map(w => w.y))].sort((a, b) => b - a);
+      const months = [...new Set(W.map(w => w.mk))].sort().reverse();
+      const opts = `<option value="">eigener Zeitraum</option>` +
+        `<optgroup label="Letzte">` +
+        [30, 90, 180, 365].map(d => `<option value="last:${d}">letzte ${d} Tage</option>`).join("") +
+        [30, 90, 180, 365].map(d => `<option value="prev:${d}">${d} Tage davor</option>`).join("") +
+        `</optgroup>` +
+        `<optgroup label="Jahr">${years.map(y => `<option value="y:${y}">${y}</option>`).join("")}</optgroup>` +
+        `<optgroup label="Monat">${months.map(k => `<option value="m:${k}">${monthLabel(k, true)}</option>`).join("")}</optgroup>`;
+      ["a", "b"].forEach(p => { document.getElementById(`cmp-${p}-pre`).innerHTML = opts; });
+      // Standard: die letzten 90 Tage gegen die 90 Tage davor
+      applyPreset("a", "prev:90");
+      applyPreset("b", "last:90");
+    }
+    function applyPreset(p, v) {
+      document.getElementById(`cmp-${p}-pre`).value = v;
+      if (!v) return;
+      const lastDay = new Date(W[W.length - 1].t); lastDay.setHours(0, 0, 0, 0);
+      let from, to;
+      if (v.startsWith("last:") || v.startsWith("prev:")) {
+        const d = Number(v.slice(5));
+        to = new Date(lastDay); if (v.startsWith("prev:")) to.setDate(to.getDate() - d);
+        from = new Date(to); from.setDate(from.getDate() - d + 1);
+      } else if (v.startsWith("y:")) {
+        const y = Number(v.slice(2)); from = new Date(y, 0, 1); to = new Date(y, 11, 31);
+      } else {
+        const [y, m] = v.slice(2).split("-").map(Number); from = new Date(y, m - 1, 1); to = new Date(y, m, 0);
+      }
+      document.getElementById(`cmp-${p}-from`).value = isoDate(from);
+      document.getElementById(`cmp-${p}-to`).value = isoDate(to);
+    }
+    function renderCompare() {
+      const get = p => {
+        const a = parseIso(document.getElementById(`cmp-${p}-from`).value), b = parseIso(document.getElementById(`cmp-${p}-to`).value, true);
+        const ws = baseW().filter(w => (a == null || w.t >= a) && (b == null || w.t <= b));
+        const st = periodStats(ws);
+        const days = a != null && b != null ? (b - a) / 864e5 : st.span * 7;
+        st.perWeek = days > 0 ? ws.length / (days / 7) : null;
+        return st;
+      };
+      const A = get("a"), B = get("b");
+      // [Bezeichnung, Schlüssel, Formatierer, höher ist besser?]
+      const rows = [
+        ["Trainings", "n", v => fmtNum(v), true],
+        ["Trainings pro Woche", "perWeek", v => fmtNum(v, 1), true],
+        ["Trainingszeit gesamt", "time", fmtHours, true],
+        ["Ø Dauer", "avgDur", fmtDur, true],
+        ["Distanz gesamt", "km", v => `${fmtNum(v, 1)} km`, true],
+        ["Distanz Gehen", "kmWalk", v => `${fmtNum(v, 1)} km`, true],
+        ["Ø Pace Laufen", "pace", v => fmtPace(v), false],
+        ["Ø Pace Gehen", "paceWalk", v => fmtPace(v), false],
+        ["Schnellster Kilometer laufend", "b1", fmtClock, false],
+        ["Schnellste 5 km laufend", "b5", fmtClock, false],
+        ["Schnellste 10 km laufend", "b10", fmtClock, false],
+        ["Ø Herzfrequenz", "hr", v => `${fmtNum(v)} bpm`, null],
+        ["Ø Herzfrequenz Laufen", "hrRun", v => `${fmtNum(v)} bpm`, null],
+        ["Ø Herzfrequenz Crosstrainer", "hrCross", v => `${fmtNum(v)} bpm`, null],
+        ["Ø Herzfrequenz Gehen", "hrWalk", v => `${fmtNum(v)} bpm`, null],
+        ["Laufökonomie", "eff", v => `${fmtNum(v, 2)} m/Schlag`, true],
+        ["Ø Laufleistung", "pow", v => `${fmtNum(v)} W`, true],
+        ["Kalorien gesamt", "kcal", v => `${fmtNum(v)} kcal`, true],
+        ["Kalorien pro Minute", "kcalMin", v => fmtNum(v, 1), true],
+        ["Höhenmeter (Laufen & Gehen)", "elev", v => `${fmtNum(v)} m`, true]
+      ].filter(([, k]) => A[k] != null || B[k] != null);
+      const delta = (a, b, better) => {
+        if (a == null || b == null || !a) return "";
+        const pct = (b - a) / Math.abs(a) * 100;
+        if (Math.abs(pct) < 0.5) return `<span class="numsmall" style="display:inline">±0 %</span>`;
+        const cls = better === null ? "" : (pct > 0) === better ? "up" : "down";
+        return `<span class="${cls}">${pct > 0 ? "+" : "−"}${fmtNum(Math.abs(pct))} %</span>`;
+      };
+      document.getElementById("cmp-table").innerHTML = `<table><thead><tr>
+          <th>Kennzahl</th><th class="num"><span class="dot" style="--c:var(--s3)"></span>A</th>
+          <th class="num"><span class="dot" style="--c:var(--s1)"></span>B</th><th class="num">B ggü. A</th></tr></thead><tbody>` +
+        rows.map(([label, k, f, better]) => `<tr><td>${label}</td>
+          <td class="num">${A[k] != null ? f(A[k]) : "–"}</td>
+          <td class="num">${B[k] != null ? f(B[k]) : "–"}</td>
+          <td class="num">${delta(A[k], B[k], better)}</td></tr>`).join("") +
+        `</tbody></table>`;
+      document.getElementById("zone-legend").innerHTML = ZONES.map(z => `<span style="--c:${z.color}">${z.name}</span>`).join("");
+      const zrow = (label, st, color) => {
+        const tot = st.zones.reduce((a, v) => a + v, 0);
+        if (!tot) return `<div style="font-size:12px;color:var(--ink-2);margin:10px 0 4px"><span class="dot" style="--c:${color}"></span>${label}: keine Pulsdaten</div>`;
+        return `<div style="font-size:12px;color:var(--ink-2);margin:10px 0 4px"><span class="dot" style="--c:${color}"></span>${label}</div>
+          <div class="zbar">${st.zones.map((v, i) => v ? `<div class="zseg" data-z="${i}" data-v="${v}" data-p="${v / tot * 100}" style="flex:${v} 1 0;background:${ZONES[i].color}"></div>` : "").join("")}</div>`;
+      };
+      const host = document.getElementById("cmp-zones");
+      host.innerHTML = zrow("Zeitraum A", A, "var(--s3)") + zrow("Zeitraum B", B, "var(--s1)");
+      host.querySelectorAll(".zseg").forEach(el => bindTip(el, `<b>${ZONES[el.dataset.z].name}</b>${fmtHours(Number(el.dataset.v))} · ${fmtNum(Number(el.dataset.p))} %`));
+    }
+
+    // ── Trainingsliste ──
+    const COLS = [
+      { k: "start", name: "Datum", get: w => w.t, fmt: w => `${fmtDate(w.t)}<span class="numsmall">${WEEKDAYS_LONG[new Date(w.t).getDay()]}${w.verdacht ? ` · ⚠ ${SUS_TEXT[w.verdacht] || SUS_TEXT.lang}` : ""}</span>` },
+      { k: "art", name: "Training", get: w => w.art, fmt: w => `<span class="dot" style="--c:${KINDS[w.art].color}"></span>${KINDS[w.art].name}`, text: true },
+      { k: "dauer", name: "Dauer", get: w => w.dauer, fmt: w => fmtDur(w.dauer), num: true },
+      { k: "km", name: "Distanz", get: w => w.km, fmt: w => w.km && hasDist(w.art) ? `${fmtNum(w.km, 2)} km` : "–", num: true },
+      { k: "pace", name: "Pace", get: w => w.pace, fmt: w => fmtPace(w.pace), num: true, asc: true },
+      { k: "hrAvg", name: "Ø Puls", get: w => w.hrAvg, fmt: w => w.hrAvg ? fmtNum(w.hrAvg) : "–", num: true, sm: true },
+      { k: "hrMax", name: "Max", get: w => w.hrMax, fmt: w => w.hrMax ? fmtNum(w.hrMax) : "–", num: true, sm: true },
+      { k: "kcal", name: "kcal", get: w => w.kcal, fmt: w => w.kcal ? fmtNum(w.kcal) : "–", num: true, sm: true },
+      { k: "elev", name: "Höhe", get: w => w.elev, fmt: w => w.elev != null ? `${fmtNum(w.elev)} m` : "–", num: true, sm: true }
+    ];
+    function renderList(ws) {
+      const col = COLS.find(c => c.k === ui.sort);
+      const list = [...ws].sort((a, b) => {
+        const va = col.get(a), vb = col.get(b);
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        return (va < vb ? -1 : va > vb ? 1 : 0) * ui.sortDir;
+      });
+      const shown = ui.showAll ? list : list.slice(0, PAGE);
+      document.getElementById("list-note").textContent = `${fmtNum(list.length)} Trainings · ${rangeLabel(ui.range)} · Spaltenkopf antippen zum Sortieren`;
+      document.getElementById("list-head").innerHTML = `<tr>${COLS.map(c =>
+        `<th class="sortable${c.num ? " num" : ""}${c.sm ? " hide-sm" : ""}${c.k === ui.sort ? " is-sorted" : ""}" data-k="${c.k}">${c.name}${c.k === ui.sort ? (ui.sortDir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr>`;
+      document.getElementById("list-body").innerHTML = shown.map(w => `<tr class="click${w.idx === ui.sel ? " is-sel" : ""}" data-i="${w.idx}">${COLS.map(c =>
+        `<td class="${c.num ? "num" : ""}${c.sm ? " hide-sm" : ""}">${c.fmt(w)}</td>`).join("")}</tr>`).join("") ||
+        `<tr><td colspan="${COLS.length}" class="note">Keine Trainings in diesem Zeitraum.</td></tr>`;
+      const more = document.getElementById("btn-more");
+      more.classList.toggle("hidden", list.length <= PAGE);
+      more.textContent = ui.showAll ? `Nur ${PAGE} anzeigen` : `Alle ${fmtNum(list.length)} anzeigen`;
+      document.querySelectorAll("#list-head th").forEach(th => th.addEventListener("click", () => {
+        const c = COLS.find(x => x.k === th.dataset.k);
+        if (ui.sort === c.k) ui.sortDir *= -1;
+        else { ui.sort = c.k; ui.sortDir = c.asc ? 1 : c.text ? 1 : -1; }
+        renderList(filteredW());
+      }));
+      document.querySelectorAll("#list-body tr.click").forEach(tr => tr.addEventListener("click", () => openDetail(Number(tr.dataset.i))));
+    }
+
+    // ── Detailansicht eines Trainings ──
+    function openDetail(idx) {
+      ui.sel = idx;
+      renderDetail();
+      renderList(filteredW());
+      document.getElementById("detail").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    function routeSvg(w, zoneColors) {
+      const pts = w.strecke;
+      const lat0 = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+      const kx = Math.cos(lat0 * Math.PI / 180);
+      const xs = pts.map(p => p[1] * kx), ys = pts.map(p => -p[0]);
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const S = 300, pad_ = 12, sc = (S - 2 * pad_) / Math.max(maxX - minX, maxY - minY, 1e-9);
+      const ox = (S - (maxX - minX) * sc) / 2, oy = (S - (maxY - minY) * sc) / 2;
+      const P = i => [(xs[i] - minX) * sc + ox, (ys[i] - minY) * sc + oy];
+      const hr = w.reihen && w.reihen.hr;
+      let s = `<svg viewBox="0 0 ${S} ${S}" role="img" aria-label="Strecke">`;
+      for (let i = 1; i < pts.length; i += 1) {
+        const [x1, y1] = P(i - 1), [x2, y2] = P(i);
+        let color = "var(--s1)";
+        if (hr && pts[i][3] != null) {
+          const v = hr[Math.min(hr.length - 1, Math.max(0, Math.round(pts[i][3] / DATA.schritt)))];
+          const z = v ? zoneOf(v) : -1;
+          if (z >= 0) color = zoneColors[z];
+        }
+        s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="4" stroke-linecap="round"/>`;
+      }
+      const [sx, sy] = P(0), [ex, ey] = P(pts.length - 1);
+      s += `<circle cx="${sx}" cy="${sy}" r="6" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"/>`;
+      s += `<circle cx="${ex}" cy="${ey}" r="6" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>`;
+      return s + `</svg>`;
+    }
+    function renderDetail() {
+      const host = document.getElementById("detail");
+      const w = W.find(x => x.idx === ui.sel);
+      if (!w) { host.classList.add("hidden"); return; }
+      host.classList.remove("hidden");
+      const run = hasDist(w.art);
+      const r = w.reihen || {};
+      const tiles = [
+        ["Dauer", fmtDur(w.dauer), `${pad(new Date(w.t).getHours())}:${pad(new Date(w.t).getMinutes())}–${pad(new Date(w.end * 1000).getHours())}:${pad(new Date(w.end * 1000).getMinutes())} Uhr`],
+        run && w.km ? ["Distanz", `${fmtNum(w.km, 2)} km`, w.pace ? `Ø ${fmtPace(w.pace)}` : ""] : null,
+        w.hrAvg ? ["Ø Puls", `${fmtNum(w.hrAvg)} bpm`, w.hrMax ? `max. ${fmtNum(w.hrMax)} · min. ${fmtNum(w.hrMin || 0)}` : ""] : null,
+        w.kcal ? ["Kalorien", `${fmtNum(w.kcal)} kcal`, `${fmtNum(w.kcal / w.dauer * 60, 1)} kcal/min`] : null,
+        w.powAvg ? ["Ø Leistung", `${fmtNum(w.powAvg)} W`, w.powMax ? `max. ${fmtNum(w.powMax)} W` : ""] : null,
+        w.elev != null ? ["Höhenmeter", `${fmtNum(w.elev)} m`, "Anstieg"] : null,
+        w.eff ? ["Ökonomie", `${fmtNum(w.eff, 2)}`, "Meter pro Herzschlag"] : null,
+        w.temp != null ? ["Wetter", `${fmtNum(w.temp)} °C`, w.hum != null ? `${fmtNum(w.hum)} % Luftfeuchte` : ""] : null,
+        w.stride ? ["Schrittlänge", `${fmtNum(w.stride, 2)} m`, w.gct ? `Bodenkontakt ${fmtNum(w.gct)} ms` : ""] : null,
+        w.vosc ? ["Vertikale Bewegung", `${fmtNum(w.vosc, 1)} cm`, ""] : null,
+        w.mets ? ["Ø METs", fmtNum(w.mets, 1), "Stoffwechsel-Äquivalent"] : null
+      ].filter(Boolean);
+      const zs = zoneSeconds(w), zt = zs.reduce((a, v) => a + v, 0);
+      const splits = run ? kmSplits(w) : [];
+      const effortRows = run ? [[1, "1 km"], [5, "5 km"], [10, "10 km"], [21, "Halbmarathon"]].filter(([d]) => w.best[d]) : [];
+      host.innerHTML = `
+        <div class="detail-head">
+          <div>
+            <h2><span class="dot" style="--c:${KINDS[w.art].color}"></span>${KINDS[w.art].name} am ${WEEKDAYS_LONG[new Date(w.t).getDay()]}, ${fmtDateTime(w.t)}</h2>
+            <p class="note">${w.verdacht ? `⚠ Ausreißer: ${SUS_TEXT[w.verdacht] || SUS_TEXT.lang}. · ` : ""}${esc(w.geraet || "")}${w.pausen ? ` · ${w.pausen.filter(p => p[0] === "p").length} Pausen` : ""}</p>
+          </div>
+          <button type="button" class="btn" id="detail-close">Schließen</button>
+        </div>
+        <div class="tiles flat">${tiles.map(([k, v, s]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`).join("")}</div>
+        ${r.hr ? `<h3>Herzfrequenz</h3><div class="legend">${ZONES.map(z => `<span style="--c:${z.color}">${z.name}</span>`).join("")}</div><div id="d-hr"></div>` : ""}
+        ${r.dist || r.pow ? `<h3>${r.dist ? "Pace" : ""}${r.dist && r.pow ? " und " : ""}${r.pow ? "Leistung" : ""}</h3><div class="legend">${r.dist ? `<span class="line" style="--c:var(--s1)">Pace (1-Min.-Mittel)</span>` : ""}${r.pow ? `<span class="line" style="--c:var(--s2)">Leistung</span>` : ""}</div><div id="d-pace"></div>${r.pow && r.dist ? `<div id="d-pow"></div>` : ""}` : ""}
+        <div class="grid-2" style="margin-top:12px">
+          <div>
+            ${zt ? `<h3>Zeit in Zonen</h3>
+              <div class="zbar" id="d-zones">${zs.map((v, i) => v ? `<div class="zseg" data-z="${i}" data-v="${v}" style="flex:${v} 1 0;background:${ZONES[i].color}"></div>` : "").join("")}</div>
+              <table style="margin-top:8px"><tbody>${zs.map((v, i) => `<tr><td><span class="dot" style="--c:${ZONES[i].color}"></span>${ZONES[i].name}</td><td class="num">${fmtNum(Math.round(ui.maxHr * ZONES[i].from))}+ bpm</td><td class="num">${fmtDur(v)}</td><td class="num">${fmtNum(v / zt * 100)} %</td></tr>`).join("")}</tbody></table>` : ""}
+            ${effortRows.length ? `<h3>Schnellste Abschnitte in diesem Training</h3><table><tbody>${effortRows.map(([d, l]) => `<tr><td>${l}</td><td class="num">${fmtClock(w.best[d])}</td><td class="num">${fmtPace(w.best[d] / (d === 21 ? 21.0975 : d))}</td></tr>`).join("")}</tbody></table>` : ""}
+            ${splits.length ? `<h3>Kilometer-Splits</h3><div class="table-scroll"><table><thead><tr><th>km</th><th class="num">Zeit</th><th class="num">Pace</th><th class="num">Ø Puls</th>${splits.some(s => s.pow) ? `<th class="num">Ø W</th>` : ""}</tr></thead><tbody>` +
+              (() => {
+                const full = splits.filter(s => !s.partial), fast = full.length ? Math.min(...full.map(s => s.sec)) : null;
+                return splits.map(s => `<tr${s.sec === fast && full.length > 1 ? ` style="font-weight:600"` : ""}><td>${s.partial ? fmtNum(s.km, 2) : s.km}</td><td class="num">${fmtClock(s.sec)}</td><td class="num">${fmtPace(s.partial ? s.sec / (s.partial / 1000) : s.sec)}</td><td class="num">${s.hr ? fmtNum(s.hr) : "–"}</td>${splits.some(x => x.pow) ? `<td class="num">${s.pow ? fmtNum(s.pow) : "–"}</td>` : ""}</tr>`).join("");
+              })() + `</tbody></table></div>` : ""}
+          </div>
+          <div>
+            ${w.strecke ? `<h3>Strecke</h3><p class="note">Farbe = Herzfrequenz-Zone · grün = Start, schwarz = Ziel</p><div class="route-wrap">${routeSvg(w, ZONES.map(z => z.color))}</div>` : ""}
+
+          </div>
+        </div>`;
+      document.getElementById("detail-close").addEventListener("click", () => { ui.sel = null; renderDetail(); renderList(filteredW()); });
+      host.querySelectorAll(".zseg").forEach(el => bindTip(el, `<b>${ZONES[el.dataset.z].name}</b>${fmtDur(Number(el.dataset.v))}`));
+      const step = DATA.schritt;
+      if (r.hr) {
+        const pts = r.hr.map((v, i) => [i * step, v]);
+        // Bei Geh-Trainings misst die Uhr oft nur alle paar Minuten: dann Messpunkte verbinden
+        const sparse = r.hr.filter(v => v != null).length < r.hr.length * 0.5;
+        lineChart(document.getElementById("d-hr"), {
+          series: [{ name: "Puls", color: "var(--hr)", pts, hoverBase: true, connect: sparse, dots: sparse, r: 3 }],
+          xTicks: minuteTicks, yFmt: v => fmtNum(v), width: 1000, height: 240,
+          bands: ZONES.map((z, i) => ({ from: ui.maxHr * z.from, to: i < ZONES.length - 1 ? ui.maxHr * ZONES[i + 1].from : ui.maxHr * 1.1, color: z.color })),
+          tip: i => `<b>${fmtClock(pts[i][0])} min</b>${tipRow("var(--hr)", "Puls", pts[i][1] ? `${pts[i][1]} bpm` : "–")}`
+        });
+      }
+      if (r.dist) {
+        // Pace als gleitendes 1-Minuten-Mittel; Stillstand ausblenden
+        const win = Math.max(1, Math.round(60 / step));
+        const pts = r.dist.map((d, i) => {
+          if (i < win || i === r.dist.length - 1) return [i * step, null]; // letzter Punkt ist nur ein Teil-Intervall
+          const m = d - r.dist[i - win];
+          const spk = m > 20 ? (win * step) / (m / 1000) : null;
+          return [i * step, spk && spk < 900 ? spk : null];
+        });
+        lineChart(document.getElementById("d-pace"), {
+          series: [{ name: "Pace", color: "var(--s1)", pts, hoverBase: true }],
+          xTicks: minuteTicks, yFmt: v => fmtPace(v, false), invert: true, pace: true, width: 1000, height: 240,
+          tip: i => `<b>${fmtClock(pts[i][0])} min · ${fmtNum(r.dist[i] / 1000, 2)} km</b>${tipRow("var(--s1)", "Pace", fmtPace(pts[i][1]))}` +
+            (r.hr ? tipRow("var(--hr)", "Puls", r.hr[i] ? `${r.hr[i]} bpm` : "–") : "")
+        });
+      }
+      if (r.pow) {
+        const pts = r.pow.map((v, i) => [i * step, v]);
+        lineChart(document.getElementById(r.dist ? "d-pow" : "d-pace"), {
+          series: [{ name: "Leistung", color: "var(--s2)", pts, hoverBase: true }],
+          xTicks: minuteTicks, yFmt: v => `${fmtNum(v)} W`, width: 1000, height: 200,
+          tip: i => `<b>${fmtClock(pts[i][0])} min</b>${tipRow("var(--s2)", "Leistung", pts[i][1] ? `${pts[i][1]} W` : "–")}`
+        });
+      }
+    }
+
+    // ── Filter-Steuerung ──
+    function fillRangeSelect() {
+      const sel = document.getElementById("f-range");
+      const start = new Date(W[0].t), end = new Date(W[W.length - 1].t);
+      const years = bucketKeys("year", start, end).reverse();
+      const months = bucketKeys("month", start, end).reverse();
+      const weeks = bucketKeys("week", start, end).reverse();
+      sel.innerHTML = `<option value="all">Gesamter Zeitraum</option>` +
+        `<optgroup label="Jahr">${years.map(k => `<option value="y:${k}">${k}</option>`).join("")}</optgroup>` +
+        `<optgroup label="Monat">${months.map(k => `<option value="m:${k}">${monthLabel(k, true)}</option>`).join("")}</optgroup>` +
+        `<optgroup label="Woche">${weeks.map(k => `<option value="w:${k}">${weekLabel(k)}</option>`).join("")}</optgroup>`;
+      syncRange();
+    }
+    function syncRange() { document.getElementById("f-range").value = ui.range; }
+    function fillKindSeg() {
+      const ks = kindsPresent();
+      const opts = [["all", "Alle"]];
+      if (ks.filter(isRun).length > 1) opts.push(["run", "Laufen gesamt"]);
+      ks.forEach(k => opts.push([k, KINDS[k].name]));
+      const host = document.getElementById("f-kind");
+      host.innerHTML = opts.map(([v, n]) => `<button type="button" data-v="${v}"${v === ui.kind ? ` class="is-on"` : ""}>${n}</button>`).join("");
+      host.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+        host.querySelectorAll("button").forEach(x => x.classList.toggle("is-on", x === b));
+        ui.kind = b.dataset.v;
+        ui.showAll = false;
+        renderAll();
+      }));
+    }
+
+    function renderAll() {
+      hideTip();
+      const ws = filteredW();
+      renderTiles(ws);
+      renderTimeCharts();
+      renderTrend();
+      renderRecords(ws);
+      renderCompare();
+      renderDetail();
+      renderList(ws);
+    }
+
+    // ── Laden ──
+    function useData(json, remember) {
+      if (!json || !Array.isArray(json.trainings) || !json.trainings.length) throw new Error("Keine gültige Datei");
+      DATA = json;
+      DATA.verlauf = DATA.verlauf || {};
+      W = prepare(json);
+      if (remember) dataSet(json);
+      // Max. Puls: gespeicherter Wert, sonst höchster gemessener Puls
+      const saved = Number(storeGet(MAXHR_KEY));
+      const observed = Math.max(0, ...W.map(w => w.hrMax || 0));
+      ui.maxHr = saved || Math.round(observed) || 190;
+      document.getElementById("f-maxhr").value = ui.maxHr;
+      document.getElementById("f-maxhr").title = observed ? `Höchster gemessener Puls: ${Math.round(observed)} bpm` : "";
+      ui.sel = null;
+      const sus = W.filter(w => w.verdacht).length;
+      document.getElementById("sus-wrap").classList.toggle("hidden", !sus);
+      document.querySelector('#f-sus button[data-v="hide"]').textContent = `${sus} ausblenden`;
+      const counts = kindsPresent().map(k => `${fmtNum(W.filter(w => w.art === k).length)} × ${KINDS[k].name}`).join(" · ");
+      document.getElementById("subtitle").textContent = `${counts} · ${fmtDate(W[0].t)} – ${fmtDate(W[W.length - 1].t)}`;
+      document.getElementById("loader").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      fillRangeSelect();
+      fillKindSeg();
+      fillMetricSelect();
+      fillComparePresets();
+      renderAll();
+    }
+    function readFile(file) {
+      const r = new FileReader();
+      r.onload = () => {
+        try { useData(JSON.parse(r.result), true); }
+        catch (e) { document.querySelector(".privacy").textContent = "Diese Datei konnte nicht gelesen werden – bitte fitness_daten.json aus convert_fitness.py verwenden."; }
+      };
+      r.readAsText(file);
+    }
+    const drop = document.getElementById("drop");
+    document.getElementById("file").addEventListener("change", e => { if (e.target.files[0]) readFile(e.target.files[0]); });
+    ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("is-over"); }));
+    ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("is-over"); }));
+    drop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+
+    document.getElementById("f-range").addEventListener("change", e => { ui.range = e.target.value; ui.showAll = false; renderAll(); });
+    document.querySelectorAll("#f-gran button").forEach(b => b.addEventListener("click", () => {
+      document.querySelectorAll("#f-gran button").forEach(x => x.classList.toggle("is-on", x === b));
+      ui.gran = b.dataset.v;
+      renderTimeCharts();
+    }));
+    document.querySelectorAll("#f-sus button").forEach(b => b.addEventListener("click", () => {
+      document.querySelectorAll("#f-sus button").forEach(x => x.classList.toggle("is-on", x === b));
+      ui.hideSus = b.dataset.v === "hide";
+      renderAll();
+    }));
+    document.getElementById("f-metric").addEventListener("change", e => { ui.metric = e.target.value; renderTrend(); });
+    document.getElementById("f-maxhr").addEventListener("change", e => {
+      const v = Math.round(Number(e.target.value));
+      if (v >= 120 && v <= 230) { ui.maxHr = v; storeSet(MAXHR_KEY, String(v)); renderCompare(); renderDetail(); }
+      else e.target.value = ui.maxHr;
+    });
+    ["a", "b"].forEach(p => {
+      document.getElementById(`cmp-${p}-pre`).addEventListener("change", e => { applyPreset(p, e.target.value); renderCompare(); });
+      ["from", "to"].forEach(f => document.getElementById(`cmp-${p}-${f}`).addEventListener("change", () => {
+        document.getElementById(`cmp-${p}-pre`).value = "";
+        renderCompare();
+      }));
+    });
+    document.getElementById("btn-more").addEventListener("click", () => { ui.showAll = !ui.showAll; renderList(filteredW()); });
+    document.getElementById("btn-forget").addEventListener("click", () => {
+      dataDel();
+      DATA = null; W = [];
+      document.getElementById("app").classList.add("hidden");
+      document.getElementById("loader").classList.remove("hidden");
+    });
+
+    // Beim letzten Mal geladene Daten wieder anzeigen (nur in diesem Browser gespeichert)
+    storeDel(STORE_KEY); // ältere Version hat die Daten in localStorage abgelegt
+    dataGet().then(saved => {
+      if (!saved || DATA) return;
+      try { useData(saved, false); } catch (e) { dataDel(); }
+    });
+  </script>
+</body>
+</html>
