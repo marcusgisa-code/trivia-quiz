@@ -152,7 +152,10 @@
     .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 14px 16px; min-width: 0; }
     .tile .k { font-size: 12px; color: var(--ink-2); }
     .tile .v { font-size: 26px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tile .v.text { font-size: 18px; padding: 5px 0 3px; }
+    .tile .v.text {
+      font-size: 16px; line-height: 1.25; padding: 4px 0 3px; white-space: normal;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
     .tile .s { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* Charts */
@@ -217,7 +220,7 @@
     .day-pick .btn:disabled { color: var(--muted); cursor: default; }
     .top3 { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; }
     .top3 li {
-      display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center;
+      display: grid; grid-template-columns: 36px 48px 1fr auto; gap: 12px; align-items: center;
       padding: 10px 12px; border-radius: 10px; background: var(--page);
     }
     .top3 .pos {
@@ -231,6 +234,19 @@
     .top3 .n b { font-size: 18px; }
     .top3 .n span { display: block; font-size: 12px; color: var(--muted); }
     .top3 > div, .top3 li > div { min-width: 0; }
+    /* Album-Cover (über die iTunes-Suche nachgeladen) */
+    .cover {
+      display: grid; place-items: center; overflow: hidden; flex: none;
+      width: 48px; height: 48px; border-radius: 6px;
+      background: var(--page); color: var(--muted); font-size: 18px;
+      box-shadow: inset 0 0 0 1px var(--ring);
+    }
+    .cover img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 0.2s; }
+    .cover img.is-on { opacity: 1; }
+    .cover.has-img span { display: none; }
+    .tile.with-cover { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; grid-column: span 2; }
+    @media (max-width: 400px) { .tile.with-cover { grid-column: auto; } }
+    .tile.with-cover .cover { grid-column: 2; grid-row: 1 / span 3; width: 64px; height: 64px; align-self: center; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -445,6 +461,49 @@
       return n.toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
     }
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    // ── Album-Cover ──
+    // Nur für angezeigte Titel: Band + Titel gehen an die öffentliche iTunes-Suche von Apple,
+    // das Ergebnis (Bild-URL oder "nichts gefunden") wird in diesem Browser gemerkt.
+    const COVER_KEY = "musik-cover";
+    let coverCache = {};
+    try { coverCache = JSON.parse(storeGet(COVER_KEY) || "{}"); } catch (e) { coverCache = {}; }
+    const coverPending = new Map();
+    const norm = t => String(t).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/\(.*?\)|\[.*?\]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+    function coverFor(tr) {
+      const [title, b, album] = DATA.titel[tr];
+      const band = DATA.bands[b];
+      const key = `${norm(band)}|${norm(title)}`;
+      if (key in coverCache) return Promise.resolve(coverCache[key]);
+      if (coverPending.has(key)) return coverPending.get(key);
+      const url = `https://itunes.apple.com/search?entity=song&limit=10&country=DE&term=${encodeURIComponent(`${band} ${title}`)}`;
+      const p = fetch(url).then(r => r.ok ? r.json() : null).then(j => {
+        const res = (j && j.results) || [];
+        const nb = norm(band), nt = norm(title), na = norm(album || "");
+        const score = x => (norm(x.artistName).includes(nb.split(" ")[0]) ? 2 : 0) + (norm(x.trackName) === nt ? 2 : norm(x.trackName).startsWith(nt) ? 1 : 0) + (na && norm(x.collectionName) === na ? 1 : 0);
+        const best = res.filter(x => x.artworkUrl100 && score(x) >= 3).sort((a, b_) => score(b_) - score(a))[0];
+        const img = best ? best.artworkUrl100.replace(/\/\d+x\d+bb\./, "/300x300bb.") : "";
+        coverCache[key] = img;
+        storeSet(COVER_KEY, JSON.stringify(coverCache));
+        return img;
+      }).catch(() => "").finally(() => coverPending.delete(key)); // bei Netzwerkfehler nicht merken
+      coverPending.set(key, p);
+      return p;
+    }
+    const coverSlot = tr => `<span class="cover" data-tr="${tr}"><span aria-hidden="true">♪</span></span>`;
+    function fillCovers(root) {
+      root.querySelectorAll(".cover[data-tr]").forEach(slot => {
+        coverFor(Number(slot.dataset.tr)).then(src => {
+          if (!src || !slot.isConnected) return;
+          const img = new Image();
+          img.alt = "Album-Cover";
+          img.onload = () => { slot.classList.add("has-img"); img.classList.add("is-on"); };
+          img.onerror = () => img.remove();
+          img.src = src;
+          slot.prepend(img);
+        });
+      });
+    }
     const bandName = b => DATA.bands[b];
     const trackTitle = tr => DATA.titel[tr][0];
 
@@ -597,8 +656,12 @@
         ["Top-Titel", tt ? esc(trackTitle(tt[0])) : "–", tt ? `${bandName(DATA.titel[tt[0]][1])} · ${fmtNum(tt[1])}×` : "", true]
       ];
       if (ui.band !== null) tiles.splice(2, 2);
-      document.getElementById("tiles").innerHTML = tiles.map(([k, v, s, text]) =>
-        `<div class="tile"><div class="k">${k}</div><div class="v${text ? " text" : ""}" title="${v}">${v}</div><div class="s" title="${esc(s)}">${esc(s)}</div></div>`).join("");
+      const host = document.getElementById("tiles");
+      host.innerHTML = tiles.map(([k, v, s, text]) => {
+        const cover = k === "Top-Titel" && tt;
+        return `<div class="tile${cover ? " with-cover" : ""}">${cover ? coverSlot(tt[0]) : ""}<div class="k">${k}</div><div class="v${text ? " text" : ""}" title="${v}">${v}</div><div class="s" title="${esc(s)}">${esc(s)}</div></div>`;
+      }).join("");
+      fillCovers(host);
     }
 
     function renderTimeCharts() {
@@ -847,12 +910,14 @@
       document.getElementById("top3").innerHTML = top.map((e, i) => `
         <li>
           <span class="pos">${i + 1}</span>
+          ${coverSlot(e.tr)}
           <div>
             <div class="t" title="${esc(trackTitle(e.tr))}">${esc(trackTitle(e.tr))}</div>
             <div class="a">${esc(bandName(DATA.titel[e.tr][1]))}${DATA.titel[e.tr][2] ? ` · ${esc(DATA.titel[e.tr][2])}` : ""}</div>
           </div>
           <div class="n"><b>${fmtNum(e.n)}×</b><span>${fmtDur(e.sec)}</span></div>
         </li>`).join("");
+      fillCovers(document.getElementById("top3"));
     }
     function stepDay(dir) {
       const i = dayList.findIndex(n => (dir > 0 ? n > ui.day : n >= ui.day));
