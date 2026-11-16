@@ -244,6 +244,32 @@
     .cover img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 0.2s; }
     .cover img.is-on { opacity: 1; }
     .cover.has-img span { display: none; }
+    a.cover { position: relative; text-decoration: none; }
+    a.cover[href] { cursor: pointer; }
+    a.cover[href]::after {
+      content: "▶"; position: absolute; inset: 0; display: grid; place-items: center;
+      font-size: 16px; color: #fff; background: rgba(0,0,0,0.38); opacity: 0; transition: opacity 0.15s;
+    }
+    a.cover[href]:hover::after, a.cover[href]:focus-visible::after { opacity: 1; }
+    a.cover[href]:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+    a.cover.is-playing { box-shadow: 0 0 0 2px var(--s1); }
+
+    /* Apple-Music-Player (eingebettet), unten am Bildschirmrand */
+    .player {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+      background: var(--surface); border-top: 1px solid var(--ring);
+      box-shadow: 0 -8px 24px rgba(0,0,0,0.12);
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    }
+    .player-inner { max-width: 760px; margin: 0 auto; }
+    .player-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; font-size: 12px; color: var(--ink-2); }
+    .player-head a { color: var(--ink-2); }
+    .player-close {
+      border: 1px solid var(--ring); background: var(--surface); color: var(--ink); cursor: pointer;
+      width: 28px; height: 28px; border-radius: 50%; font-size: 16px; line-height: 1; flex: none;
+    }
+    .player iframe { display: block; width: 100%; height: 175px; border: 0; border-radius: 10px; overflow: hidden; background: transparent; }
+    body.has-player { padding-bottom: 230px; }
     .tile.with-cover { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; grid-column: span 2; }
     @media (max-width: 400px) { .tile.with-cover { grid-column: auto; } }
     .tile.with-cover .cover { grid-column: 2; grid-row: 1 / span 3; width: 64px; height: 64px; align-self: center; }
@@ -384,6 +410,15 @@
       </div>
     </section>
   </div>
+  <div class="player hidden" id="player" role="region" aria-label="Apple-Music-Player">
+    <div class="player-inner">
+      <div class="player-head">
+        <span>Ganzer Titel, wenn du in diesem Browser bei <a href="https://music.apple.com" target="_blank" rel="noopener">music.apple.com</a> angemeldet bist – sonst 30-Sekunden-Vorschau · <a id="player-app" href="#">in der Musik-App öffnen</a></span>
+        <button type="button" class="player-close" id="player-close" aria-label="Player schließen">×</button>
+      </div>
+      <div id="player-frame"></div>
+    </div>
+  </div>
   <div class="tip" id="tip"></div>
 
   <script>
@@ -465,7 +500,8 @@
     // ── Album-Cover ──
     // Nur für angezeigte Titel: Band + Titel gehen an die öffentliche iTunes-Suche von Apple,
     // das Ergebnis (Bild-URL oder "nichts gefunden") wird in diesem Browser gemerkt.
-    const COVER_KEY = "musik-cover";
+    const COVER_KEY = "musik-cover-2";   // { "band|titel": { img, url } }
+    storeDel("musik-cover");              // ältere Version ohne Apple-Music-Link
     let coverCache = {};
     try { coverCache = JSON.parse(storeGet(COVER_KEY) || "{}"); } catch (e) { coverCache = {}; }
     const coverPending = new Map();
@@ -482,24 +518,64 @@
         const nb = norm(band), nt = norm(title), na = norm(album || "");
         const score = x => (norm(x.artistName).includes(nb.split(" ")[0]) ? 2 : 0) + (norm(x.trackName) === nt ? 2 : norm(x.trackName).startsWith(nt) ? 1 : 0) + (na && norm(x.collectionName) === na ? 1 : 0);
         const best = res.filter(x => x.artworkUrl100 && score(x) >= 3).sort((a, b_) => score(b_) - score(a))[0];
-        const img = best ? best.artworkUrl100.replace(/\/\d+x\d+bb\./, "/300x300bb.") : "";
-        coverCache[key] = img;
+        const hit = best ? {
+          img: best.artworkUrl100.replace(/\/\d+x\d+bb\./, "/300x300bb."),
+          url: (best.trackViewUrl || "").replace(/[?&]uo=\d+/, "")
+        } : null;
+        coverCache[key] = hit;
         storeSet(COVER_KEY, JSON.stringify(coverCache));
-        return img;
-      }).catch(() => "").finally(() => coverPending.delete(key)); // bei Netzwerkfehler nicht merken
+        return hit;
+      }).catch(() => null).finally(() => coverPending.delete(key)); // bei Netzwerkfehler nicht merken
       coverPending.set(key, p);
       return p;
     }
-    const coverSlot = tr => `<span class="cover" data-tr="${tr}"><span aria-hidden="true">♪</span></span>`;
+    // Link zum Titel: auf dem Mac direkt in der Musik-App (music://), auf iPhone/iPad öffnet
+    // der normale Link die App von selbst, sonst Apple Music im Browser
+    const IS_MAC = /Mac/.test(navigator.platform || "") && !(navigator.maxTouchPoints > 1);
+    const appleMusicHref = url => IS_MAC ? url.replace(/^https:/, "music:") : url;
+    // Eingebetteter Player von Apple (embed.music.apple.com)
+    let playerUrl = null;
+    function openPlayer(url) {
+      playerUrl = url;
+      const embed = url.replace("https://music.apple.com/", "https://embed.music.apple.com/");
+      document.getElementById("player-frame").innerHTML =
+        `<iframe src="${esc(embed)}" title="Apple-Music-Player" allow="autoplay *; encrypted-media *; clipboard-write"
+          sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"></iframe>`;
+      document.getElementById("player-app").href = appleMusicHref(url);
+      document.getElementById("player").classList.remove("hidden");
+      document.body.classList.add("has-player");
+      document.querySelectorAll("a.cover").forEach(a => a.classList.toggle("is-playing", a.getAttribute("href") === url));
+    }
+    function closePlayer() {
+      playerUrl = null;
+      document.getElementById("player-frame").innerHTML = "";
+      document.getElementById("player").classList.add("hidden");
+      document.body.classList.remove("has-player");
+      document.querySelectorAll("a.cover.is-playing").forEach(a => a.classList.remove("is-playing"));
+    }
+    document.getElementById("player-close").addEventListener("click", closePlayer);
+    const coverSlot = tr => `<a class="cover" data-tr="${tr}"><span aria-hidden="true">♪</span></a>`;
     function fillCovers(root) {
       root.querySelectorAll(".cover[data-tr]").forEach(slot => {
-        coverFor(Number(slot.dataset.tr)).then(src => {
-          if (!src || !slot.isConnected) return;
+        coverFor(Number(slot.dataset.tr)).then(hit => {
+          if (!hit || !slot.isConnected) return;
+          if (hit.url) {
+            const [title, b] = DATA.titel[Number(slot.dataset.tr)];
+            slot.href = hit.url;
+            slot.title = `„${title}“ von ${DATA.bands[b]} abspielen`;
+            slot.setAttribute("aria-label", slot.title);
+            slot.classList.toggle("is-playing", playerUrl === hit.url);
+            slot.addEventListener("click", e => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // Cmd-Klick: Link normal öffnen
+              e.preventDefault();
+              openPlayer(hit.url);
+            });
+          }
           const img = new Image();
-          img.alt = "Album-Cover";
+          img.alt = "";
           img.onload = () => { slot.classList.add("has-img"); img.classList.add("is-on"); };
           img.onerror = () => img.remove();
-          img.src = src;
+          img.src = hit.img;
           slot.prepend(img);
         });
       });
