@@ -6,8 +6,12 @@ Aufruf:
 
 Erkannt werden:
   - Deezer:      deezer-data_listening_*.csv  (Export "Listening history")
-  - Apple Music: Apple Music Play Activity.csv (aus dem Datenexport von privacy.apple.com,
-                 Ordner "Apple Media Services information"; ZIP vorher entpacken)
+  - Apple Music: der Datenexport von privacy.apple.com ("Informationen zu Apple-Mediendiensten
+                 Teil 1 von 2.zip") - die ZIP kann direkt angegeben werden, verschachtelte ZIPs
+                 werden im Speicher gelesen. Genutzt werden "Apple Music Play Activity.csv" und,
+                 weil darin der Interpret fehlt, "Apple Music Library Tracks.json" sowie
+                 "Apple Music - Play History Daily Tracks.csv" und "Apple Music - Container Details.csv"
+                 zum Ergänzen der Bands.
 Ordner werden rekursiv nach diesen Dateien durchsucht.
 
 Die Ausgabe enthält persönliche Hördaten. Sie gehört NICHT ins Repo -
@@ -16,9 +20,13 @@ IP-Adressen aus dem Deezer-Export werden nicht übernommen.
 """
 import csv
 import glob
+import io
 import json
 import os
+import re
 import sys
+import zipfile
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 csv.field_size_limit(10_000_000)
@@ -49,12 +57,13 @@ def device_label(platform, model):
     return PLATFORM_NAMES.get((platform or "").strip().lower(), platform or "Unbekannt")
 
 
-def read_csv(path):
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        sample = f.read(4096)
-        f.seek(0)
-        delim = ";" if sample.count(";") > sample.count(",") else ","
-        return list(csv.DictReader(f, delimiter=delim))
+def read_csv(src):
+    """src: Dateipfad oder bereits gelesener Text."""
+    text = src if not os.path.isfile(src) else open(src, encoding="utf-8-sig", newline="").read()
+    text = text.lstrip("\ufeff")
+    sample = text[:4096]
+    delim = ";" if sample.count(";") > sample.count(",") else ","
+    return list(csv.DictReader(io.StringIO(text, newline=""), delimiter=delim))
 
 
 def pick(row, *names):
@@ -102,9 +111,51 @@ def parse_iso(s):
         return None
 
 
-def parse_apple(path):
+APPLE_DEVICE_TYPES = {"IPHONE": "iPhone", "IPAD": "iPad", "MACINTOSH": "Mac", "APPLETV": "Apple TV",
+                      "WATCH": "Apple Watch", "HOMEPOD": "HomePod", "WINDOWS": "Windows", "ANDROID": "Android"}
+
+
+def apple_device(r):
+    m = re.search(r"model/([A-Za-z]+\d+,\d+)", pick(r, "Client Device Name"))
+    if m and m.group(1).replace(",", "_") in DEVICE_NAMES:
+        return DEVICE_NAMES[m.group(1).replace(",", "_")]
+    dt = pick(r, "Device Type").upper()
+    return APPLE_DEVICE_TYPES.get(dt, dt.title() if dt else "Unbekannt")
+
+
+def apple_artist_lookup(library, daily, containers):
+    """Play Activity enthält keinen Interpreten: aus Mediathek und Tagesverlauf ergänzen."""
+    by_title_album, by_title = {}, defaultdict(Counter)
+    for t in library or []:
+        title, artist = (t.get("Title") or "").strip(), (t.get("Artist") or "").strip()
+        if title and artist:
+            by_title_album.setdefault((title.lower(), (t.get("Album") or "").strip().lower()), artist)
+            by_title[title.lower()][artist] += 3
+    for r in daily or []:
+        desc = (r.get("Track Description") or "").strip()
+        # "Band - Titel"; Bands mit " - " im Namen: jede Trennstelle als Kandidat
+        for m in re.finditer(r" - ", desc):
+            artist, title = desc[:m.start()], desc[m.end():]
+            by_title[title.lower()][artist] += 1
+    # Alben im Verlauf: "Band - Album"
+    by_album = defaultdict(Counter)
+    for r in containers or []:
+        if (r.get("Container Type") or "").upper() == "ALBUM":
+            desc = (r.get("Container Description") or "").strip()
+            for m in re.finditer(r" - ", desc):
+                by_album[desc[m.end():].lower()][desc[:m.start()]] += 1
+    def lookup(title, album):
+        t = title.lower()
+        if (t, album.lower()) in by_title_album:
+            return by_title_album[(t, album.lower())]
+        c = by_title.get(t) or by_album.get(album.lower())
+        return c.most_common(1)[0][0] if c else ""
+    return lookup
+
+
+def parse_apple(src, artist_of=lambda t, a: ""):
     plays = []
-    for r in read_csv(path):
+    for r in read_csv(src):
         media = pick(r, "Media Type").upper()
         if media and media != "AUDIO":
             continue
@@ -118,30 +169,77 @@ def parse_apple(path):
         title = pick(r, "Song Name", "Content Name", "Track Name")
         if t is None or not title:
             continue
+        album = pick(r, "Album Name", "Container Album Name")
         plays.append({
             "t": t,
             "title": title,
-            "artist": pick(r, "Artist Name", "Container Artist Name", "Artist"),
-            "album": pick(r, "Album Name", "Container Album Name"),
+            "artist": pick(r, "Artist Name", "Artist") or artist_of(title, album) or pick(r, "Container Artist Name"),
+            "album": album,
             "sec": sec,
             "src": "apple",
-            "dev": device_label("", pick(r, "Device Type", "Client Platform", "Device Identifier")) or "Unbekannt",
-            "id": pick(r, "Song ID", "Item ID", "Content Specific Type"),
+            "dev": apple_device(r),
+            "id": pick(r, "Song ID", "Item ID"),
+            "pos": int(float(pick(r, "Start Position In Milliseconds") or 0)) // 1000,
         })
-    return plays
+    # Apple protokolliert nach Pause/Fortsetzen jedes Stück einzeln: Abschnitte, die mitten im
+    # Titel weiterlaufen (Startposition > 0) und an den vorigen Abschnitt desselben Titels
+    # anschließen (< 30 min Pause), zählen als eine Wiedergabe.
+    plays.sort(key=lambda p: p["t"])
+    merged, last = [], {}
+    for p in plays:
+        key = (p["title"].lower(), p["album"].lower())
+        prev = last.get(key)
+        if prev is not None and p["pos"] > 1 and p["t"] - (prev["t"] + prev["sec"]) < 1800 \
+                and merged and merged[-1] is prev:
+            prev["sec"] += p["sec"]
+            continue
+        merged.append(p)
+        last[key] = p
+    for p in merged:
+        del p["pos"]
+    return merged
 
 
-def find_files(args):
-    files = []
+WANTED = ("deezer-data_listening_", "music play activity", "library tracks.json", "play history daily tracks",
+          "container details")
+
+
+def wanted(name):
+    n = os.path.basename(name).lower()
+    return any(w in n for w in WANTED) and (n.endswith(".csv") or n.endswith(".json") or n.endswith(".json.zip"))
+
+
+def zip_members(zf, prefix=""):
+    """Gesuchte Dateien aus einer ZIP (auch verschachtelt) als (Name, Text)."""
+    for info in zf.infolist():
+        name = info.filename
+        if name.lower().endswith(".zip") and not name.lower().endswith(".json.zip") or \
+                (name.lower().endswith(".json.zip") and wanted(name)):
+            with zipfile.ZipFile(io.BytesIO(zf.read(info))) as inner:
+                yield from zip_members(inner, prefix + name + "/")
+        elif wanted(name) and not name.lower().endswith(".zip"):
+            yield prefix + name, zf.read(info).decode("utf-8-sig")
+
+
+def collect(args):
+    """Alle gesuchten Dateien als Liste (Name, Text)."""
+    out = []
     for a in args:
         if os.path.isdir(a):
-            files += glob.glob(os.path.join(a, "**", "deezer-data_listening_*.csv"), recursive=True)
-            files += glob.glob(os.path.join(a, "**", "*Play Activity*.csv"), recursive=True)
+            for f in sorted(glob.glob(os.path.join(a, "**", "*"), recursive=True)):
+                if f.lower().endswith(".zip"):
+                    with zipfile.ZipFile(f) as zf:
+                        out += list(zip_members(zf, os.path.basename(f) + "/"))
+                elif wanted(f):
+                    out.append((f, open(f, encoding="utf-8-sig").read()))
+        elif os.path.isfile(a) and a.lower().endswith(".zip"):
+            with zipfile.ZipFile(a) as zf:
+                out += list(zip_members(zf, os.path.basename(a) + "/"))
         elif os.path.isfile(a):
-            files.append(a)
+            out.append((a, open(a, encoding="utf-8-sig").read()))
         else:
             sys.exit(f"Nicht gefunden: {a}")
-    return sorted(set(files))
+    return out
 
 
 def main():
@@ -154,42 +252,65 @@ def main():
     if not args:
         sys.exit(__doc__)
 
+    files = collect(args)
+    library, daily, containers = [], [], []
+    for name, text in files:
+        n = os.path.basename(name).lower()
+        if "library tracks.json" in n:
+            library += json.loads(text)
+        elif "play history daily tracks" in n:
+            daily += read_csv(text)
+        elif "container details" in n:
+            containers += read_csv(text)
+    artist_of = apple_artist_lookup(library, daily, containers)
+
     plays = []
-    for f in find_files(args):
-        name = os.path.basename(f).lower()
-        if name.startswith("deezer"):
-            p = parse_deezer(f)
-        elif "play activity" in name:
-            p = parse_apple(f)
+    for name, text in files:
+        n = os.path.basename(name).lower()
+        if n.startswith("deezer"):
+            p = parse_deezer(text)
+        elif "music play activity" in n:
+            p = parse_apple(text, artist_of)
+            print(f"  Interpret ergänzt aus Mediathek/Tagesverlauf: {sum(1 for x in p if x['artist'])} von {len(p)}")
         else:
-            print(f"Übersprungen (unbekanntes Format): {f}")
             continue
-        print(f"{os.path.basename(f)}: {len(p)} Wiedergaben")
+        print(f"{os.path.basename(name)}: {len(p)} Wiedergaben")
         plays += p
     if not plays:
         sys.exit("Keine Wiedergaben gefunden.")
 
     # Apple liefert teils keinen Interpreten: über Titel + Album aus den übrigen Daten ergänzen
-    known = {}
+    known, by_album = {}, defaultdict(Counter)
     for p in plays:
         if p["artist"]:
             known.setdefault((p["title"].lower(), p["album"].lower()), p["artist"])
             known.setdefault((p["title"].lower(), ""), p["artist"])
+            if p["album"]:
+                by_album[p["album"].lower()][p["artist"]] += 1
     for p in plays:
         if not p["artist"]:
+            alb = by_album.get(p["album"].lower()) if p["album"] else None
             p["artist"] = known.get((p["title"].lower(), p["album"].lower())) \
-                or known.get((p["title"].lower(), "")) or "Unbekannt"
+                or known.get((p["title"].lower(), "")) or (alb.most_common(1)[0][0] if alb else "") or "Unbekannt"
+    unknown = sum(1 for p in plays if p["artist"] == "Unbekannt")
+    if unknown:
+        print(f"Ohne Interpret (als „Unbekannt“): {unknown} Wiedergaben")
 
     # Vereinzelte Ausreißer ganz am Anfang entfernen (Deezer enthält z. B. einen einzelnen
     # Eintrag fast 5 Jahre vor allen anderen): höchstens 5 Einträge, danach > 180 Tage Pause
-    plays.sort(key=lambda p: p["t"])
-    for i in range(min(5, len(plays) - 1)):
-        if plays[i + 1]["t"] - plays[i]["t"] > 180 * 86400:
-            for p in plays[:i + 1]:
-                print(f"Ausreißer entfernt: {datetime.fromtimestamp(p['t']):%d.%m.%Y} "
-                      f"{p['artist']} – {p['title']} ({p['src']})")
-            plays = plays[i + 1:]
-            break
+    # (je Quelle prüfen, da die andere Quelle früher beginnen kann)
+    kept = []
+    for src in ("deezer", "apple"):
+        ps = sorted((p for p in plays if p["src"] == src), key=lambda p: p["t"])
+        for i in range(min(5, len(ps) - 1)):
+            if ps[i + 1]["t"] - ps[i]["t"] > 180 * 86400:
+                for p in ps[:i + 1]:
+                    print(f"Ausreißer entfernt: {datetime.fromtimestamp(p['t']):%d.%m.%Y} "
+                          f"{p['artist']} – {p['title']} ({p['src']})")
+                ps = ps[i + 1:]
+                break
+        kept += ps
+    plays = sorted(kept, key=lambda p: p["t"])
 
     # Doppelte Einträge (gleicher Zeitpunkt, gleicher Titel) entfernen
     seen, unique = set(), []
