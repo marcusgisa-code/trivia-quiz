@@ -1784,15 +1784,16 @@
         <div class="hotd-stats">
           <div class="hotd-stat"><b>${fmtNum(hit.count)}</b><span>${hit.count === 1 ? "Wiedergabe" : "Wiedergaben"}</span></div>
           <div class="hotd-stat hotd-years${years.length > 3 ? " many" : years.length > 1 ? " some" : ""}"><b>${years.join(" · ")}</b><span>${years.length === 1 ? "Jahr" : "Jahre"}</span></div>
-          <a class="hotd-link hidden" id="hotd-link" target="_blank" rel="noopener">Apple Music
+          <a class="hotd-link" id="hotd-link" target="_blank" rel="noopener" href="https://music.apple.com/de/search?term=${encodeURIComponent(`${bandName(b)} ${title}`)}" title="Bei Apple Music suchen">Apple Music
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></a>
         </div>`;
       fillCovers(panel);
+      // Direkter Link zum Titel, wenn die iTunes-Suche ihn findet; sonst bleibt die Apple-Music-Suche
       coverFor(hit.tr).then(c => {
         const a = document.getElementById("hotd-link");
         if (!c || !c.url || !a) return;
         a.href = appleMusicHref(c.url);
-        a.classList.remove("hidden");
+        a.title = `„${title}“ bei Apple Music`;
       });
     }
     function setHotd(open) {
