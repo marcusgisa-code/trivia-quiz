@@ -14,6 +14,11 @@ Erkannt werden:
                  zum Ergänzen der Bands.
 Ordner werden rekursiv nach diesen Dateien durchsucht.
 
+Zusätzlich werden für die meistgehörten Bands Link und Bild der Interpreten-Seite bei
+Apple Music geholt (iTunes-Suche + Seite music.apple.com; der Browser darf das wegen CORS
+nicht selbst). Ergebnisse landen in interpreten_cache.json, spätere Läufe gehen schnell.
+Abschalten mit --ohne-bilder.
+
 Die Ausgabe enthält persönliche Hördaten. Sie gehört NICHT ins Repo -
 Standard-Ausgabeort ist deshalb dieser Ordner (per .gitignore ausgeschlossen).
 IP-Adressen aus dem Deezer-Export werden nicht übernommen.
@@ -25,6 +30,10 @@ import json
 import os
 import re
 import sys
+import time
+import unicodedata
+import urllib.parse
+import urllib.request
 import zipfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -242,6 +251,67 @@ def collect(args):
     return out
 
 
+UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+
+
+def norm(s):
+    s = unicodedata.normalize("NFKD", str(s).lower())
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = re.sub(r"\(.*?\)|\[.*?\]", "", s)
+    return re.sub(r"[^a-z0-9]+", " ", s).strip()
+
+
+def http_get(url):
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+def artist_info(name):
+    """{url, img} der Apple-Music-Interpretenseite oder None."""
+    term = urllib.parse.quote(name)
+    j = json.loads(http_get(f"https://itunes.apple.com/search?entity=musicArtist&limit=5&country=DE&term={term}"))
+    res = [x for x in j.get("results", []) if x.get("artistLinkUrl")]
+    key = norm(name)
+    best = next((x for x in res if norm(x["artistName"]) == key), None) or \
+        next((x for x in res if norm(x["artistName"]).startswith(key)), None)
+    if not best:
+        return None
+    url = re.sub(r"[?&]uo=\d+", "", best["artistLinkUrl"])
+    img = None
+    try:
+        m = re.search(r'<meta property="og:image" content="([^"]+)"', http_get(url))
+        # Das Bild der Interpretenseite (Bandfoto, sonst zeigt Apple dort ein Album-Cover)
+        if m and "/image/thumb/" in m.group(1):
+            img = re.sub(r"/\d+x\d+\w*\.(png|jpg|webp)$", "/400x400cc.jpg", m.group(1))
+    except Exception:
+        pass
+    return {"url": url, "img": img}
+
+
+def fetch_artists(names, cache_path):
+    try:
+        cache = json.load(open(cache_path, encoding="utf-8"))
+    except (OSError, ValueError):
+        cache = {}
+    todo = [n for n in names if norm(n) not in cache]
+    if todo:
+        print(f"Interpreten-Bilder: {len(todo)} neu abzufragen (ca. {len(todo) * 3.2 / 60:.0f} min) …")
+    for i, n in enumerate(todo, 1):
+        for attempt in range(3):
+            try:
+                cache[norm(n)] = artist_info(n)
+                break
+            except Exception as e:  # 403/429: Apple bremst -> warten und erneut
+                time.sleep(20 * (attempt + 1))
+        time.sleep(3.2)  # iTunes-Suche erlaubt nur ca. 20 Anfragen pro Minute
+        if i % 25 == 0:
+            print(f"  {i}/{len(todo)}")
+            json.dump(cache, open(cache_path, "w", encoding="utf-8"), ensure_ascii=False)
+    json.dump(cache, open(cache_path, "w", encoding="utf-8"), ensure_ascii=False)
+    return cache
+
+
 def main():
     args = sys.argv[1:]
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "musik_daten.json")
@@ -249,6 +319,8 @@ def main():
         i = args.index("-o")
         out = args[i + 1]
         del args[i:i + 2]
+    with_images = "--ohne-bilder" not in args
+    args = [a for a in args if a != "--ohne-bilder"]
     if not args:
         sys.exit(__doc__)
 
@@ -343,6 +415,26 @@ def main():
             devices.append(p["dev"])
         rows.append([p["t"], track_idx[tk], p["sec"], sources.index(p["src"]), dev_idx[p["dev"]]])
 
+    # Link + Bild für die meistgehörten Bands (gesamt und je Monat), Index -> {url, img}
+    artists = {}
+    if with_images:
+        plays_per_band, per_month = Counter(), defaultdict(Counter)
+        for r in rows:
+            if r[2] >= 30:
+                b = tracks[r[1]][1]
+                plays_per_band[b] += 1
+                per_month[datetime.fromtimestamp(r[0]).strftime("%Y-%m")][b] += 1
+        top = {b for b, _ in plays_per_band.most_common(200)}
+        for c in per_month.values():
+            top |= {b for b, _ in c.most_common(3)}
+        top.discard(band_idx.get("unbekannt"))
+        cache = fetch_artists([bands[b] for b in sorted(top)], os.path.join(os.path.dirname(out), "interpreten_cache.json"))
+        for b in top:
+            hit = cache.get(norm(bands[b]))
+            if hit:
+                artists[str(b)] = hit
+        print(f"Interpreten mit Apple-Music-Link: {len(artists)}, davon mit Bild: {sum(1 for a in artists.values() if a.get('img'))}")
+
     def span(src):
         ts = [p["t"] for p in unique if p["src"] == src]
         if not ts:
@@ -356,6 +448,7 @@ def main():
         "bands": bands,
         "titel": tracks,
         "geraete": devices,
+        "interpreten": artists,
         # [Zeitpunkt (Unix-Sekunden), Titel-Index, gehörte Sekunden, Quelle (0 Deezer, 1 Apple), Geräte-Index]
         "wiedergaben": rows,
     }

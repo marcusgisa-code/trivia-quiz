@@ -372,6 +372,21 @@
     .hero.dark .rank { background: rgba(255,255,255,0.10); color: var(--hero-ink); }
     .hero.dark .name b { font-size: 38px; line-height: 1.12; text-transform: none; letter-spacing: -0.01em; }
     .hero.dark .n b { color: var(--hero-accent); }
+    .artist-img {
+      grid-column: 2; grid-row: 1 / span 2; align-self: center; margin-top: 30px;
+      width: 132px; height: 132px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.08);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.10);
+    }
+    a.artist-pic { grid-column: 2; grid-row: 1 / span 2; align-self: center; border-radius: 50%; }
+    a.artist-pic .artist-img { display: block; }
+    a.artist-pic:hover .artist-img, a.artist-pic:focus-visible .artist-img { box-shadow: 0 0 0 3px var(--hero-accent); }
+    @media (max-width: 640px) { .artist-img { width: 88px; height: 88px; } }
+    .hero .foot { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .artist-link {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; text-decoration: none;
+      color: var(--hero-ink); border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; padding: 6px 12px;
+    }
+    .artist-link:hover, .artist-link:focus-visible { background: rgba(255,255,255,0.10); border-color: var(--hero-accent); }
     @media (max-width: 640px) {
       .hero { padding: 18px 18px; min-height: 0; }
       .hero.dark .name b { font-size: 28px; }
@@ -680,6 +695,35 @@
       document.querySelectorAll("a.cover.is-playing").forEach(a => a.classList.remove("is-playing"));
     }
     document.getElementById("player-close").addEventListener("click", closePlayer);
+    // Interpreten-Seite bei Apple Music (iTunes-Suche, Ergebnis wird gemerkt)
+    const ARTIST_KEY = "musik-interpreten";
+    let artistCache = {};
+    try { artistCache = JSON.parse(storeGet(ARTIST_KEY) || "{}"); } catch (e) { artistCache = {}; }
+    function artistUrlFor(name) {
+      const key = norm(name);
+      if (key in artistCache) return Promise.resolve(artistCache[key]);
+      const url = `https://itunes.apple.com/search?entity=musicArtist&limit=5&country=DE&term=${encodeURIComponent(name)}`;
+      return fetch(url).then(r => r.ok ? r.json() : null).then(j => {
+        const res = ((j && j.results) || []).filter(x => x.artistLinkUrl);
+        const best = res.find(x => norm(x.artistName) === key) || res.find(x => norm(x.artistName).startsWith(key));
+        const hit = best ? best.artistLinkUrl.replace(/[?&]uo=\d+/, "") : null;
+        artistCache[key] = hit;
+        storeSet(ARTIST_KEY, JSON.stringify(artistCache));
+        return hit;
+      }).catch(() => null);
+    }
+    function fillArtistLinks(root) {
+      root.querySelectorAll(".artist-link[data-b]").forEach(a => {
+        const name = bandName(Number(a.dataset.b));
+        const known = (DATA.interpreten || {})[a.dataset.b];
+        (known ? Promise.resolve(known.url) : artistUrlFor(name)).then(url => {
+          if (!url || !a.isConnected) return;
+          a.href = appleMusicHref(url);
+          a.title = `${name} bei Apple Music`;
+          a.classList.remove("hidden");
+        });
+      });
+    }
     const coverSlot = tr => `<a class="cover" data-tr="${tr}"><span aria-hidden="true">♪</span></a>`;
     function fillCovers(root) {
       root.querySelectorAll(".cover[data-tr]").forEach(slot => {
@@ -846,7 +890,8 @@
         tracks.set(p.tr, (tracks.get(p.tr) || 0) + 1);
       });
       const top = m => [...m.entries()].sort((a, b) => b[1] - a[1])[0];
-      const tb = top(bands), tt = top(tracks);
+      // "Unbekannt" (Apple-Einträge ohne Interpret) nie als Top-Band zeigen
+      const tb = [...bands.entries()].filter(([b]) => bandName(b) !== "Unbekannt").sort((a, b) => b[1] - a[1])[0], tt = top(tracks);
       const days = new Set(plays.map(p => p.day)).size;
       const hours = fmtHours(total);
       const tiles = [
@@ -859,14 +904,20 @@
       // Top-Band und Top-Titel als große Karten (bei gewählter Band nur der Top-Titel)
       const count = n => `<div class="n"><b>${fmtNum(n)}</b>Wiedergaben</div>`;
       const heroes = [];
-      if (tb && ui.band === null) heroes.push(`<div class="hero dark"><div class="k">Deine Top-Band</div><span class="rank">#1</span>
-        <div class="name"><b title="${esc(bandName(tb[0]))}">${esc(bandName(tb[0]))}</b></div>${count(tb[1])}</div>`);
+      const art = tb && (DATA.interpreten || {})[tb[0]];
+      const pic = art && art.img
+        ? `<a class="artist-pic" href="${esc(appleMusicHref(art.url))}" target="_blank" rel="noopener" title="${esc(bandName(tb[0]))} bei Apple Music"><img class="artist-img" src="${esc(art.img)}" alt="" loading="lazy" onerror="this.parentElement.remove()"></a>`
+        : "";
+      if (tb && ui.band === null) heroes.push(`<div class="hero dark"><div class="k">Deine Top-Band</div><span class="rank">#1</span>${pic}
+        <div class="name"><b title="${esc(bandName(tb[0]))}">${esc(bandName(tb[0]))}</b></div>
+        <div class="foot">${count(tb[1])}<a class="artist-link hidden" data-b="${tb[0]}" target="_blank" rel="noopener">Apple Music ↗</a></div></div>`);
       if (tt) heroes.push(`<div class="hero"><div class="k">Dein Top-Titel</div><span class="rank">#1</span>
         <div class="name"><b title="${esc(trackTitle(tt[0]))}">${esc(trackTitle(tt[0]))}</b><span>${esc(bandName(DATA.titel[tt[0]][1]))}</span></div>
         ${count(tt[1])}${coverSlot(tt[0])}</div>`);
       const hh = document.getElementById("heroes");
       hh.innerHTML = heroes.join("");
       fillCovers(hh);
+      fillArtistLinks(hh);
     }
 
     function renderTimeCharts() {
