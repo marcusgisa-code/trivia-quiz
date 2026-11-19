@@ -103,7 +103,7 @@
       -webkit-font-smoothing: antialiased;
       line-height: 1.45;
     }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 16px 64px; }
+    .wrap { max-width: 1212px; margin: 0 auto; padding: 28px 16px 64px; }
     h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
     h2 { font-size: 17px; margin: 0 0 2px; }
     .sub { color: var(--ink-2); margin: 0 0 20px; font-size: 14px; }
@@ -112,17 +112,82 @@
       padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--card-line);
     }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--forest); display: grid; place-items: center; flex: none; }
-    .brand-icon svg { width: 20px; height: 20px; color: var(--meadow); }
-    .brand h1 { font-family: "Plus Jakarta Sans", Inter, sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.025em; margin: 0; }
+    .brand { gap: 18px; }
+    .brand-icon { width: 60px; height: 60px; border-radius: 16px; background: var(--forest); display: grid; place-items: center; flex: none; }
+    .brand-icon svg { width: 28px; height: 28px; color: var(--meadow); }
+    .brand h1 { font-family: "Plus Jakarta Sans", Inter, sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; margin: 0; }
+    .head-right { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; }
+    /* Heute + Hit des Tages */
+    .today { display: flex; align-items: center; gap: 14px; padding-right: 20px; border-right: 1px solid var(--card-line); }
+    .cal {
+      width: 52px; height: 56px; border-radius: 14px; background: var(--card); border: 1px solid var(--card-line);
+      overflow: hidden; display: flex; flex-direction: column; flex: none;
+    }
+    .cal span { background: var(--meadow); color: #141c16; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-align: center; padding: 3px 0; }
+    .cal b { flex: 1; display: grid; place-items: center; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .today-text { display: flex; flex-direction: column; gap: 4px; }
+    .today-text span { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--label); }
+    .today-text time { font-size: 18px; font-weight: 700; white-space: nowrap; }
+    .hotd-btn {
+      display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 22px; border-radius: 999px; cursor: pointer;
+      font: inherit; font-size: 16px; font-weight: 700; white-space: nowrap;
+      background: var(--meadow); color: #141c16; border: 1px solid var(--meadow); transition: filter .15s, background .15s, color .15s;
+    }
+    .hotd-btn:hover { filter: brightness(0.96); }
+    .hotd-btn svg { width: 18px; height: 18px; flex: none; }
+    .hotd-btn .chev { width: 16px; height: 16px; transition: transform .2s; }
+    .hotd-btn[aria-expanded="true"] { background: var(--forest); color: var(--meadow); border-color: var(--forest); }
+    .hotd-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+    .hotd-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .hotd {
+      flex: 1 1 100%; position: relative; overflow: hidden; background: var(--hero); color: #fff; border-radius: 28px; padding: 28px 32px;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 24px 40px;
+    }
+    .hotd-star { position: absolute; right: -40px; top: -60px; width: 260px; height: 260px; color: #243027; pointer-events: none; }
+    .hotd-main { position: relative; display: flex; align-items: center; gap: 24px; flex: 1 1 420px; min-width: 0; }
+    .hotd .cover {
+      width: 120px; height: 120px; border-radius: 18px; flex: none; font-size: 36px;
+      background: #2a372d; color: var(--meadow); box-shadow: inset 0 0 0 1px #4e6152;
+    }
+    .hotd-info { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .hotd-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .hotd-tags span:first-child { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #b7c2b9; }
+    .hotd-tags span + span { font-size: 13px; font-weight: 700; color: var(--meadow); border: 1px solid #3f5a2a; background: #243322; border-radius: 999px; padding: 3px 12px; }
+    .hotd h2 { margin: 4px 0 0; font-size: 34px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; overflow-wrap: anywhere; }
+    .hotd p { margin: 0; font-size: 17px; color: #c9d2cb; }
+    .hotd-stats { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px 36px; }
+    .hotd-stat { display: flex; flex-direction: column; gap: 6px; }
+    .hotd-stat b { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .hotd-stat:first-child b { color: var(--meadow); }
+    .hotd-stat span { font-size: 14px; color: #c9d2cb; }
+    /* Jahreszahlen: je mehr Jahre, desto kleiner */
+    .hotd-years { max-width: 420px; }
+    .hotd-years.some b { font-size: 34px; }
+    .hotd-years.many b { font-size: 24px; line-height: 1.25; }
+    .hotd-link {
+      display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 22px; text-decoration: none;
+      border: 1px solid #5e7262; border-radius: 999px; font-size: 16px; font-weight: 600; color: #fff; transition: background .15s;
+    }
+    .hotd-link:hover { background: #26322a; color: #fff; }
+    .hotd-link svg { width: 16px; height: 16px; }
+    .hotd-empty { position: relative; margin: 0; color: #c9d2cb; font-size: 16px; }
+    @media (max-width: 640px) {
+      .brand h1 { font-size: 30px; }
+      .brand-icon { width: 48px; height: 48px; border-radius: 14px; }
+      .today { border-right: none; padding-right: 0; }
+      .hotd { padding: 22px 20px; border-radius: 22px; }
+      .hotd .cover { width: 88px; height: 88px; }
+      .hotd h2 { font-size: 26px; }
+      .hotd-stat b { font-size: 38px; }
+    }
     /* Menü rechts oben: öffnet bei Mouse-Over oder Klick */
     .menu-wrap { position: relative; }
     .menu-btn {
-      width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer;
+      width: 56px; height: 56px; display: grid; place-items: center; cursor: pointer;
       color: var(--ink); background: var(--card); border: 1px solid var(--card-line); border-radius: 12px;
       box-shadow: var(--shadow-card); transition: background .15s, color .15s;
     }
-    .menu-btn svg { width: 20px; height: 20px; }
+    .menu-btn svg { width: 22px; height: 22px; }
     .menu-wrap.is-open .menu-btn { background: var(--forest); color: var(--meadow); border-color: transparent; }
     .menu-panel { position: absolute; top: 100%; right: 0; z-index: 40; padding-top: 8px; display: none; }
     .menu-wrap.is-open .menu-panel { display: block; }
@@ -602,6 +667,16 @@
         </span>
         <h1>The MusicStats</h1>
       </div>
+      <div class="head-right">
+      <div class="today">
+        <div class="cal" aria-hidden="true"><span id="cal-mon"></span><b id="cal-day"></b></div>
+        <div class="today-text"><span>Heute</span><time id="today-date"></time></div>
+      </div>
+      <button type="button" class="hotd-btn hidden" id="hotd-btn" aria-expanded="false" aria-controls="hotd-panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>
+        Hit des Tages
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
       <div class="menu-wrap" id="menu-wrap">
         <button type="button" class="menu-btn" id="menu-btn" aria-haspopup="true" aria-expanded="false" aria-controls="menu-panel" aria-label="Menü">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -613,6 +688,8 @@
           </div>
         </div>
       </div>
+      </div>
+      <section class="hotd hidden" id="hotd-panel" aria-label="Hit des Tages"></section>
     </header>
 
     <section id="loader">
@@ -794,7 +871,7 @@
     const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
     const SRC_LABEL = ["Deezer", "Apple Music"];
     const SRC_COLOR = ["var(--s1)", "var(--s2)"];
-    const PAGE = 25;
+    const PAGE = 10;   // Hitliste: anfangs Top 10
 
     const ui = {
       range: { key: "all", from: null, to: null, label: "Gesamter Zeitraum" },
@@ -1661,6 +1738,71 @@
         };
       }).sort((a, b) => a.t - b.t);
     }
+    // ── Heute + Hit des Tages ──
+    const MONTHS_LONG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+    const WEEKDAYS_LONG = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+    function renderToday() {
+      const d = new Date();
+      document.getElementById("cal-mon").textContent = MONTHS_LONG[d.getMonth()].slice(0, 3).toUpperCase();
+      document.getElementById("cal-day").textContent = d.getDate();
+      const t = document.getElementById("today-date");
+      t.textContent = `${WEEKDAYS_LONG[d.getDay()]}, ${d.getDate()}. ${MONTHS_LONG[d.getMonth()]} ${d.getFullYear()}`;
+      t.dateTime = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+    renderToday();
+    // Meistgespielter Titel an diesem Kalendertag über alle Jahre (ab 30 Sek., unabhängig von Filtern).
+    // Gleichstand: mehr Jahre, in denen er an diesem Tag lief, danach mehr Hörzeit.
+    function hitOfDay(month, day) {
+      const by = new Map();
+      PLAYS.forEach(p => {
+        if (p.sec < 30) return;
+        const d = new Date(p.t);
+        if (d.getMonth() !== month || d.getDate() !== day) return;
+        let e = by.get(p.tr);
+        if (!e) { e = { tr: p.tr, count: 0, dur: 0, years: new Set() }; by.set(p.tr, e); }
+        e.count += 1; e.dur += p.sec; e.years.add(d.getFullYear());
+      });
+      return [...by.values()].sort((a, b) => b.count - a.count || b.years.size - a.years.size || b.dur - a.dur)[0] || null;
+    }
+    function renderHitOfDay() {
+      const now = new Date(), dm = `${now.getDate()}. ${MONTHS_LONG[now.getMonth()]}`;
+      const hit = hitOfDay(now.getMonth(), now.getDate());
+      const panel = document.getElementById("hotd-panel");
+      const star = `<svg class="hotd-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>`;
+      if (!hit) { panel.innerHTML = `${star}<p class="hotd-empty">An einem ${dm} hast du bisher keine Musik gehört.</p>`; return; }
+      const [title, b] = DATA.titel[hit.tr];
+      const years = [...hit.years].sort();
+      panel.innerHTML = `${star}
+        <div class="hotd-main">
+          ${coverSlot(hit.tr)}
+          <div class="hotd-info">
+            <div class="hotd-tags"><span>Hit des Tages</span><span>${dm}</span></div>
+            <h2>${esc(title)}</h2>
+            <p>${esc(bandName(b))}</p>
+          </div>
+        </div>
+        <div class="hotd-stats">
+          <div class="hotd-stat"><b>${fmtNum(hit.count)}</b><span>${hit.count === 1 ? "Wiedergabe" : "Wiedergaben"}</span></div>
+          <div class="hotd-stat hotd-years${years.length > 3 ? " many" : years.length > 1 ? " some" : ""}"><b>${years.join(" · ")}</b><span>${years.length === 1 ? "Jahr" : "Jahre"}</span></div>
+          <a class="hotd-link hidden" id="hotd-link" target="_blank" rel="noopener">Apple Music
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></a>
+        </div>`;
+      fillCovers(panel);
+      coverFor(hit.tr).then(c => {
+        const a = document.getElementById("hotd-link");
+        if (!c || !c.url || !a) return;
+        a.href = appleMusicHref(c.url);
+        a.classList.remove("hidden");
+      });
+    }
+    function setHotd(open) {
+      const btn = document.getElementById("hotd-btn");
+      btn.setAttribute("aria-expanded", String(open));
+      document.getElementById("hotd-panel").classList.toggle("hidden", !open);
+      if (open) renderHitOfDay();
+    }
+    document.getElementById("hotd-btn").addEventListener("click", e => setHotd(e.currentTarget.getAttribute("aria-expanded") !== "true"));
+
     function useData(json, remember) {
       if (!json || !Array.isArray(json.wiedergaben) || !Array.isArray(json.titel)) throw new Error("Keine gültige Datei");
       DATA = json;
@@ -1670,6 +1812,8 @@
       if (remember) storeSet(STORE_KEY, JSON.stringify(json));
       computeAxis();
       document.getElementById("btn-forget").classList.remove("hidden");
+      document.getElementById("hotd-btn").classList.remove("hidden");
+      setHotd(false);
       document.getElementById("loader").classList.add("hidden");
       document.getElementById("app").classList.remove("hidden");
       initRange();
@@ -1746,6 +1890,8 @@
       storeDel(STORE_KEY);
       DATA = null; PLAYS = [];
       document.getElementById("btn-forget").classList.add("hidden");
+      document.getElementById("hotd-btn").classList.add("hidden");
+      setHotd(false);
       document.getElementById("app").classList.add("hidden");
       document.getElementById("loader").classList.remove("hidden");
     });
