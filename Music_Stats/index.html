@@ -38,6 +38,9 @@
       --shadow-dark: 0 14px 30px -8px rgba(22,34,20,0.28);
       --pick: #162214; --pick-ink: #ffffff; --pick-wash: #eef8dc;
       --strong: #162214; --strong-ink: #ffffff;
+      --rank1-bg: #162214; --rank1-ink: #84cc16;
+      --src-0: #1f6fb8; --src-1: #5e9a24; --bar-green: #5e9a24; --track: #eef1ea;
+      --heat-0: #eef1ea; --heat-1: #dcefc2; --heat-2: #b4db80; --heat-3: #7fb842; --heat-4: #4a8526; --heat-5: #1f4a1c;
     }
     @media (prefers-color-scheme: dark) {
       :root:where(:not([data-theme="light"])) {
@@ -65,6 +68,9 @@
         --shadow-card: none; --shadow-hover: 0 10px 28px -10px rgba(0,0,0,0.6); --shadow-dark: none;
         --pick: #84cc16; --pick-ink: #162214; --pick-wash: rgba(132,204,22,0.16);
         --strong: #e6ebe2; --strong-ink: #162214;
+        --rank1-bg: #84cc16; --rank1-ink: #141c16;
+        --src-0: #3d8ad6; --src-1: #84cc16; --bar-green: #84cc16; --track: #2a2a28;
+        --heat-0: #262625; --heat-1: #24361a; --heat-2: #35561f; --heat-3: #4f8526; --heat-4: #7fb842; --heat-5: #b4db80;
       }
     }
     :root[data-theme="dark"] {
@@ -92,6 +98,9 @@
       --shadow-card: none; --shadow-hover: 0 10px 28px -10px rgba(0,0,0,0.6); --shadow-dark: none;
       --pick: #84cc16; --pick-ink: #162214; --pick-wash: rgba(132,204,22,0.16);
       --strong: #e6ebe2; --strong-ink: #162214;
+      --rank1-bg: #84cc16; --rank1-ink: #141c16;
+      --src-0: #3d8ad6; --src-1: #84cc16; --bar-green: #84cc16; --track: #2a2a28;
+      --heat-0: #262625; --heat-1: #24361a; --heat-2: #35561f; --heat-3: #4f8526; --heat-4: #7fb842; --heat-5: #b4db80;
     }
 
     * { box-sizing: border-box; }
@@ -398,7 +407,7 @@
       display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; border-radius: 999px;
       font-size: 15px; font-weight: 700; color: var(--label); font-variant-numeric: tabular-nums;
     }
-    .rk-rank.r1 { background: var(--forest); color: var(--meadow); }
+    .rk-rank.r1 { background: var(--rank1-bg); color: var(--rank1-ink); }
     .rk-rank.r2 { background: var(--meadow-tint); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(132,204,22,0.45); }
     .rk-bar { height: 8px; border-radius: 4px; background: var(--page); overflow: hidden; }
     .rk-bar i { display: block; height: 100%; border-radius: 4px; background: var(--meadow); }
@@ -439,36 +448,127 @@
     .tip .row { display: flex; justify-content: space-between; gap: 12px; }
     .tip .row i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; background: var(--c); }
 
-    .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
-    .fact { padding: 10px 12px; border-radius: 10px; background: var(--page); font-size: 13px; }
-    .fact b { display: block; font-size: 18px; }
+    /* Statistik-Karten (Verlauf, Rhythmus, Geräte, Fun Facts, Top 3) */
+    .st-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 24px; align-items: stretch; margin-bottom: 24px; }
+    .st {
+      background: var(--card); border: 1px solid var(--card-line); border-radius: 28px; padding: 32px; min-width: 0;
+      display: flex; flex-direction: column; gap: 20px; box-shadow: var(--shadow-card);
+    }
+    .st-wide { margin-bottom: 24px; }
+    .st-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .st-titles { display: flex; flex-direction: column; gap: 8px; }
+    .st-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--label); }
+    .st h2 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; }
+    .st-sub { margin: 0; font-size: 15px; color: var(--ink-2); }
+    .st-legend { display: flex; flex-wrap: wrap; gap: 8px; }
+    .st-legend span { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; border: 1px solid var(--card-line); border-radius: 999px; padding: 6px 14px; }
+    .st-legend i { width: 10px; height: 10px; border-radius: 3px; }
+    .st-read {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; min-height: 52px; padding: 14px 16px;
+      background: var(--page); border-radius: 16px; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums;
+    }
+    .st-read > b { color: var(--ink); font-weight: 700; }
+    .st-read strong { color: var(--ink); }
+    .st-read .tot { margin-left: auto; }
+    .st-read .hint { flex-basis: 100%; font-size: 12px; color: var(--muted); }
+    .st-read .sw { align-self: center; width: 16px; height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--card-line); }
+    .st-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+    .st-chart .gridline { stroke: var(--card-line); }
+    .st-chart .baseline { stroke: var(--axis); }
+    .st-chart svg text { fill: var(--label); font-size: 11px; }
+    .st-chart .bar-group { transition: opacity .12s; }
+    .st-chart svg.is-hover .bar-group { opacity: 0.35; }
+    .st-chart svg.is-hover .bar-group.on { opacity: 1; }
+    .st-chart .hit { cursor: pointer; }
+    .st-details summary {
+      list-style: none; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; cursor: pointer;
+      border: 1px solid var(--card-line); border-radius: 999px; font-size: 15px; font-weight: 600; color: var(--ink);
+    }
+    .st-details summary::-webkit-details-marker { display: none; }
+    .st-details summary svg { width: 16px; height: 16px; }
+    .st-details summary:hover { background: var(--page); }
+    .st-details summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .st-details[open] summary { background: var(--strong); color: var(--strong-ink); border-color: var(--strong); }
+    .st-details { margin: 0; }
+    /* Verlaufskarten: Quellen unter dem Titel, Diagramm + "Als Tabelle" unten bündig mit der Nachbarkarte */
+    .st-chart-card .st-head { flex-direction: column; }
+    .st-chart-card .st-chart { margin-top: auto; }
+    .st-table { max-height: 280px; overflow: auto; margin-top: 12px; border: 1px solid var(--card-line); border-radius: 14px; }
+    .st-table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .st-table th, .st-table td { padding: 8px 10px; border-bottom: 1px solid var(--card-line); text-align: right; font-size: 14px; }
+    .st-table th:first-child, .st-table td:first-child { text-align: left; }
+    .st-table th { position: sticky; top: 0; background: var(--card); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--label); }
+    /* Heatmap */
+    .heat { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 8px; align-items: center; }
+    .heat-day { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+    .heat-row { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; }
+    .heat-cell { display: block; aspect-ratio: 1 / 1; border-radius: 5px; cursor: default; }
+    .heat-cell:hover, .heat-cell.on { outline: 2px solid var(--ink); outline-offset: 1px; }
+    .heat-hours { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); font-size: 12px; color: var(--label); padding-top: 4px; }
+    .heat-legend { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); padding-top: 4px; }
+    .heat-legend div { display: flex; gap: 3px; }
+    .heat-legend i { display: block; width: 22px; height: 14px; border-radius: 4px; }
+    /* Geräte */
+    .dev-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+    .dev-list li { display: grid; grid-template-columns: minmax(110px, 190px) minmax(0, 1fr) 52px; align-items: center; gap: 16px; height: 48px; border-bottom: 1px solid var(--card-line); }
+    .dev-list .nm { font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dev-list .tr { height: 10px; border-radius: 5px; background: var(--track); overflow: hidden; }
+    .dev-list .tr i { display: block; height: 100%; border-radius: 5px; background: var(--bar-green); min-width: 3px; }
+    .dev-list .pc { text-align: right; font-size: 15px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+    .dev-list li:first-child .nm { font-weight: 700; }
+    .dev-list li:first-child .tr i { background: var(--strong); }
+    .dev-list li:first-child .pc { font-weight: 800; color: var(--ink); }
+    /* Fun Facts */
+    .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .fact { display: flex; flex-direction: column; gap: 8px; padding: 20px; border-radius: 20px; background: var(--page); font-size: 14px; line-height: 1.45; color: var(--ink-2); min-width: 0; }
+    .fact b { display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; color: var(--ink); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+    .fact:first-child { background: var(--hero); color: rgba(255,255,255,0.75); }
+    .fact:first-child b { color: var(--meadow); }
     .hbars { display: grid; gap: 8px; font-size: 13px; }
+    @media (max-width: 640px) {
+      .st { padding: 20px 16px; border-radius: 22px; }
+      .st h2 { font-size: 24px; }
+      .st-read .tot { margin-left: 0; }
+      .heat-row { gap: 2px; } .heat-cell { border-radius: 3px; }
+      .heat-hours span:nth-child(even) { visibility: hidden; }
+      .heat-hours { font-size: 11px; white-space: nowrap; }
+      .heat-legend { font-size: 12px; gap: 8px; } .heat-legend i { width: 14px; }
+      .dev-list li { grid-template-columns: minmax(90px, 130px) minmax(0, 1fr) 44px; gap: 10px; }
+    }
     .hbar-row { display: grid; grid-template-columns: minmax(90px, 140px) 1fr auto; gap: 10px; align-items: center; }
     .hbar-row .bar { height: 10px; border-radius: 3px; background: var(--s1); min-width: 2px; }
     .hbar-row span:last-child { font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
     /* Top 3 des Tages */
-    .day-pick { display: flex; gap: 6px; align-items: center; }
+    .day-pick { display: flex; gap: 8px; align-items: center; }
+    .day-btn {
+      width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer; flex: none;
+      color: var(--ink); background: var(--card); border: 1px solid var(--card-line); border-radius: 999px; transition: background .15s;
+    }
+    .day-btn svg { width: 18px; height: 18px; }
+    .day-btn:hover:not(:disabled) { background: var(--page); }
+    .day-btn:disabled { opacity: 0.35; cursor: default; }
     .day-pick input[type="date"] {
-      font: inherit; font-size: 14px; color: var(--ink);
-      background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 5px 8px;
+      height: 44px; padding: 0 16px; font: inherit; font-size: 15px; font-weight: 600; color: var(--ink);
+      background: var(--page); border: 1px solid var(--card-line); border-radius: 999px;
     }
-    .day-pick .btn { padding: 6px 12px; }
-    .day-pick .btn:disabled { color: var(--muted); cursor: default; }
-    .top3 { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; }
-    .top3 li {
-      display: grid; grid-template-columns: 36px 48px 1fr auto; gap: 12px; align-items: center;
-      padding: 10px 12px; border-radius: 10px; background: var(--page);
-    }
-    .top3 .pos {
-      width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
-      font-weight: 700; background: var(--accent-wash); color: var(--s1);
-    }
-    .top3 li:first-child .pos { background: var(--s1); color: #fff; }
-    .top3 .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .top3 .a { font-size: 12px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .day-pick input[type="date"]:focus { outline: none; border-color: var(--meadow); box-shadow: 0 0 0 3px var(--meadow-tint); }
+    .top3 { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+    .top3 li { display: grid; grid-template-columns: 40px 64px minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--card-line); }
+    .top3 li:last-child { border-bottom: 0; }
+    .top3 .cover { width: 64px; height: 64px; border-radius: 14px; }
+    .top3 .t { font-size: 17px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .top3 .a { margin-top: 2px; font-size: 14px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .top3 .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .top3 .n b { font-size: 18px; }
-    .top3 .n span { display: block; font-size: 12px; color: var(--muted); }
+    .top3 .n b { display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+    .top3 .n span { display: block; margin-top: 4px; font-size: 13px; color: var(--ink-2); }
+    .top3 li:first-child .n b { color: var(--bar-green); }
+    .top3-empty { margin: 0; padding: 24px 0; color: var(--ink-2); }
+    @media (max-width: 640px) {
+      .top3 li { grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 10px; }
+      .top3 .cover { width: 48px; height: 48px; border-radius: 10px; }
+      .top3 .n b { font-size: 20px; }
+      .day-pick input[type="date"] { padding: 0 10px; font-size: 14px; }
+    }
     .top3 > div, .top3 li > div { min-width: 0; }
     /* Zeitraum-Auswahl (Stil der Firebase-/Analytics-Datumsauswahl) */
     .range-wrap { position: relative; }
@@ -789,59 +889,59 @@
         </footer>
       </section>
 
-      <div class="grid-2">
-        <div class="card">
-          <h2 id="h-count">Wiedergaben</h2>
-          <div class="legend src-legend">
-            <span style="--c:var(--s1)">Deezer</span>
-            <span style="--c:var(--s2)">Apple Music</span>
+      <div class="st-grid">
+        <section class="st st-chart-card" aria-labelledby="h-count">
+          <div class="st-head">
+            <div class="st-titles"><span class="st-eyebrow">Verlauf</span><h2 id="h-count">Wiedergaben pro Monat</h2></div>
+            <div class="st-legend src-legend"><span><i style="background:var(--src-0)"></i>Deezer</span><span><i style="background:var(--src-1)"></i>Apple Music</span></div>
           </div>
-          <div id="c-count"></div>
-          <details><summary>Als Tabelle</summary><div class="table-scroll" id="t-count"></div></details>
-        </div>
-        <div class="card">
-          <h2 id="h-dur">Hörzeit</h2>
-          <div class="legend src-legend">
-            <span style="--c:var(--s1)">Deezer</span>
-            <span style="--c:var(--s2)">Apple Music</span>
+          <div class="st-read" id="r-count" aria-live="polite"></div>
+          <div class="st-chart" id="c-count"></div>
+          <details class="st-details"><summary><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M9 10v10"/></svg>Als Tabelle</summary><div class="st-table" id="t-count"></div></details>
+        </section>
+        <section class="st st-chart-card" aria-labelledby="h-dur">
+          <div class="st-head">
+            <div class="st-titles"><span class="st-eyebrow">Verlauf</span><h2 id="h-dur">Hörzeit pro Monat</h2></div>
+            <div class="st-legend src-legend"><span><i style="background:var(--src-0)"></i>Deezer</span><span><i style="background:var(--src-1)"></i>Apple Music</span></div>
           </div>
-          <div id="c-dur"></div>
-          <details><summary>Als Tabelle</summary><div class="table-scroll" id="t-dur"></div></details>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <h2>Wann höre ich Musik?</h2>
-          <p class="note">Wiedergaben nach Wochentag und Uhrzeit</p>
+          <div class="st-read" id="r-dur" aria-live="polite"></div>
+          <div class="st-chart" id="c-dur"></div>
+          <details class="st-details"><summary><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M9 10v10"/></svg>Als Tabelle</summary><div class="st-table" id="t-dur"></div></details>
+        </section>
+        <section class="st" aria-labelledby="h-heat">
+          <div class="st-titles"><span class="st-eyebrow">Rhythmus</span><h2 id="h-heat">Wann höre ich Musik?</h2><p class="st-sub">Wiedergaben nach Wochentag und Uhrzeit</p></div>
+          <div class="st-read" id="r-heat" aria-live="polite"></div>
           <div id="c-heat"></div>
-        </div>
-        <div class="card">
-          <h2>Geräte</h2>
-          <p class="note">nach Hörzeit</p>
-          <div class="hbars" id="c-dev"></div>
-        </div>
+        </section>
+        <section class="st" aria-labelledby="h-dev">
+          <div class="st-head">
+            <div class="st-titles"><span class="st-eyebrow">Geräte</span><h2 id="h-dev">Womit ich höre</h2></div>
+            <span class="rk-badge tint">nach Hörzeit</span>
+          </div>
+          <ol class="dev-list" id="c-dev"></ol>
+        </section>
       </div>
 
-      <div class="card" style="margin-top:16px">
-        <h2>Fun Facts</h2>
+      <section class="st st-wide" aria-labelledby="h-facts">
+        <div class="st-titles"><span class="st-eyebrow">Kurios</span><h2 id="h-facts">Fun Facts</h2></div>
         <div class="facts" id="facts"></div>
-      </div>
+      </section>
 
-      <div class="card">
-        <div class="chart-head">
-          <div>
-            <h2>Top 3 des Tages</h2>
-            <p class="note" id="day-note"></p>
+      <section class="st st-wide" aria-labelledby="h-top3">
+        <div class="st-head">
+          <div class="st-titles">
+            <span class="st-eyebrow">Tagesrückblick</span>
+            <h2 id="h-top3">Top 3 des Tages</h2>
+            <div class="rk-badges" id="day-note"></div>
           </div>
           <div class="day-pick">
-            <button type="button" class="btn" id="day-prev" aria-label="Vorheriger Tag mit Musik">‹</button>
+            <button type="button" class="day-btn" id="day-prev" aria-label="Vorheriger Tag mit Musik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
             <input type="date" id="day-input" aria-label="Datum wählen" />
-            <button type="button" class="btn" id="day-next" aria-label="Nächster Tag mit Musik">›</button>
+            <button type="button" class="day-btn" id="day-next" aria-label="Nächster Tag mit Musik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
           </div>
         </div>
         <ol class="top3" id="top3"></ol>
-      </div>
+      </section>
     </section>
   </div>
   <div class="player hidden" id="player" role="region" aria-label="Apple-Music-Player">
@@ -870,7 +970,7 @@
     const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
     const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
     const SRC_LABEL = ["Deezer", "Apple Music"];
-    const SRC_COLOR = ["var(--s1)", "var(--s2)"];
+    const SRC_COLOR = ["var(--src-0)", "var(--src-1)"];
     const PAGE = 10;   // Hitliste: anfangs Top 10
 
     const ui = {
@@ -1094,7 +1194,7 @@
       const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
       return step * 4;
     }
-    function stackedBars(host, buckets, series, fmt, onPick, isActive) {
+    function stackedBars(host, buckets, series, fmt, onPick, isActive, read) {
       const W = 520, H = 230, L = 44, R = 6, T = 10, B = 34;
       const max = niceMax(Math.max(1, ...buckets.map(b => b.values.reduce((a, v) => a + v, 0))));
       const iw = W - L - R, ih = H - T - B;
@@ -1108,11 +1208,18 @@
         s += `<text x="${L - 6}" y="${yy + 4}" text-anchor="end">${fmt(v, true)}</text>`;
       }
       const every = Math.ceil(buckets.length / 12);
+      // Viele Monate/Wochen: nur Jahreszahlen am Jahresanfang (bei langen Zeiträumen jedes zweite Jahr)
+      let yearTicks = null;
+      if (buckets.length > 30 && buckets[0] && buckets[0].key[0] !== "y") {
+        const starts = buckets.map((b, i) => [i, b.key]).filter(([i, k]) => i === 0 ? false : k.slice(2, 6) !== buckets[i - 1].key.slice(2, 6));
+        const years = starts.length;
+        yearTicks = new Set(starts.filter(([, k]) => years <= 7 || Number(k.slice(2, 6)) % 2 === 0).map(([i]) => i));
+      }
       buckets.forEach((b, i) => {
         const cx = L + step * i + step / 2;
-        if (isActive && isActive(b.key)) s += `<rect x="${L + step * i}" y="${T}" width="${step}" height="${ih}" fill="var(--accent-wash)"/>`;
+        if (isActive && isActive(b.key)) s += `<rect x="${L + step * i}" y="${T}" width="${step}" height="${ih}" fill="var(--pick-wash)"/>`;
         let acc = 0;
-        s += `<g class="bar-group">`;
+        s += `<g class="bar-group" data-i="${i}">`;
         const segs = [];
         b.values.forEach((v, k) => { if (v > 0) segs.push([v, k]); });
         segs.forEach(([v, k], j) => {
@@ -1131,12 +1238,47 @@
         });
         s += `</g>`;
         s += `<rect class="hit" data-i="${i}" x="${L + step * i}" y="${T}" width="${step}" height="${ih}"/>`;
-        if (i % every === 0) {
-          s += `<text x="${cx}" y="${H - B + 16}" text-anchor="middle">${esc(b.short)}</text>`;
+        if (yearTicks ? yearTicks.has(i) : i % every === 0) {
+          if (yearTicks) s += `<line class="baseline" x1="${cx}" x2="${cx}" y1="${T + ih}" y2="${T + ih + 5}"/>`;
+          s += `<text x="${cx}" y="${H - B + 16}" text-anchor="middle">${esc(yearTicks ? b.key.slice(2, 6) : b.short)}</text>`;
         }
       });
       s += `</svg>`;
       host.innerHTML = s;
+      // Lese-Leiste über dem Diagramm: zeigt den Balken unter der Maus, sonst den neuesten
+      if (read) {
+        const svg = host.querySelector("svg");
+        const show = (i, hover) => {
+          const b = buckets[i];
+          if (!b) { read.innerHTML = `<b>Keine Daten</b>`; return; }
+          const total = b.values.reduce((a, v) => a + v, 0);
+          const span = b.key ? bucketSpan(b.key) : null;
+          const now = !hover && span && TODAY >= span[0] && TODAY <= span[1];
+          read.innerHTML = `<b>${esc(b.label)}${now ? " (aktuell)" : ""}</b>` +
+            series.map((se, k) => `<span>${esc(se.name)} <strong>${fmt(b.values[k])}</strong></span>`).join("") +
+            (series.length > 1 ? `<span class="tot">Gesamt <strong>${fmt(total)}</strong></span>` : "") +
+            (hover && onPick ? `<span class="hint">Klicken: Zeitraum filtern</span>` : "");
+        };
+        // Standard: der gewählte Zeitraum (letzter markierter Balken), sonst der neueste Balken mit Daten
+        const last = (() => {
+          for (let i = buckets.length - 1; i >= 0; i -= 1) if (isActive && isActive(buckets[i].key)) return i;
+          for (let i = buckets.length - 1; i >= 0; i -= 1) if (buckets[i].values.some(v => v > 0)) return i;
+          return buckets.length - 1;
+        })();
+        show(last, false);
+        host.querySelectorAll(".hit").forEach(el => {
+          const i = Number(el.dataset.i);
+          el.addEventListener("mouseenter", () => {
+            svg.classList.add("is-hover");
+            svg.querySelectorAll(".bar-group.on").forEach(g => g.classList.remove("on"));
+            svg.querySelector(`.bar-group[data-i="${i}"]`).classList.add("on");
+            show(i, true);
+          });
+          if (onPick) el.addEventListener("click", () => onPick(buckets[i].key));
+        });
+        svg.addEventListener("mouseleave", () => { svg.classList.remove("is-hover"); show(last, false); });
+        return;
+      }
       host.querySelectorAll(".hit").forEach(el => {
         const b = buckets[Number(el.dataset.i)];
         const total = b.values.reduce((a, v) => a + v, 0);
@@ -1150,8 +1292,10 @@
     }
 
     function bucketTable(host, buckets, series, fmt) {
-      host.innerHTML = `<table><thead><tr><th>Zeitraum</th>${series.map(s => `<th class="num">${s.name}</th>`).join("")}</tr></thead><tbody>` +
-        buckets.map(b => `<tr><td>${esc(b.label)}</td>${b.values.map(v => `<td class="num">${fmt(v)}</td>`).join("")}</tr>`).join("") +
+      const head = { y: "Jahr", m: "Monat", w: "Woche" }[(buckets[0] && buckets[0].key[0]) || "m"];
+      const sum = series.length > 1;
+      host.innerHTML = `<table><thead><tr><th scope="col">${head}</th>${series.map(s => `<th scope="col">${s.name}</th>`).join("")}${sum ? `<th scope="col">Gesamt</th>` : ""}</tr></thead><tbody>` +
+        buckets.slice().reverse().map(b => `<tr><td>${esc(b.label)}</td>${b.values.map(v => `<td>${fmt(v)}</td>`).join("")}${sum ? `<td><strong>${fmt(b.values.reduce((a, v) => a + v, 0))}</strong></td>` : ""}</tr>`).join("") +
         `</tbody></table>`;
     }
 
@@ -1269,7 +1413,7 @@
       document.getElementById("h-count").textContent = `Wiedergaben ${per}${of}`;
       document.getElementById("h-dur").textContent = `Hörzeit ${per}${of}`;
       const fmtCount = v => fmtNum(v);
-      const fmtH = (v, axis) => axis ? `${fmtNum(v, v > 0 && v < 1 ? 1 : 0)} h` : fmtDur(v * 3600);
+      const fmtH = (v, axis) => axis || v === 0 ? `${fmtNum(v, v > 0 && v < 1 ? 1 : 0)} h` : fmtDur(v * 3600);
       // Klick auf einen Balken: genau diesen Zeitraum wählen (nochmal klicken: zurück zu allem)
       const labelOf = key => { const k = key.slice(2); return key[0] === "y" ? `Jahr ${k}` : key[0] === "m" ? monthLabel(k, true) : weekLabel(k); };
       const pick = key => {
@@ -1278,8 +1422,8 @@
         else setRange("custom", a, b, labelOf(key));
       };
       const active = key => { if (isAll()) return false; const [a, b] = bucketSpan(key); return a <= (ui.range.to ?? Infinity) && b >= (ui.range.from ?? -Infinity); };
-      stackedBars(document.getElementById("c-count"), cb, series, fmtCount, pick, active);
-      stackedBars(document.getElementById("c-dur"), db, series, fmtH, pick, active);
+      stackedBars(document.getElementById("c-count"), cb, series, fmtCount, pick, active, document.getElementById("r-count"));
+      stackedBars(document.getElementById("c-dur"), db, series, fmtH, pick, active, document.getElementById("r-dur"));
       bucketTable(document.getElementById("t-count"), cb, series, fmtCount);
       bucketTable(document.getElementById("t-dur"), db, series, v => fmtDur(v * 3600));
     }
@@ -1353,28 +1497,32 @@
       document.querySelectorAll(".band-link").forEach(btn => btn.addEventListener("click", () => setBand(Number(btn.dataset.b))));
     }
 
+    const WEEKDAYS_FULL = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+    const HEAT_LEVELS = ["keine Wiedergaben", "sehr wenige Wiedergaben", "wenige Wiedergaben", "mittel viele Wiedergaben", "viele Wiedergaben", "sehr viele Wiedergaben"];
     function renderHeatmap(plays) {
       const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
       plays.forEach(p => { grid[p.wd][p.h] += 1; });
       const max = Math.max(1, ...grid.flat());
-      const W = 520, L = 28, T = 4, cw = (W - L) / 24, ch = 22, H = T + ch * 7 + 22;
-      const steps = ["var(--seq-0)", "var(--seq-1)", "var(--seq-2)", "var(--seq-3)", "var(--seq-4)", "var(--seq-5)"];
-      const color = v => v === 0 ? steps[0] : steps[Math.min(5, 1 + Math.floor((v / max) * 4.999))];
-      let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
-      grid.forEach((row, r) => {
-        s += `<text x="${L - 6}" y="${T + r * ch + ch / 2 + 4}" text-anchor="end">${WEEKDAYS[r]}</text>`;
-        row.forEach((v, h) => {
-          s += `<rect class="cell" data-r="${r}" data-h="${h}" x="${L + h * cw + 1}" y="${T + r * ch + 1}" width="${cw - 2}" height="${ch - 2}" rx="3" fill="${color(v)}"/>`;
-        });
-      });
-      for (let h = 0; h < 24; h += 3) s += `<text x="${L + h * cw + cw / 2}" y="${H - 6}" text-anchor="middle">${h} Uhr</text>`;
-      s += `</svg>`;
-      const host = document.getElementById("c-heat");
-      host.innerHTML = s + `<div class="legend" style="margin-top:6px"><span style="--c:var(--seq-1)">wenige</span><span style="--c:var(--seq-3)">mittel</span><span style="--c:var(--seq-5)">viele Wiedergaben</span></div>`;
-      host.querySelectorAll(".cell").forEach(el => {
-        const r = Number(el.dataset.r), h = Number(el.dataset.h);
-        bindTip(el, `<b>${WEEKDAYS[r]}, ${h}–${h + 1} Uhr</b>${fmtNum(grid[r][h])} Wiedergaben`);
-      });
+      const level = v => v === 0 ? 0 : Math.min(5, 1 + Math.floor((v / max) * 4.999));
+      // Standard in der Lese-Leiste: die Stunde mit den meisten Wiedergaben
+      let peak = [0, 0];
+      grid.forEach((row, r) => row.forEach((v, h) => { if (v > grid[peak[0]][peak[1]]) peak = [r, h]; }));
+      const host = document.getElementById("c-heat"), read = document.getElementById("r-heat");
+      host.innerHTML = `<div class="heat">` + grid.map((row, r) =>
+        `<span class="heat-day">${WEEKDAYS[r]}</span><div class="heat-row">` +
+        row.map((v, h) => `<span class="heat-cell" data-r="${r}" data-h="${h}" style="background:var(--heat-${level(v)})" aria-label="${WEEKDAYS_FULL[r]}, ${h}–${h + 1} Uhr: ${fmtNum(v)} Wiedergaben"></span>`).join("") +
+        `</div>`).join("") +
+        `<span></span><div class="heat-hours">${[0, 3, 6, 9, 12, 15, 18, 21].map(h => `<span>${h} Uhr</span>`).join("")}</div></div>` +
+        `<div class="heat-legend"><span>wenige</span><div aria-hidden="true">${[0, 1, 2, 3, 4, 5].map(l => `<i style="background:var(--heat-${l})"></i>`).join("")}</div><span>viele Wiedergaben</span></div>`;
+      const show = (r, h) => {
+        const v = grid[r][h];
+        read.innerHTML = `<span class="sw" style="background:var(--heat-${level(v)})"></span><b>${WEEKDAYS_FULL[r]}, ${h}–${h + 1} Uhr</b><span>${HEAT_LEVELS[level(v)]} · ${fmtNum(v)}</span>`;
+        host.querySelectorAll(".heat-cell.on").forEach(c => c.classList.remove("on"));
+        host.querySelector(`.heat-cell[data-r="${r}"][data-h="${h}"]`).classList.add("on");
+      };
+      show(peak[0], peak[1]);
+      host.querySelectorAll(".heat-cell").forEach(el => el.addEventListener("mouseenter", () => show(Number(el.dataset.r), Number(el.dataset.h))));
+      host.querySelector(".heat").addEventListener("mouseleave", () => show(peak[0], peak[1]));
     }
 
     function renderDevices(plays) {
@@ -1388,12 +1536,13 @@
       const total = list.reduce((a, [, e]) => a + e.dur, 0) || 1;
       const max = Math.max(1, ...list.map(([, e]) => e.dur));
       const host = document.getElementById("c-dev");
-      host.innerHTML = list.map(([d, e]) => `
-        <div class="hbar-row" data-d="${d}">
-          <span>${esc(DATA.geraete[d])}</span>
-          <div><div class="bar" style="width:${(e.dur / max) * 100}%"></div></div>
-          <span>${fmtNum((e.dur / total) * 100)} %</span>
-        </div>`).join("") || `<p class="note">Keine Daten.</p>`;
+      // Nur die 6 meistgenutzten Geräte (Prozent weiter bezogen auf alle)
+      host.innerHTML = list.slice(0, 6).map(([d, e]) => `
+        <li class="hbar-row" data-d="${d}">
+          <span class="nm">${esc(DATA.geraete[d])}</span>
+          <div class="tr" aria-hidden="true"><i style="width:${(e.dur / max) * 100}%"></i></div>
+          <span class="pc">${fmtNum((e.dur / total) * 100)} %</span>
+        </li>`).join("") || `<li class="note">Keine Daten.</li>`;
       host.querySelectorAll(".hbar-row").forEach(row => {
         const e = by.get(Number(row.dataset.d));
         bindTip(row, `<b>${esc(DATA.geraete[row.dataset.d])}</b>${fmtDur(e.dur)} · ${fmtNum(e.count)} Wiedergaben`);
@@ -1469,7 +1618,7 @@
       const input = document.getElementById("day-input");
       if (!dayList.length) {
         document.getElementById("top3").innerHTML = "";
-        document.getElementById("day-note").textContent = "Keine Wiedergaben.";
+        document.getElementById("day-note").innerHTML = `<span class="rk-badge tint">Keine Wiedergaben</span>`;
         return;
       }
       if (ui.day === null) ui.day = dayList[dayList.length - 1];
@@ -1490,19 +1639,19 @@
       const d = new Date(ui.day * 86400000 + 43200000);
       const wd = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"][d.getDay()];
       const total = today.reduce((a, p) => a + p.sec, 0);
-      document.getElementById("day-note").textContent = today.length
-        ? `${wd}, ${fmtDate(d)} · ${fmtNum(today.length)} Wiedergaben · ${fmtDur(total)} · ${fmtNum(by.size)} verschiedene Titel`
-        : `${wd}, ${fmtDate(d)} · an diesem Tag keine Musik gehört`;
+      document.getElementById("day-note").innerHTML = `<span class="rk-badge dark">${wd}, ${fmtDate(d)}</span>` + (today.length
+        ? `<span class="rk-badge tint">${fmtNum(today.length)} Wiedergaben · ${fmtDur(total)} · ${fmtNum(by.size)} Titel</span>`
+        : `<span class="rk-badge tint">keine Musik gehört</span>`);
       document.getElementById("top3").innerHTML = top.map((e, i) => `
         <li>
-          <span class="pos">${i + 1}</span>
+          <span class="rk-rank${i === 0 ? " r1" : " r2"}">${i + 1}</span>
           ${coverSlot(e.tr)}
           <div>
             <div class="t" title="${esc(trackTitle(e.tr))}">${esc(trackTitle(e.tr))}</div>
             <div class="a">${esc(bandName(DATA.titel[e.tr][1]))}${DATA.titel[e.tr][2] ? ` · ${esc(DATA.titel[e.tr][2])}` : ""}</div>
           </div>
           <div class="n"><b>${fmtNum(e.n)}×</b><span>${fmtDur(e.sec)}</span></div>
-        </li>`).join("");
+        </li>`).join("") || `<li class="top3-empty">An diesem Tag hast du keine Musik gehört.</li>`;
       fillCovers(document.getElementById("top3"));
     }
     function stepDay(dir) {
