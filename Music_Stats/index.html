@@ -7,7 +7,7 @@
   <title>The MusicStats</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
   <style>
     /* Seite enthält KEINE Daten: die JSON-Datei aus convert_music.py wird lokal im
        Browser gelesen und nur dort ausgewertet (optional in localStorage gemerkt). */
@@ -112,75 +112,77 @@
       -webkit-font-smoothing: antialiased;
       line-height: 1.45;
     }
-    .wrap { max-width: 1212px; margin: 0 auto; padding: 28px 16px 64px; }
+    .wrap { max-width: 1212px; margin: 0 auto; padding: 36px 16px 64px; }
     h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
     h2 { font-size: 17px; margin: 0 0 2px; }
     .sub { color: var(--ink-2); margin: 0 0 20px; font-size: 14px; }
+    /* Kopfbereich: dunkles Band über die ganze Breite, unten abgerundet */
+    .head-band { background: #141c16; color: #fff; padding: 32px 24px 36px; border-radius: 0 0 36px 36px; }
     .page-head {
-      display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
-      padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--card-line);
+      max-width: 1180px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center; gap: 24px 32px; flex-wrap: wrap;
     }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand { gap: 18px; }
-    .brand-icon { width: 60px; height: 60px; border-radius: 16px; background: var(--forest); display: grid; place-items: center; flex: none; }
-    .brand-icon svg { width: 28px; height: 28px; color: var(--meadow); }
-    .brand h1 { font-family: "Plus Jakarta Sans", Inter, sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; margin: 0; }
+    .brand { display: flex; align-items: center; gap: 18px; }
+    .brand-icon { width: 60px; height: 60px; border-radius: 16px; background: var(--meadow); display: grid; place-items: center; flex: none; }
+    .brand-icon svg { width: 28px; height: 28px; color: #141c16; }
+    .brand h1 { font-size: 44px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; margin: 0; color: #fff; }
     .head-right { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; }
     /* Heute + Hit des Tages */
-    .today { display: flex; align-items: center; gap: 14px; padding-right: 20px; border-right: 1px solid var(--card-line); }
+    .today { display: flex; align-items: center; gap: 14px; padding-right: 20px; border-right: 1px solid #34423a; }
     .cal {
-      width: 52px; height: 56px; border-radius: 14px; background: var(--card); border: 1px solid var(--card-line);
+      width: 52px; height: 56px; border-radius: 14px; background: #222d25; border: 1px solid #34423a;
       overflow: hidden; display: flex; flex-direction: column; flex: none;
     }
     .cal span { background: var(--meadow); color: #141c16; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-align: center; padding: 3px 0; }
-    .cal b { flex: 1; display: grid; place-items: center; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .cal b { flex: 1; display: grid; place-items: center; font-family: "Inter Tight", Inter, sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: #fff; }
     .today-text { display: flex; flex-direction: column; gap: 4px; }
-    .today-text span { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--label); }
-    .today-text time { font-size: 18px; font-weight: 700; white-space: nowrap; }
+    .today-text span { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--meadow); }
+    .today-text time { font-size: 18px; font-weight: 700; white-space: nowrap; color: #fff; }
     .hotd-btn {
       display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 22px; border-radius: 999px; cursor: pointer;
       font: inherit; font-size: 16px; font-weight: 700; white-space: nowrap;
       background: var(--meadow); color: #141c16; border: 1px solid var(--meadow); transition: filter .15s, background .15s, color .15s;
     }
-    .hotd-btn:hover { filter: brightness(0.96); }
+    .hotd-btn:hover { filter: brightness(1.06); }
     .hotd-btn svg { width: 18px; height: 18px; flex: none; }
     .hotd-btn .chev { width: 16px; height: 16px; transition: transform .2s; }
-    .hotd-btn[aria-expanded="true"] { background: var(--forest); color: var(--meadow); border-color: var(--forest); }
+    .hotd-btn[aria-expanded="true"] { background: #fff; color: #141c16; border-color: #fff; }
     .hotd-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
-    .hotd-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .hotd-btn:focus-visible, .menu-btn:focus-visible { outline: 2px solid var(--meadow); outline-offset: 3px; }
     .hotd {
-      flex: 1 1 100%; position: relative; overflow: hidden; background: var(--hero); color: #fff; border-radius: 28px; padding: 28px 32px;
+      flex: 1 1 100%; position: relative; overflow: hidden; background: var(--card); color: var(--ink); border-radius: 28px; padding: 28px 32px; margin-top: 8px;
       display: flex; flex-wrap: wrap; align-items: center; gap: 24px 40px;
     }
-    .hotd-star { position: absolute; right: -40px; top: -60px; width: 260px; height: 260px; color: #243027; pointer-events: none; }
     .hotd-main { position: relative; display: flex; align-items: center; gap: 24px; flex: 1 1 420px; min-width: 0; }
     .hotd .cover {
       width: 120px; height: 120px; border-radius: 18px; flex: none; font-size: 36px;
-      background: #2a372d; color: var(--meadow); box-shadow: inset 0 0 0 1px #4e6152;
+      background: var(--meadow-tint); color: #4a8526; box-shadow: none; border: 1px dashed #a9cf7a;
     }
+    .hotd .cover.has-img { border: none; }
     .hotd-info { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .hotd-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-    .hotd-tags span:first-child { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #b7c2b9; }
-    .hotd-tags span + span { font-size: 13px; font-weight: 700; color: var(--meadow); border: 1px solid #3f5a2a; background: #243322; border-radius: 999px; padding: 3px 12px; }
+    .hotd-tags span:first-child { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--label); }
+    .hotd-tags span + span { font-size: 13px; font-weight: 700; color: var(--ink); border: 1px solid #cfe6b0; background: var(--meadow-tint); border-radius: 999px; padding: 3px 12px; }
     .hotd h2 { margin: 4px 0 0; font-size: 34px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; overflow-wrap: anywhere; }
-    .hotd p { margin: 0; font-size: 17px; color: #c9d2cb; }
+    .hotd p { margin: 0; font-size: 17px; color: var(--ink-2); }
     .hotd-stats { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px 36px; }
     .hotd-stat { display: flex; flex-direction: column; gap: 6px; }
-    .hotd-stat b { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-    .hotd-stat:first-child b { color: var(--meadow); }
-    .hotd-stat span { font-size: 14px; color: #c9d2cb; }
+    .hotd-stat b { font-family: "Inter Tight", Inter, sans-serif; font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .hotd-stat span { font-size: 14px; color: var(--ink-2); }
     /* Jahreszahlen: je mehr Jahre, desto kleiner */
     .hotd-years { max-width: 420px; }
     .hotd-years.some b { font-size: 34px; }
     .hotd-years.many b { font-size: 24px; line-height: 1.25; }
     .hotd-link {
       display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 22px; text-decoration: none;
-      border: 1px solid #5e7262; border-radius: 999px; font-size: 16px; font-weight: 600; color: #fff; transition: background .15s;
+      background: var(--strong); border-radius: 999px; font-size: 16px; font-weight: 600; color: var(--strong-ink); transition: filter .15s;
     }
-    .hotd-link:hover { background: #26322a; color: #fff; }
+    .hotd-link:hover { filter: brightness(1.25); color: var(--strong-ink); }
+    .hotd-link:focus-visible { outline: 2px solid var(--meadow); outline-offset: 3px; }
     .hotd-link svg { width: 16px; height: 16px; }
-    .hotd-empty { position: relative; margin: 0; color: #c9d2cb; font-size: 16px; }
+    .hotd-empty { position: relative; margin: 0; color: var(--ink-2); font-size: 16px; }
     @media (max-width: 640px) {
+      .head-band { padding: 24px 16px 28px; border-radius: 0 0 28px 28px; }
       .brand h1 { font-size: 30px; }
       .brand-icon { width: 48px; height: 48px; border-radius: 14px; }
       .today { border-right: none; padding-right: 0; }
@@ -193,14 +195,14 @@
     .menu-wrap { position: relative; }
     .menu-btn {
       width: 56px; height: 56px; display: grid; place-items: center; cursor: pointer;
-      color: var(--ink); background: var(--card); border: 1px solid var(--card-line); border-radius: 12px;
-      box-shadow: var(--shadow-card); transition: background .15s, color .15s;
+      color: #fff; background: #222d25; border: 1px solid #34423a; border-radius: 16px;
+      transition: background .15s, color .15s;
     }
     .menu-btn svg { width: 22px; height: 22px; }
-    .menu-wrap.is-open .menu-btn { background: var(--forest); color: var(--meadow); border-color: transparent; }
+    .menu-wrap.is-open .menu-btn { background: #2e3b32; color: var(--meadow); }
     .menu-panel { position: absolute; top: 100%; right: 0; z-index: 40; padding-top: 8px; display: none; }
     .menu-wrap.is-open .menu-panel { display: block; }
-    @media (hover: hover) { .menu-wrap:hover .menu-panel { display: block; } .menu-wrap:hover .menu-btn { background: var(--forest); color: var(--meadow); border-color: transparent; } }
+    @media (hover: hover) { .menu-wrap:hover .menu-panel { display: block; } .menu-wrap:hover .menu-btn { background: #2e3b32; color: var(--meadow); } }
     .menu-box {
       display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 260px; padding: 10px;
       background: var(--card); border: 1px solid var(--card-line); border-radius: 16px; box-shadow: var(--shadow-hover);
@@ -573,16 +575,17 @@
     /* Zeitraum-Auswahl (Stil der Firebase-/Analytics-Datumsauswahl) */
     .range-wrap { position: relative; }
     .range-btn {
-      display: inline-flex; align-items: center; gap: 16px; cursor: pointer; max-width: 100%;
-      font: inherit; color: #fff; background: var(--forest); text-align: left;
-      border: none; border-radius: 16px; padding: 16px 22px; box-shadow: var(--shadow-dark);
-      transition: background .15s;
+      display: inline-flex; align-items: center; gap: 22px; cursor: pointer; max-width: 100%; min-height: 76px;
+      font: inherit; color: var(--ink); background: var(--card); text-align: left;
+      border: 1px solid var(--card-line); border-radius: 22px; padding: 12px 28px;
+      transition: border-color .15s, box-shadow .15s;
     }
-    .range-btn:hover, .range-btn[aria-expanded="true"] { background: var(--forest-soft); }
-    .range-badge { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--meadow); white-space: nowrap; }
-    .range-sep { width: 1px; height: 18px; background: rgba(255,255,255,0.2); flex: none; }
-    .range-dates { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    .range-caret { width: 16px; height: 16px; color: rgba(255,255,255,0.75); margin-left: 2px; transition: transform .2s; flex: none; }
+    .range-btn:hover, .range-btn[aria-expanded="true"] { border-color: var(--meadow); box-shadow: var(--shadow-card); }
+    .range-btn:focus-visible { outline: 2px solid var(--meadow); outline-offset: 3px; }
+    .range-badge { font-size: 14px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--heat-4); white-space: nowrap; }
+    .range-sep { width: 1px; height: 28px; background: var(--card-line); flex: none; }
+    .range-dates { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .range-caret { width: 18px; height: 18px; color: var(--ink); margin-left: 2px; transition: transform .2s; flex: none; }
     .range-btn[aria-expanded="true"] .range-caret { transform: rotate(180deg); }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .range-panel {
@@ -641,9 +644,9 @@
     @media (max-width: 640px) {
       .range-panel { grid-template-columns: 1fr; grid-template-rows: 150px 360px auto; position: fixed; top: 12px; left: 16px; }
       .rp-presets { border-right: none; border-bottom: 1px solid var(--grid); }
-      .range-btn { flex-wrap: wrap; gap: 4px 12px; padding: 12px 16px; }
+      .range-btn { flex-wrap: wrap; gap: 4px 12px; padding: 12px 18px; min-height: 0; border-radius: 18px; }
       .range-sep { display: none; }
-      .range-dates { font-size: 17px; white-space: normal; }
+      .range-dates { font-size: 20px; white-space: normal; }
     }
 
     /* Album-Cover (über die iTunes-Suche nachgeladen) */
@@ -759,7 +762,7 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="head-band">
     <header class="page-head">
       <div class="brand">
         <span class="brand-icon" aria-hidden="true">
@@ -791,6 +794,9 @@
       </div>
       <section class="hotd hidden" id="hotd-panel" aria-label="Hit des Tages"></section>
     </header>
+  </div>
+
+  <div class="wrap">
 
     <section id="loader">
       <label class="drop" id="drop">
@@ -1043,8 +1049,9 @@
     // ── Album-Cover ──
     // Nur für angezeigte Titel: Band + Titel gehen an die öffentliche iTunes-Suche von Apple,
     // das Ergebnis (Bild-URL oder "nichts gefunden") wird in diesem Browser gemerkt.
-    const COVER_KEY = "musik-cover-2";   // { "band|titel": { img, url } }
+    const COVER_KEY = "musik-cover-3";   // { "band|titel": { img, url } }
     storeDel("musik-cover");              // ältere Version ohne Apple-Music-Link
+    storeDel("musik-cover-2");            // ältere Version ohne Rückgriff auf das Album
     let coverCache = {};
     try { coverCache = JSON.parse(storeGet(COVER_KEY) || "{}"); } catch (e) { coverCache = {}; }
     const coverPending = new Map();
@@ -1061,9 +1068,12 @@
         const nb = norm(band), nt = norm(title), na = norm(album || "");
         const score = x => (norm(x.artistName).includes(nb.split(" ")[0]) ? 2 : 0) + (norm(x.trackName) === nt ? 2 : norm(x.trackName).startsWith(nt) ? 1 : 0) + (na && norm(x.collectionName) === na ? 1 : 0);
         const best = res.filter(x => x.artworkUrl100 && score(x) >= 3).sort((a, b_) => score(b_) - score(a))[0];
-        const hit = best ? {
-          img: best.artworkUrl100.replace(/\/\d+x\d+bb\./, "/300x300bb."),
-          url: (best.trackViewUrl || "").replace(/[?&]uo=\d+/, "")
+        // Manche Titel liefert die Suche nicht selbst (z. B. "Zero Sum" von The Smile), aber eine
+        // Single/ein Album derselben Band, deren Name den Titel enthält -> deren Cover und Album-Link
+        const alt = best ? null : res.find(x => x.artworkUrl100 && norm(x.artistName).includes(nb) && ` ${norm(x.collectionName)} `.includes(` ${nt} `));
+        const hit = best || alt ? {
+          img: (best || alt).artworkUrl100.replace(/\/\d+x\d+bb\./, "/300x300bb."),
+          url: ((best ? best.trackViewUrl : alt.collectionViewUrl) || "").replace(/[?&]uo=\d+/, "")
         } : null;
         coverCache[key] = hit;
         storeSet(COVER_KEY, JSON.stringify(coverCache));
@@ -1917,22 +1927,21 @@
       const now = new Date(), dm = `${now.getDate()}. ${MONTHS_LONG[now.getMonth()]}`;
       const hit = hitOfDay(now.getMonth(), now.getDate());
       const panel = document.getElementById("hotd-panel");
-      const star = `<svg class="hotd-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>`;
-      if (!hit) { panel.innerHTML = `${star}<p class="hotd-empty">An einem ${dm} hast du bisher keine Musik gehört.</p>`; return; }
+      if (!hit) { panel.innerHTML = `<p class="hotd-empty">An einem ${dm} hast du bisher keine Musik gehört.</p>`; return; }
       const [title, b] = DATA.titel[hit.tr];
       const years = [...hit.years].sort();
-      panel.innerHTML = `${star}
+      panel.innerHTML = `
         <div class="hotd-main">
           ${coverSlot(hit.tr)}
           <div class="hotd-info">
-            <div class="hotd-tags"><span>Hit des Tages</span><span>${dm}</span></div>
+            <div class="hotd-tags"><span>Hit des Tages</span><span>jeder ${dm}</span></div>
             <h2>${esc(title)}</h2>
             <p>${esc(bandName(b))}</p>
           </div>
         </div>
         <div class="hotd-stats">
-          <div class="hotd-stat"><b>${fmtNum(hit.count)}</b><span>${hit.count === 1 ? "Wiedergabe" : "Wiedergaben"}</span></div>
-          <div class="hotd-stat hotd-years${years.length > 3 ? " many" : years.length > 1 ? " some" : ""}"><b>${years.join(" · ")}</b><span>${years.length === 1 ? "Jahr" : "Jahre"}</span></div>
+          <div class="hotd-stat"><b>${fmtNum(hit.count)}</b><span>${hit.count === 1 ? "Wiedergabe" : "Wiedergaben"} an einem ${dm}</span></div>
+          <div class="hotd-stat hotd-years${years.length > 3 ? " many" : years.length > 1 ? " some" : ""}"><b>${years.join(" · ")}</b><span>${years.length === 1 ? "Jahr, in dem er lief" : "Jahre, in denen er lief"}</span></div>
           <a class="hotd-link" id="hotd-link" target="_blank" rel="noopener" href="https://music.apple.com/de/search?term=${encodeURIComponent(`${bandName(b)} ${title}`)}" title="Bei Apple Music suchen">Apple Music
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></a>
         </div>`;
