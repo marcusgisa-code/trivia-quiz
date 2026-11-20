@@ -403,6 +403,16 @@
     .rk-table .unit { color: var(--muted); font-weight: 500; }
     .rk-name { font-size: 17px; font-weight: 600; }
     .rk-name .link { font-weight: 600; }
+    /* Titel in der Hitliste: Klick spielt den Song im Apple-Music-Player ab */
+    .track-link { display: inline-flex; align-items: center; gap: 8px; }
+    .track-link .play {
+      width: 22px; height: 22px; border-radius: 999px; flex: none; display: grid; place-items: center;
+      background: var(--meadow-tint); color: var(--heat-4); transition: background .15s, color .15s;
+    }
+    .track-link .play svg { width: 10px; height: 10px; margin-left: 1px; }
+    .track-link:hover .play, .track-link.is-playing .play { background: var(--meadow); color: #141c16; }
+    .track-link.is-busy { cursor: progress; opacity: 0.7; }
+    .track-link:focus-visible { outline: 2px solid var(--meadow); outline-offset: 3px; border-radius: 6px; }
     .rk-sub { display: block; font-size: 13px; font-weight: 500; color: var(--ink-2); margin-top: 2px; }
     .rk-table td .link.band-link:not(.rk-name-link) { color: var(--ink-2); font-weight: 500; }
     .rk-rank {
@@ -1098,13 +1108,14 @@
       document.getElementById("player").classList.remove("hidden");
       document.body.classList.add("has-player");
       document.querySelectorAll("a.cover").forEach(a => a.classList.toggle("is-playing", a.getAttribute("href") === url));
+      document.querySelectorAll(".track-link").forEach(btn => btn.classList.toggle("is-playing", btn.dataset.url === url));
     }
     function closePlayer() {
       playerUrl = null;
       document.getElementById("player-frame").innerHTML = "";
       document.getElementById("player").classList.add("hidden");
       document.body.classList.remove("has-player");
-      document.querySelectorAll("a.cover.is-playing").forEach(a => a.classList.remove("is-playing"));
+      document.querySelectorAll("a.cover.is-playing, .track-link.is-playing").forEach(a => a.classList.remove("is-playing"));
     }
     document.getElementById("player-close").addEventListener("click", closePlayer);
     // Interpreten-Seite bei Apple Music (iTunes-Suche, Ergebnis wird gemerkt)
@@ -1481,6 +1492,7 @@
         <th class="${ui.kind === "band" ? "num " : ""}hide-sm">${third}</th>
         <th class="num${byDur ? "" : " on"}">Wiedergaben</th><th class="num${byDur ? " on" : ""}">Hörzeit</th>
         <th class="gap hide-sm">Zuerst</th><th class="hide-sm">Zuletzt</th><th>Anteil</th></tr>`;
+      const trackLink = tr => `<button type="button" class="link track-link" data-tr="${tr}" title="„${esc(trackTitle(tr))}“ abspielen"><span class="play" aria-hidden="true"><svg viewBox="0 0 10 10" fill="currentColor"><path d="M2 1l7 4-7 4z"/></svg></span>${esc(trackTitle(tr))}</button>`;
       const bandLink = (b, cls = "") => `<button type="button" class="link band-link${cls}" data-b="${b}" title="Nur ${esc(bandName(b))} anzeigen">${esc(bandName(b))}</button>`;
       // Hörzeit als "131 h 16 min" mit abgesetzten Einheiten
       const fmtHM = sec => {
@@ -1492,7 +1504,7 @@
         const pct = Math.max(4, Math.round(((byDur ? e.dur : e.count) / max) * 100));
         return `<tr>
           <td><span class="rk-rank${tier}">${e.rank}</span></td>
-          <td class="rk-name">${ui.kind === "band" ? bandLink(e.p0.b, " rk-name-link") : esc(name(e))}
+          <td class="rk-name">${ui.kind === "band" ? bandLink(e.p0.b, " rk-name-link") : ui.kind === "track" ? trackLink(e.p0.tr) : esc(name(e))}
               ${ui.kind !== "band" ? `<span class="rk-sub" style="display:none" data-sm>${esc(bandName(e.p0.b))}</span>` : ""}</td>
           <td class="${ui.kind === "band" ? "num soft " : ""}hide-sm">${ui.kind === "band" ? fmtNum(e.tracks.size) : bandLink(e.p0.b)}</td>
           <td class="num ${byDur ? "soft" : "strong"}">${fmtNum(e.count)}</td>
@@ -1505,6 +1517,19 @@
       // Auf schmalen Bildschirmen ist die Band-Spalte ausgeblendet -> Band unter dem Titel zeigen
       if (matchMedia("(max-width: 640px)").matches) document.querySelectorAll("[data-sm]").forEach(el => { el.style.display = "block"; });
       document.querySelectorAll(".band-link").forEach(btn => btn.addEventListener("click", () => setBand(Number(btn.dataset.b))));
+      document.querySelectorAll(".track-link").forEach(btn => btn.addEventListener("click", () => playTrack(btn)));
+    }
+    // Titel aus der Hitliste abspielen: Apple-Music-Link über die Cover-Suche (wird gemerkt);
+    // findet die Suche nichts, öffnet sich die Apple-Music-Suche in einem neuen Tab
+    function playTrack(btn) {
+      const tr = Number(btn.dataset.tr);
+      btn.classList.add("is-busy");
+      coverFor(tr).then(hit => {
+        btn.classList.remove("is-busy");
+        if (hit && hit.url) { btn.dataset.url = hit.url; openPlayer(hit.url); return; }
+        const [title, b] = DATA.titel[tr];
+        window.open(`https://music.apple.com/de/search?term=${encodeURIComponent(`${bandName(b)} ${title}`)}`, "_blank", "noopener");
+      });
     }
 
     const WEEKDAYS_FULL = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
